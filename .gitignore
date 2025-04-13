@@ -4,3 +4,5 @@ src/heatpump_stats.egg-info/
 src/heatpump_stats/__pycache__/
 
 tests/__pycache__/
+
+.env
