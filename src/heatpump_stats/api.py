@@ -1,14 +1,17 @@
 """Client module for interacting with the Viessmann API."""
 
 import logging
+import os
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pandas as pd
 
 # Update PyViCare imports to use the correct modules
 from PyViCare.PyViCareDevice import Device
 from PyViCare.PyViCareHeatPump import HeatPump
+from PyViCare.PyViCareOAuthManager import ViCareOAuthManager
 
 from heatpump_stats.config import CONFIG, validate_config
 
@@ -44,10 +47,15 @@ class ViessmannClient:
         logger.info("Authenticating with Viessmann API")
         try:
             # Use the correct OAuth manager class name
-            from PyViCare.PyViCareOAuthManager import ViCareOAuthManager
+
+            # Create a token file path in the user's home directory
+            token_file = os.path.join(str(Path.home()), ".vicare_token.save")
 
             oauth_manager = ViCareOAuthManager(
-                client_id=self.client_id if self.client_id else "vicare-app", username=self.username, password=self.password
+                client_id=self.client_id if self.client_id else "vicare-app",
+                username=self.username,
+                password=self.password,
+                token_file=token_file,
             )
             self.vicare_utils = oauth_manager
             self._authenticated = True
