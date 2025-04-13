@@ -32,7 +32,7 @@ class ViessmannClient:
 
         self.username = username or CONFIG["VIESSMANN_USER"]
         self.password = password or CONFIG["VIESSMANN_PASSWORD"]
-        self.client_id = CONFIG.get("CLIENT_ID", "")
+        self.client_id = CONFIG.get("CLIENT_ID", "vicare-app")
 
         self.vicare = None
         self.devices = []
@@ -46,14 +46,10 @@ class ViessmannClient:
             # Create a token file path in the user's home directory
             token_file = os.path.join(str(Path.home()), ".vicare_token.save")
 
-            # Create a PyViCare instance and authenticate
+            logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id}")
+
             self.vicare = PyViCare()
-            self.vicare.initWithCredentials(
-                client_id=self.client_id,
-                username=self.username,
-                password=self.password,
-                token_file=token_file,
-            )
+            self.vicare.initWithCredentials(self.username, self.password, self.client_id, token_file)
 
             logger.debug(f"Authentication successful with username: {self.username}")
             self._authenticated = True
@@ -71,22 +67,29 @@ class ViessmannClient:
             self.authenticate()
 
         try:
-            # Get devices using the ViCare class
+            # Get devices using the PyViCare instance
             self.devices = []
 
-            # Get all devices
+            # Get all devices directly from vicare.devices
             logger.debug("Fetching all devices from Viessmann API...")
+
+            # The devices are directly accessible as a property of PyViCare
             vicare_devices = self.vicare.devices
 
             for device in vicare_devices:
-                device_id = device.getConfig().getDeviceId()
-                device_name = device.getConfig().getModel()
-                logger.debug(f"Found device: {device_id} (Model: {device_name})")
+                device_id = device.id
+                # Try to get the model name, with fallback
+                try:
+                    device_model = device.getModel() if hasattr(device, "getModel") else "Unknown model"
+                except:
+                    device_model = "Unknown model"
+
+                logger.debug(f"Found device: {device_id} (Model: {device_model})")
 
                 self.devices.append(
                     {
                         "id": device_id,
-                        "modelId": device_name,
+                        "modelId": device_model,
                         "device": device,  # Store the device object for later use
                     }
                 )
@@ -126,13 +129,10 @@ class ViessmannClient:
             # Get the stored device object
             device = device_info["device"]
 
-            # Check if it's a heat pump
-            if device.getConfig().getDeviceType() == "heatpump":
-                self.heat_pump = device
-                logger.info(f"Connected to heat pump: {device_info.get('modelId', 'Unknown model')}")
-                return self.heat_pump
-            else:
-                raise ValueError(f"Device is not a heat pump: {device.getConfig().getDeviceType()}")
+            # Use asHeatPump method as per the PyViCare documentation
+            self.heat_pump = device.asHeatPump()
+            logger.info(f"Connected to heat pump: {device_info.get('modelId', 'Unknown model')}")
+            return self.heat_pump
         except Exception as e:
             logger.error(f"Failed to connect to heat pump: {e}")
             logger.debug("Error details:", exc_info=True)
@@ -156,16 +156,35 @@ class ViessmannClient:
 
             # Try to get temperature data
             try:
-                data["outside_temperature"] = self.heat_pump.getOutsideTemperature()
-                data["supply_temperature"] = self.heat_pump.getSupplyTemperature()
-                data["return_temperature"] = self.heat_pump.getReturnTemperature()
+                # Access the first circuit for temperature data
+                circuit = self.heat_pump.circuits[0]
+
+                # Get the outdoor temperature
+                data["outside_temperature"] = circuit.getOutsideTemperature()
+
+                # Get supply and return temperatures
+                data["supply_temperature"] = circuit.getSupplyTemperature()
+                data["return_temperature"] = circuit.getReturnTemperature()
             except Exception as e:
                 logger.warning(f"Error getting temperature data: {e}")
 
-            # Try to get power data
+            # Try to get status and power data
             try:
-                data["heat_pump_status"] = self.heat_pump.getActive()
-                data["power_consumption"] = self.heat_pump.getPowerConsumptionDays() or {}
+                data["heat_pump_status"] = self.heat_pump.compressor.getActive()
+
+                # Power consumption needs to be collected differently in new API
+                power_data = {}
+
+                # Try different methods for power consumption
+                try:
+                    power_data["today"] = self.heat_pump.getStatsEnergyDays()
+                except:
+                    try:
+                        power_data["today"] = self.heat_pump.getPowerConsumptionDays()
+                    except:
+                        power_data["today"] = {}
+
+                data["power_consumption"] = power_data
             except Exception as e:
                 logger.warning(f"Error getting power data: {e}")
                 data["heat_pump_status"] = None
