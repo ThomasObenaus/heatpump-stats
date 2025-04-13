@@ -106,7 +106,7 @@ class TestHeatPumpDataStore(unittest.TestCase):
         # Arrange
         mock_df = pd.DataFrame(
             {
-                "timestamp": pd.date_range(start="2025-04-13", periods=24, freq="H"),
+                "timestamp": pd.date_range(start="2025-04-13", periods=24, freq="h"),  # Changed from 'H' to 'h'
                 "outside_temperature": range(0, 24),
                 "supply_temperature": range(30, 54),
                 "return_temperature": range(25, 49),

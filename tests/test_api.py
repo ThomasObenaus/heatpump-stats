@@ -9,7 +9,8 @@ from heatpump_stats.api import ViessmannClient
 class TestViessmannClient(unittest.TestCase):
     """Test cases for the ViessmannClient class."""
 
-    @patch("heatpump_stats.api.PyViCareUtils")
+    # Update the patch target to match the actual import in api.py
+    @patch("PyViCare.PyViCareUtils.PyViCareUtils")
     def test_authenticate(self, mock_utils):
         """Test authentication with the Viessmann API."""
         # Arrange
@@ -24,7 +25,7 @@ class TestViessmannClient(unittest.TestCase):
         self.assertTrue(client._authenticated)
         mock_utils.assert_called_once_with("test@example.com", "password", client_id=None)
 
-    @patch("heatpump_stats.api.PyViCareUtils")
+    @patch("PyViCare.PyViCareUtils.PyViCareUtils")
     def test_get_devices(self, mock_utils):
         """Test retrieving devices from the API."""
         # Arrange
