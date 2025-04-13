@@ -9,8 +9,8 @@ from heatpump_stats.api import ViessmannClient
 class TestViessmannClient(unittest.TestCase):
     """Test cases for the ViessmannClient class."""
 
-    # Update the patch to match the OAuth implementation
-    @patch("PyViCare.PyViCareOAuthManager.PyViCareOAuthManager")
+    # Update the patch to use the correct class name
+    @patch("PyViCare.PyViCareOAuthManager.ViCareOAuthManager")
     def test_authenticate(self, mock_oauth_manager):
         """Test authentication with the Viessmann API."""
         # Arrange
@@ -25,7 +25,7 @@ class TestViessmannClient(unittest.TestCase):
         self.assertTrue(client._authenticated)
         mock_oauth_manager.assert_called_once_with(client_id="vicare-app", username="test@example.com", password="password")
 
-    @patch("PyViCare.PyViCareOAuthManager.PyViCareOAuthManager")
+    @patch("PyViCare.PyViCareOAuthManager.ViCareOAuthManager")
     def test_get_devices(self, mock_oauth_manager):
         """Test retrieving devices from the API."""
         # Arrange

@@ -43,12 +43,10 @@ class ViessmannClient:
         """Authenticate with the Viessmann API."""
         logger.info("Authenticating with Viessmann API")
         try:
-            # Use a compatible authentication approach based on PyViCare's structure
-            # This is a placeholder implementation - you need to check PyViCare's documentation
-            # for the correct authentication method
-            from PyViCare.PyViCareOAuthManager import PyViCareOAuthManager
+            # Use the correct OAuth manager class name
+            from PyViCare.PyViCareOAuthManager import ViCareOAuthManager
 
-            oauth_manager = PyViCareOAuthManager(
+            oauth_manager = ViCareOAuthManager(
                 client_id=self.client_id if self.client_id else "vicare-app", username=self.username, password=self.password
             )
             self.vicare_utils = oauth_manager
