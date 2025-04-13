@@ -5,8 +5,8 @@ import logging
 import sys
 import time
 from datetime import datetime
+
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from heatpump_stats.api import ViessmannClient
 from heatpump_stats.config import CONFIG, init_config
@@ -24,20 +24,20 @@ def setup_parser():
     parser = argparse.ArgumentParser(
         description="Fetch and analyze Viessmann heat pump data"
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
-    
+
     # Fetch command
     fetch_parser = subparsers.add_parser("fetch", help="Fetch current heat pump data")
     fetch_parser.add_argument(
-        "-s", "--save", 
-        action="store_true", 
+        "-s", "--save",
+        action="store_true",
         help="Save data to the data store"
     )
-    
+
     # Monitor command
     monitor_parser = subparsers.add_parser(
-        "monitor", 
+        "monitor",
         help="Continuously monitor heat pump data"
     )
     monitor_parser.add_argument(
@@ -52,7 +52,7 @@ def setup_parser():
         default=24,
         help="Monitoring duration in hours (default: 24)"
     )
-    
+
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show statistics")
     stats_parser.add_argument(
@@ -65,7 +65,7 @@ def setup_parser():
         "--date",
         help="Specific date to analyze (format: YYYY-MM-DD)"
     )
-    
+
     # Plot command
     plot_parser = subparsers.add_parser("plot", help="Generate plots")
     plot_parser.add_argument(
@@ -78,7 +78,7 @@ def setup_parser():
         "-o", "--output",
         help="Output file for plot (e.g., plot.png)"
     )
-    
+
     return parser
 
 def fetch_data(save=False):
@@ -93,16 +93,16 @@ def fetch_data(save=False):
         client.authenticate()
         client.get_heat_pump()
         data = client.collect_heat_pump_data()
-        
+
         # Print data to console
         print(json.dumps(data, indent=2))
-        
+
         # Save data if requested
         if save:
             data_store = HeatPumpDataStore()
             data_store.save_data_point(data)
             print(f"Data saved to {data_store.csv_path}")
-        
+
         return data
     except Exception as e:
         logger.error(f"Error fetching data: {e}")
@@ -118,27 +118,27 @@ def monitor_data(interval_minutes=15, duration_hours=24):
     """
     client = ViessmannClient()
     data_store = HeatPumpDataStore()
-    
+
     try:
         client.authenticate()
         client.get_heat_pump()
-        
+
         end_time = datetime.now().timestamp() + (duration_hours * 3600)
         count = 0
-        
+
         print(f"Starting monitoring for {duration_hours} hours at {interval_minutes} minute intervals")
         print(f"Data will be saved to {data_store.csv_path}")
         print("Press Ctrl+C to stop...")
-        
+
         while datetime.now().timestamp() < end_time:
             try:
                 data = client.collect_heat_pump_data()
                 data_store.save_data_point(data)
                 count += 1
-                
+
                 print(f"\rCollected {count} data points. Last: {data['timestamp']} - "
                      f"Outside: {data['outside_temperature']}°C", end="")
-                
+
                 # Sleep until next interval
                 time.sleep(interval_minutes * 60)
             except KeyboardInterrupt:
@@ -148,7 +148,7 @@ def monitor_data(interval_minutes=15, duration_hours=24):
                 logger.error(f"Error collecting data point: {e}")
                 # Continue after error, with a short delay
                 time.sleep(60)
-                
+
         print(f"\nMonitoring complete. Collected {count} data points.")
     except Exception as e:
         logger.error(f"Error during monitoring: {e}")
@@ -163,14 +163,14 @@ def show_stats(days=7, date=None):
         date: Specific date to analyze (format: YYYY-MM-DD)
     """
     data_store = HeatPumpDataStore()
-    
+
     if date:
         # Show stats for specific day
         stats = data_store.get_daily_stats(date)
         if not stats:
             print(f"No data available for {date}")
             return
-            
+
         print(f"Statistics for {date}:")
         for key, value in stats.items():
             if key != "date":
@@ -181,7 +181,7 @@ def show_stats(days=7, date=None):
         if df.empty:
             print("No data available")
             return
-            
+
         print(f"Statistics for the last {days} days:")
         print(f"  Total readings: {len(df)}")
         print(f"  Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")
@@ -189,13 +189,13 @@ def show_stats(days=7, date=None):
         print(f"  Average outside temperature: {df['outside_temperature'].mean():.1f}°C")
         print(f"  Average supply temperature: {df['supply_temperature'].mean():.1f}°C")
         print(f"  Average return temperature: {df['return_temperature'].mean():.1f}°C")
-        
+
         # Daily summaries
         daily = df.groupby(df["timestamp"].dt.date).agg({
             "outside_temperature": ["mean", "min", "max"],
             "heat_pump_status": "mean"
         })
-        
+
         print("\nDaily summaries:")
         for idx, row in daily.iterrows():
             print(f"  {idx}: Avg: {row[('outside_temperature', 'mean')]:.1f}°C, "
@@ -212,14 +212,14 @@ def generate_plot(days=7, output=None):
     """
     data_store = HeatPumpDataStore()
     df = data_store.load_data(days)
-    
+
     if df.empty:
         print("No data available for plotting")
         return
-        
+
     # Create figure with multiple subplots
     fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
-    
+
     # Temperature plot
     axs[0].plot(df["timestamp"], df["outside_temperature"], label="Outside")
     axs[0].plot(df["timestamp"], df["supply_temperature"], label="Supply")
@@ -228,7 +228,7 @@ def generate_plot(days=7, output=None):
     axs[0].set_title("Heat Pump Temperatures")
     axs[0].legend()
     axs[0].grid(True)
-    
+
     # Heat pump status
     axs[1].scatter(df["timestamp"], df["heat_pump_status"], marker="|")
     axs[1].set_ylabel("Status")
@@ -236,7 +236,7 @@ def generate_plot(days=7, output=None):
     axs[1].set_yticks([0, 1])
     axs[1].set_yticklabels(["Off", "On"])
     axs[1].grid(True)
-    
+
     # Temperature delta (supply - return)
     if "supply_temperature" in df.columns and "return_temperature" in df.columns:
         df["temp_delta"] = df["supply_temperature"] - df["return_temperature"]
@@ -244,10 +244,10 @@ def generate_plot(days=7, output=None):
         axs[2].set_ylabel("Temperature Δ (°C)")
         axs[2].set_title("Supply-Return Temperature Delta")
         axs[2].grid(True)
-    
+
     plt.xlabel("Date/Time")
     plt.tight_layout()
-    
+
     if output:
         plt.savefig(output)
         print(f"Plot saved to {output}")
@@ -262,15 +262,15 @@ def main():
     except Exception as e:
         logger.error(f"Configuration error: {e}")
         sys.exit(1)
-        
+
     # Set up command-line parser
     parser = setup_parser()
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return
-    
+
     # Execute command
     if args.command == "fetch":
         fetch_data(args.save)

@@ -1,16 +1,18 @@
 """Data models for heat pump statistics."""
-import json
 import csv
+import json
 import os
 from datetime import datetime
 from pathlib import Path
+
 import pandas as pd
 
 from heatpump_stats.config import CONFIG
 
+
 class HeatPumpDataStore:
     """Class for storing and retrieving heat pump data."""
-    
+
     def __init__(self, data_dir=None):
         """
         Initialize data store.
@@ -20,7 +22,7 @@ class HeatPumpDataStore:
         """
         self.data_dir = Path(data_dir or CONFIG["DATA_DIR"])
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Ensure CSV file exists
         self.csv_path = self.data_dir / "heatpump_data.csv"
         if not self.csv_path.exists():
@@ -30,7 +32,7 @@ class HeatPumpDataStore:
                     "timestamp", "outside_temperature", "supply_temperature",
                     "return_temperature", "heat_pump_status"
                 ])
-    
+
     def save_data_point(self, data):
         """
         Save a single data point to CSV and latest JSON file.
@@ -40,32 +42,32 @@ class HeatPumpDataStore:
         """
         # Write to CSV
         is_new_file = not os.path.exists(self.csv_path) or os.path.getsize(self.csv_path) == 0
-        
+
         with open(self.csv_path, "a", newline="") as f:
             writer = csv.writer(f)
-            
+
             # If new file, write header
             if is_new_file:
                 writer.writerow(data.keys())
-            
+
             # Write data row
             writer.writerow(data.values())
-        
+
         # Save latest data as JSON
         latest_json = self.data_dir / "latest.json"
         with open(latest_json, "w") as f:
             json.dump(data, f, indent=2)
-        
+
         # Save daily snapshot
         date_str = datetime.now().strftime("%Y-%m-%d")
         daily_dir = self.data_dir / "daily"
         daily_dir.mkdir(exist_ok=True)
-        
+
         timestamp = datetime.fromisoformat(data["timestamp"]).strftime("%H%M%S")
         daily_file = daily_dir / f"{date_str}_{timestamp}.json"
         with open(daily_file, "w") as f:
             json.dump(data, f, indent=2)
-    
+
     def load_data(self, days=None):
         """
         Load data from CSV file.
@@ -78,20 +80,20 @@ class HeatPumpDataStore:
         """
         if not os.path.exists(self.csv_path):
             return pd.DataFrame()
-            
+
         df = pd.read_csv(self.csv_path)
-        
+
         # Convert timestamp to datetime
         if "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"])
-            
+
             # Filter by days if specified
             if days:
                 cutoff = pd.Timestamp.now() - pd.Timedelta(days=days)
                 df = df[df["timestamp"] > cutoff]
-                
+
         return df
-    
+
     def get_latest_data(self):
         """
         Get latest data point.
@@ -102,10 +104,10 @@ class HeatPumpDataStore:
         latest_json = self.data_dir / "latest.json"
         if not latest_json.exists():
             return None
-            
-        with open(latest_json, "r") as f:
+
+        with open(latest_json) as f:
             return json.load(f)
-    
+
     def get_daily_stats(self, date=None):
         """
         Get statistics for a specific day.
@@ -118,16 +120,16 @@ class HeatPumpDataStore:
         """
         date_str = date or datetime.now().strftime("%Y-%m-%d")
         df = self.load_data()
-        
+
         if "timestamp" not in df.columns or df.empty:
             return {}
-            
+
         # Filter data for the specified date
         day_data = df[df["timestamp"].dt.strftime("%Y-%m-%d") == date_str]
-        
+
         if day_data.empty:
             return {}
-        
+
         # Calculate statistics
         stats = {
             "date": date_str,
@@ -143,5 +145,5 @@ class HeatPumpDataStore:
             "active_percentage": (day_data["heat_pump_status"] == True).mean() * 100,
             "readings_count": len(day_data),
         }
-        
+
         return stats
