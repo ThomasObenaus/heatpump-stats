@@ -102,7 +102,7 @@ class ViessmannClient:
                             device_model = device.model
                         else:
                             device_model = "Unknown model"
-                    except:
+                    except (AttributeError, TypeError):
                         device_model = "Unknown model"
 
                     logger.debug(f"Found device: {device_id} (Model: {device_model})")
