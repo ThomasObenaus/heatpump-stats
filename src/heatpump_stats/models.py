@@ -23,13 +23,20 @@ class HeatPumpDataStore:
         """
         self.data_dir = Path(data_dir or CONFIG["DATA_DIR"])
         self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.HEADERS = [
+            "timestamp",
+            "outside_temperature",
+            "supply_temperature",
+            "return_temperature",
+            "heat_pump_status",
+        ]
 
         # Ensure CSV file exists
         self.csv_path = self.data_dir / "heatpump_data.csv"
         if not self.csv_path.exists():
             with open(self.csv_path, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(["timestamp", "outside_temperature", "supply_temperature", "return_temperature", "heat_pump_status"])
+                writer.writerow(self.HEADERS)
 
     def save_data_point(self, data):
         """
@@ -46,10 +53,10 @@ class HeatPumpDataStore:
 
             # If new file, write header
             if is_new_file:
-                writer.writerow(data.keys())
+                writer.writerow(self.HEADERS)
 
             # Write data row
-            writer.writerow(data.values())
+            writer.writerow([data.get(key, "") for key in self.HEADERS])
 
         # Save latest data as JSON
         latest_json = self.data_dir / "latest.json"
