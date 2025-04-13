@@ -140,7 +140,7 @@ class HeatPumpDataStore:
             "min_return_temp": day_data["return_temperature"].min(),
             "max_return_temp": day_data["return_temperature"].max(),
             "avg_return_temp": day_data["return_temperature"].mean(),
-            "active_percentage": (day_data["heat_pump_status"] == True).mean() * 100,
+            "active_percentage": (day_data["heat_pump_status"] is True).mean() * 100,
             "readings_count": len(day_data),
         }
 
