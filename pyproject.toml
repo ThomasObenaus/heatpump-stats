@@ -37,7 +37,7 @@ packages = {find = {where = ["src"]}}
 [tool.ruff]
 # Target Python 3.7+
 target-version = "py37"
-line-length = 88
+line-length = 140
 
 # Enable formatting
 [tool.ruff.format]
