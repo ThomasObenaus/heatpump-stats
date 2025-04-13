@@ -1,4 +1,5 @@
 """Tests for the Viessmann API client."""
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +9,7 @@ from heatpump_stats.api import ViessmannClient
 class TestViessmannClient(unittest.TestCase):
     """Test cases for the ViessmannClient class."""
 
-    @patch('heatpump_stats.api.PyViCareUtils')
+    @patch("heatpump_stats.api.PyViCareUtils")
     def test_authenticate(self, mock_utils):
         """Test authentication with the Viessmann API."""
         # Arrange
@@ -23,20 +24,13 @@ class TestViessmannClient(unittest.TestCase):
         self.assertTrue(client._authenticated)
         mock_utils.assert_called_once_with("test@example.com", "password", client_id=None)
 
-    @patch('heatpump_stats.api.PyViCareUtils')
+    @patch("heatpump_stats.api.PyViCareUtils")
     def test_get_devices(self, mock_utils):
         """Test retrieving devices from the API."""
         # Arrange
         client = ViessmannClient(username="test@example.com", password="password")
         mock_utils.return_value = MagicMock()
-        mock_installation = {
-            "gateways": [{
-                "devices": [
-                    {"id": "device1", "modelId": "model1"},
-                    {"id": "device2", "modelId": "model2"}
-                ]
-            }]
-        }
+        mock_installation = {"gateways": [{"devices": [{"id": "device1", "modelId": "model1"}, {"id": "device2", "modelId": "model2"}]}]}
         client.vicare_utils = MagicMock()
         client.vicare_utils.get_all_installations.return_value = [mock_installation]
         client._authenticated = True
@@ -49,8 +43,8 @@ class TestViessmannClient(unittest.TestCase):
         self.assertEqual(devices[0]["id"], "device1")
         self.assertEqual(devices[1]["id"], "device2")
 
-    @patch('heatpump_stats.api.Device')
-    @patch('heatpump_stats.api.HeatPump')
+    @patch("heatpump_stats.api.Device")
+    @patch("heatpump_stats.api.HeatPump")
     def test_get_heat_pump(self, mock_heat_pump, mock_device):
         """Test retrieving heat pump device."""
         # Arrange
@@ -74,7 +68,7 @@ class TestViessmannClient(unittest.TestCase):
         mock_device.assert_called_once()
         mock_heat_pump.assert_called_once()
 
-    @patch('heatpump_stats.api.ViessmannClient.get_heat_pump')
+    @patch("heatpump_stats.api.ViessmannClient.get_heat_pump")
     def test_collect_heat_pump_data(self, mock_get_heat_pump):
         """Test collecting data from heat pump."""
         # Arrange
@@ -96,6 +90,7 @@ class TestViessmannClient(unittest.TestCase):
         self.assertEqual(data["return_temperature"], 35.1)
         self.assertTrue(data["heat_pump_status"])
         self.assertIn("timestamp", data)
+
 
 if __name__ == "__main__":
     unittest.main()

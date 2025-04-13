@@ -1,4 +1,5 @@
 """Data models for heat pump statistics."""
+
 import csv
 import json
 import os
@@ -16,7 +17,7 @@ class HeatPumpDataStore:
     def __init__(self, data_dir=None):
         """
         Initialize data store.
-        
+
         Args:
             data_dir: Directory for storing data files
         """
@@ -28,15 +29,12 @@ class HeatPumpDataStore:
         if not self.csv_path.exists():
             with open(self.csv_path, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow([
-                    "timestamp", "outside_temperature", "supply_temperature",
-                    "return_temperature", "heat_pump_status"
-                ])
+                writer.writerow(["timestamp", "outside_temperature", "supply_temperature", "return_temperature", "heat_pump_status"])
 
     def save_data_point(self, data):
         """
         Save a single data point to CSV and latest JSON file.
-        
+
         Args:
             data: Dictionary containing heat pump data
         """
@@ -71,10 +69,10 @@ class HeatPumpDataStore:
     def load_data(self, days=None):
         """
         Load data from CSV file.
-        
+
         Args:
             days: Number of days to load (None for all)
-            
+
         Returns:
             pd.DataFrame: DataFrame with heat pump data
         """
@@ -97,7 +95,7 @@ class HeatPumpDataStore:
     def get_latest_data(self):
         """
         Get latest data point.
-        
+
         Returns:
             dict: Latest data point or None
         """
@@ -111,10 +109,10 @@ class HeatPumpDataStore:
     def get_daily_stats(self, date=None):
         """
         Get statistics for a specific day.
-        
+
         Args:
             date: Date string in format YYYY-MM-DD (None for today)
-            
+
         Returns:
             dict: Daily statistics
         """

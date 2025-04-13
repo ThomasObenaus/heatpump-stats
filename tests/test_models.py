@@ -1,4 +1,5 @@
 """Tests for heat pump data models."""
+
 import json
 import os
 import shutil
@@ -28,7 +29,7 @@ class TestHeatPumpDataStore(unittest.TestCase):
             "supply_temperature": 38.0,
             "return_temperature": 32.0,
             "heat_pump_status": True,
-            "power_consumption": {"2025-04-12": 12.4}
+            "power_consumption": {"2025-04-12": 12.4},
         }
 
     def tearDown(self):
@@ -99,17 +100,19 @@ class TestHeatPumpDataStore(unittest.TestCase):
         self.assertEqual(latest["outside_temperature"], 9.5)
         self.assertEqual(latest["supply_temperature"], 38.0)
 
-    @patch('heatpump_stats.models.HeatPumpDataStore.load_data')
+    @patch("heatpump_stats.models.HeatPumpDataStore.load_data")
     def test_get_daily_stats(self, mock_load_data):
         """Test calculating daily statistics."""
         # Arrange
-        mock_df = pd.DataFrame({
-            "timestamp": pd.date_range(start="2025-04-13", periods=24, freq="H"),
-            "outside_temperature": range(0, 24),
-            "supply_temperature": range(30, 54),
-            "return_temperature": range(25, 49),
-            "heat_pump_status": [True] * 12 + [False] * 12
-        })
+        mock_df = pd.DataFrame(
+            {
+                "timestamp": pd.date_range(start="2025-04-13", periods=24, freq="H"),
+                "outside_temperature": range(0, 24),
+                "supply_temperature": range(30, 54),
+                "return_temperature": range(25, 49),
+                "heat_pump_status": [True] * 12 + [False] * 12,
+            }
+        )
         mock_load_data.return_value = mock_df
 
         # Act
@@ -121,6 +124,7 @@ class TestHeatPumpDataStore(unittest.TestCase):
         self.assertEqual(stats["avg_outside_temp"], 11.5)
         self.assertEqual(stats["active_percentage"], 50.0)
         self.assertEqual(stats["readings_count"], 24)
+
 
 if __name__ == "__main__":
     unittest.main()
