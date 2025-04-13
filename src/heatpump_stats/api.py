@@ -15,8 +15,9 @@ from PyViCare.PyViCareOAuthManager import ViCareOAuthManager
 
 from heatpump_stats.config import CONFIG, validate_config
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# Configure logging based on environment variable
+log_level = os.environ.get("LOGLEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, log_level), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -51,6 +52,10 @@ class ViessmannClient:
             # Create a token file path in the user's home directory
             token_file = os.path.join(str(Path.home()), ".vicare_token.save")
 
+            # BREAKPOINT: Check token_file path
+            logger.debug(f"Using token file at: {token_file}")
+            logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id or 'vicare-app'}")
+
             oauth_manager = ViCareOAuthManager(
                 client_id=self.client_id if self.client_id else "vicare-app",
                 username=self.username,
@@ -63,6 +68,7 @@ class ViessmannClient:
             return True
         except Exception as e:
             logger.error(f"Authentication failed: {e}")
+            logger.debug("Authentication error details", exc_info=True)
             self._authenticated = False
             raise
 
