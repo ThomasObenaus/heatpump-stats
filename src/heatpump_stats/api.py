@@ -55,7 +55,7 @@ class ViessmannClient:
             logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id or 'vicare-app'}")
 
             oauth_manager = ViCareOAuthManager(
-                client_id=self.client_id if self.client_id else "vicare-app",
+                client_id=self.client_id,
                 username=self.username,
                 password=self.password,
                 token_file=token_file,
