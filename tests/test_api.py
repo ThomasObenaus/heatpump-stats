@@ -9,12 +9,13 @@ from heatpump_stats.api import ViessmannClient
 class TestViessmannClient(unittest.TestCase):
     """Test cases for the ViessmannClient class."""
 
-    @patch("heatpump_stats.api.PyViCareUtils")
-    def test_authenticate(self, mock_utils):
+    # Update the patch to use the correct class name
+    @patch("PyViCare.PyViCareOAuthManager.ViCareOAuthManager")
+    def test_authenticate(self, mock_oauth_manager):
         """Test authentication with the Viessmann API."""
         # Arrange
         client = ViessmannClient(username="test@example.com", password="password")
-        mock_utils.return_value = MagicMock()
+        mock_oauth_manager.return_value = MagicMock()
 
         # Act
         result = client.authenticate()
@@ -22,14 +23,15 @@ class TestViessmannClient(unittest.TestCase):
         # Assert
         self.assertTrue(result)
         self.assertTrue(client._authenticated)
-        mock_utils.assert_called_once_with("test@example.com", "password", client_id=None)
+        mock_oauth_manager.assert_called_once_with(client_id="vicare-app", username="test@example.com", password="password")
 
-    @patch("heatpump_stats.api.PyViCareUtils")
-    def test_get_devices(self, mock_utils):
+    @patch("PyViCare.PyViCareOAuthManager.ViCareOAuthManager")
+    def test_get_devices(self, mock_oauth_manager):
         """Test retrieving devices from the API."""
         # Arrange
         client = ViessmannClient(username="test@example.com", password="password")
-        mock_utils.return_value = MagicMock()
+        mock_manager = MagicMock()
+        mock_oauth_manager.return_value = mock_manager
         mock_installation = {"gateways": [{"devices": [{"id": "device1", "modelId": "model1"}, {"id": "device2", "modelId": "model2"}]}]}
         client.vicare_utils = MagicMock()
         client.vicare_utils.get_all_installations.return_value = [mock_installation]

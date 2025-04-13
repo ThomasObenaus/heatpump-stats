@@ -1,18 +1,23 @@
 """Client module for interacting with the Viessmann API."""
 
 import logging
+import os
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pandas as pd
+
+# Update PyViCare imports to use the correct modules
 from PyViCare.PyViCareDevice import Device
 from PyViCare.PyViCareHeatPump import HeatPump
-from PyViCare.PyViCareUtils import PyViCareUtils
+from PyViCare.PyViCareOAuthManager import ViCareOAuthManager
 
 from heatpump_stats.config import CONFIG, validate_config
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+# Configure logging based on environment variable
+log_level = os.environ.get("LOGLEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, log_level), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -42,17 +47,26 @@ class ViessmannClient:
         """Authenticate with the Viessmann API."""
         logger.info("Authenticating with Viessmann API")
         try:
-            # Use PyViCare's authentication utilities
-            self.vicare_utils = PyViCareUtils(
-                self.username,
-                self.password,
-                client_id=self.client_id if self.client_id else None,
+            # Use the correct OAuth manager class name
+
+            # Create a token file path in the user's home directory
+            token_file = os.path.join(str(Path.home()), ".vicare_token.save")
+
+            logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id or 'vicare-app'}")
+
+            oauth_manager = ViCareOAuthManager(
+                client_id=self.client_id if self.client_id else "vicare-app",
+                username=self.username,
+                password=self.password,
+                token_file=token_file,
             )
+            self.vicare_utils = oauth_manager
             self._authenticated = True
             logger.info("Authentication successful")
             return True
         except Exception as e:
             logger.error(f"Authentication failed: {e}")
+            logger.debug("Authentication error details", exc_info=True)
             self._authenticated = False
             raise
 
