@@ -16,5 +16,4 @@
         }
     },
     "ruff.lint.run": "onSave",
-    "ruff.format.args": []
 }

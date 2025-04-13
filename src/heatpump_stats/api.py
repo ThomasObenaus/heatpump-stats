@@ -1,4 +1,5 @@
 """Client module for interacting with the Viessmann API."""
+
 import logging
 import time
 from datetime import datetime, timedelta
@@ -11,19 +12,17 @@ from PyViCare.PyViCareUtils import PyViCareUtils
 from heatpump_stats.config import CONFIG, validate_config
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 class ViessmannClient:
     """Client for interacting with Viessmann API via PyViCare."""
+
     def __init__(self, username=None, password=None):
         """
         Initialize the Viessmann API client.
-        
+
         Args:
             username: Viessmann account username (email)
             password: Viessmann account password
@@ -47,7 +46,7 @@ class ViessmannClient:
             self.vicare_utils = PyViCareUtils(
                 self.username,
                 self.password,
-                client_id=self.client_id if self.client_id else None
+                client_id=self.client_id if self.client_id else None,
             )
             self._authenticated = True
             logger.info("Authentication successful")
@@ -80,10 +79,10 @@ class ViessmannClient:
     def get_heat_pump(self, device_id=None):
         """
         Get a heat pump device instance.
-        
+
         Args:
             device_id: Optional device ID if multiple devices exist
-        
+
         Returns:
             HeatPump: PyViCare HeatPump instance
         """
@@ -119,7 +118,7 @@ class ViessmannClient:
     def collect_heat_pump_data(self):
         """
         Collect all relevant data from the heat pump.
-        
+
         Returns:
             dict: Heat pump data with timestamp
         """
@@ -144,11 +143,11 @@ class ViessmannClient:
     def collect_data_series(self, interval_minutes=15, duration_hours=24):
         """
         Collect data series over time.
-        
+
         Args:
             interval_minutes: Interval between data points in minutes
             duration_hours: Duration to collect data in hours
-            
+
         Returns:
             pd.DataFrame: DataFrame with time series data
         """

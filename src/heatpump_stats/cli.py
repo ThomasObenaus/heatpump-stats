@@ -1,4 +1,5 @@
 """Command-line interface for heat pump statistics."""
+
 import argparse
 import json
 import logging
@@ -13,78 +14,50 @@ from heatpump_stats.config import CONFIG, init_config
 from heatpump_stats.models import HeatPumpDataStore
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 def setup_parser():
     """Set up command-line argument parser."""
-    parser = argparse.ArgumentParser(
-        description="Fetch and analyze Viessmann heat pump data"
-    )
+    parser = argparse.ArgumentParser(description="Fetch and analyze Viessmann heat pump data")
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Fetch command
     fetch_parser = subparsers.add_parser("fetch", help="Fetch current heat pump data")
-    fetch_parser.add_argument(
-        "-s", "--save",
-        action="store_true",
-        help="Save data to the data store"
-    )
+    fetch_parser.add_argument("-s", "--save", action="store_true", help="Save data to the data store")
 
     # Monitor command
-    monitor_parser = subparsers.add_parser(
-        "monitor",
-        help="Continuously monitor heat pump data"
-    )
+    monitor_parser = subparsers.add_parser("monitor", help="Continuously monitor heat pump data")
     monitor_parser.add_argument(
-        "-i", "--interval",
+        "-i",
+        "--interval",
         type=int,
         default=CONFIG["POLLING_INTERVAL"],
-        help=f"Polling interval in minutes (default: {CONFIG['POLLING_INTERVAL']})"
+        help=f"Polling interval in minutes (default: {CONFIG['POLLING_INTERVAL']})",
     )
     monitor_parser.add_argument(
-        "-d", "--duration",
-        type=int,
-        default=24,
-        help="Monitoring duration in hours (default: 24)"
+        "-d", "--duration", type=int, default=24, help="Monitoring duration in hours (default: 24)"
     )
 
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show statistics")
-    stats_parser.add_argument(
-        "-d", "--days",
-        type=int,
-        default=7,
-        help="Number of days to analyze (default: 7)"
-    )
-    stats_parser.add_argument(
-        "--date",
-        help="Specific date to analyze (format: YYYY-MM-DD)"
-    )
+    stats_parser.add_argument("-d", "--days", type=int, default=7, help="Number of days to analyze (default: 7)")
+    stats_parser.add_argument("--date", help="Specific date to analyze (format: YYYY-MM-DD)")
 
     # Plot command
     plot_parser = subparsers.add_parser("plot", help="Generate plots")
-    plot_parser.add_argument(
-        "-d", "--days",
-        type=int,
-        default=7,
-        help="Number of days to plot (default: 7)"
-    )
-    plot_parser.add_argument(
-        "-o", "--output",
-        help="Output file for plot (e.g., plot.png)"
-    )
+    plot_parser.add_argument("-d", "--days", type=int, default=7, help="Number of days to plot (default: 7)")
+    plot_parser.add_argument("-o", "--output", help="Output file for plot (e.g., plot.png)")
 
     return parser
+
 
 def fetch_data(save=False):
     """
     Fetch current heat pump data.
-    
+
     Args:
         save: Whether to save the data
     """
@@ -108,10 +81,11 @@ def fetch_data(save=False):
         logger.error(f"Error fetching data: {e}")
         sys.exit(1)
 
+
 def monitor_data(interval_minutes=15, duration_hours=24):
     """
     Monitor heat pump data continuously.
-    
+
     Args:
         interval_minutes: Interval between data points in minutes
         duration_hours: Duration to monitor in hours
@@ -136,8 +110,11 @@ def monitor_data(interval_minutes=15, duration_hours=24):
                 data_store.save_data_point(data)
                 count += 1
 
-                print(f"\rCollected {count} data points. Last: {data['timestamp']} - "
-                     f"Outside: {data['outside_temperature']}°C", end="")
+                print(
+                    f"\rCollected {count} data points. Last: {data['timestamp']} - "
+                    f"Outside: {data['outside_temperature']}°C",
+                    end="",
+                )
 
                 # Sleep until next interval
                 time.sleep(interval_minutes * 60)
@@ -154,10 +131,11 @@ def monitor_data(interval_minutes=15, duration_hours=24):
         logger.error(f"Error during monitoring: {e}")
         sys.exit(1)
 
+
 def show_stats(days=7, date=None):
     """
     Show statistics from collected data.
-    
+
     Args:
         days: Number of days to analyze
         date: Specific date to analyze (format: YYYY-MM-DD)
@@ -191,21 +169,23 @@ def show_stats(days=7, date=None):
         print(f"  Average return temperature: {df['return_temperature'].mean():.1f}°C")
 
         # Daily summaries
-        daily = df.groupby(df["timestamp"].dt.date).agg({
-            "outside_temperature": ["mean", "min", "max"],
-            "heat_pump_status": "mean"
-        })
+        daily = df.groupby(df["timestamp"].dt.date).agg(
+            {"outside_temperature": ["mean", "min", "max"], "heat_pump_status": "mean"}
+        )
 
         print("\nDaily summaries:")
         for idx, row in daily.iterrows():
-            print(f"  {idx}: Avg: {row[('outside_temperature', 'mean')]:.1f}°C, "
-                 f"Range: {row[('outside_temperature', 'min')]:.1f}-{row[('outside_temperature', 'max')]:.1f}°C, "
-                 f"Active: {row[('heat_pump_status', 'mean')] * 100:.1f}%")
+            print(
+                f"  {idx}: Avg: {row[('outside_temperature', 'mean')]:.1f}°C, "
+                f"Range: {row[('outside_temperature', 'min')]:.1f}-{row[('outside_temperature', 'max')]:.1f}°C, "
+                f"Active: {row[('heat_pump_status', 'mean')] * 100:.1f}%"
+            )
+
 
 def generate_plot(days=7, output=None):
     """
     Generate plots from collected data.
-    
+
     Args:
         days: Number of days to plot
         output: Output file path
@@ -254,6 +234,7 @@ def generate_plot(days=7, output=None):
     else:
         plt.show()
 
+
 def main():
     """Main entry point for the CLI."""
     # Initialize configuration
@@ -282,6 +263,7 @@ def main():
         generate_plot(args.days, args.output)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()
