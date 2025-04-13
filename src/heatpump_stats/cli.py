@@ -37,9 +37,7 @@ def setup_parser():
         default=CONFIG["POLLING_INTERVAL"],
         help=f"Polling interval in minutes (default: {CONFIG['POLLING_INTERVAL']})",
     )
-    monitor_parser.add_argument(
-        "-d", "--duration", type=int, default=24, help="Monitoring duration in hours (default: 24)"
-    )
+    monitor_parser.add_argument("-d", "--duration", type=int, default=24, help="Monitoring duration in hours (default: 24)")
 
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show statistics")
@@ -111,8 +109,7 @@ def monitor_data(interval_minutes=15, duration_hours=24):
                 count += 1
 
                 print(
-                    f"\rCollected {count} data points. Last: {data['timestamp']} - "
-                    f"Outside: {data['outside_temperature']}°C",
+                    f"\rCollected {count} data points. Last: {data['timestamp']} - Outside: {data['outside_temperature']}°C",
                     end="",
                 )
 
@@ -169,9 +166,7 @@ def show_stats(days=7, date=None):
         print(f"  Average return temperature: {df['return_temperature'].mean():.1f}°C")
 
         # Daily summaries
-        daily = df.groupby(df["timestamp"].dt.date).agg(
-            {"outside_temperature": ["mean", "min", "max"], "heat_pump_status": "mean"}
-        )
+        daily = df.groupby(df["timestamp"].dt.date).agg({"outside_temperature": ["mean", "min", "max"], "heat_pump_status": "mean"})
 
         print("\nDaily summaries:")
         for idx, row in daily.iterrows():
