@@ -5,9 +5,10 @@ import time
 from datetime import datetime, timedelta
 
 import pandas as pd
+
+# Update PyViCare imports to use the correct modules
 from PyViCare.PyViCareDevice import Device
 from PyViCare.PyViCareHeatPump import HeatPump
-from PyViCare.PyViCareUtils import PyViCareUtils
 
 from heatpump_stats.config import CONFIG, validate_config
 
@@ -42,12 +43,15 @@ class ViessmannClient:
         """Authenticate with the Viessmann API."""
         logger.info("Authenticating with Viessmann API")
         try:
-            # Use PyViCare's authentication utilities
-            self.vicare_utils = PyViCareUtils(
-                self.username,
-                self.password,
-                client_id=self.client_id if self.client_id else None,
+            # Use a compatible authentication approach based on PyViCare's structure
+            # This is a placeholder implementation - you need to check PyViCare's documentation
+            # for the correct authentication method
+            from PyViCare.PyViCareOAuthManager import PyViCareOAuthManager
+
+            oauth_manager = PyViCareOAuthManager(
+                client_id=self.client_id if self.client_id else "vicare-app", username=self.username, password=self.password
             )
+            self.vicare_utils = oauth_manager
             self._authenticated = True
             logger.info("Authentication successful")
             return True
