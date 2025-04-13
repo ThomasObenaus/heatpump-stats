@@ -52,8 +52,6 @@ class ViessmannClient:
             # Create a token file path in the user's home directory
             token_file = os.path.join(str(Path.home()), ".vicare_token.save")
 
-            # BREAKPOINT: Check token_file path
-            logger.debug(f"Using token file at: {token_file}")
             logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id or 'vicare-app'}")
 
             oauth_manager = ViCareOAuthManager(
