@@ -4,6 +4,7 @@ import logging
 import os
 import time
 from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
 
 import pandas as pd
@@ -15,6 +16,17 @@ from heatpump_stats.config import CONFIG, validate_config
 log_level = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, log_level), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+
+class DeviceType(Enum):
+    """Enumeration for device types."""
+
+    GATEWAY = "Gateway"
+    HEAT_PUMP = "HeatPump"
+    UNKNOWN = "unknown"
+
+    def __str__(self):
+        return self.value
 
 
 class ViessmannClient:
@@ -77,36 +89,17 @@ class ViessmannClient:
             vicare_devices = self.vicare.devices
 
             for device in vicare_devices:
-                # Debug log the device object to see what's available
-                logger.debug(f"Device object: {device}")
-                logger.debug(f"Device dir: {dir(device)}")
-
-                # Try different ways to get the device ID
                 try:
-                    # Try to get device ID using getSerial or other methods
-                    if hasattr(device, "getSerial"):
-                        device_id = device.getSerial()
-                    elif hasattr(device, "getDeviceId"):
-                        device_id = device.getDeviceId()
-                    elif hasattr(device, "serial"):
-                        device_id = device.serial
-                    else:
-                        # Fallback to a unique identifier
-                        device_id = str(id(device))
+                    device_id = device.device_id
+                    device_model = device.getModel()
 
-                    # Try to get the model name, with fallback
-                    try:
-                        if hasattr(device, "getModel"):
-                            device_model = device.getModel()
-                        elif hasattr(device, "model"):
-                            device_model = device.model
-                        else:
-                            device_model = "Unknown model"
-                    except (AttributeError, TypeError):
-                        device_model = "Unknown model"
+                    d = device.asAutoDetectDevice()
+                    n = type(d).__name__
+                    ff = d.service._isGateway()
+                    online = device.isOnline()
+                    hp = device.asHeatPump()
 
                     logger.debug(f"Found device: {device_id} (Model: {device_model})")
-
                     self.devices.append(
                         {
                             "id": device_id,
