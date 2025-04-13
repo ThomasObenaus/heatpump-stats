@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heatpump_stats"
+version = "0.1.0"
+description = "A tool to fetch and analyze Viessmann heat pump data"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+requires-python = ">=3.7"
+readme = "README.md"
+license = {file = "LICENSE"}
+dependencies = [
+    "requests>=2.28.0",
+    "PyViCare>=2.21.0",
+    "python-dotenv>=1.0.0",
+    "pandas>=1.5.0",
+    "matplotlib>=3.6.0",
+    "schedule>=1.1.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.6",
+]
+
+[project.scripts]
+heatpump-stats = "heatpump_stats.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = {find = {where = ["src"]}}
+
+[tool.ruff]
+# Target Python 3.7+
+target-version = "py37"
+line-length = 140
+
+# Enable formatting
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+# Enable Pyflakes ('F'), pycodestyle ('E'), isort ('I'), and more
+select = ["E", "F", "I", "W", "C90", "B", "N", "UP"]
+ignore = []
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["E", "F", "I", "W", "C90", "B", "N", "UP"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-third-party = ["PyViCare", "pandas", "matplotlib", "dotenv"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
