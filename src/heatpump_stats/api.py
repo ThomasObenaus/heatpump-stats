@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 from PyViCare.PyViCare import PyViCare
+from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
 
 from heatpump_stats.config import CONFIG, validate_config
 
@@ -24,6 +25,19 @@ class DeviceType(Enum):
     GATEWAY = "Gateway"
     HEAT_PUMP = "HeatPump"
     UNKNOWN = "unknown"
+
+    @classmethod
+    def from_device(cls, device_config: PyViCareDeviceConfig):
+        """Convert string to DeviceType enum."""
+        device = device_config.asAutoDetectDevice()
+        device_type = type(device).__name__
+
+        if device_type == "Gateway":
+            return cls.GATEWAY
+        elif device_type == "HeatPump":
+            return cls.HEAT_PUMP
+        else:
+            return cls.UNKNOWN
 
     def __str__(self):
         return self.value
@@ -92,19 +106,19 @@ class ViessmannClient:
                 try:
                     device_id = device.device_id
                     device_model = device.getModel()
+                    device_type = DeviceType.from_device(device)
 
-                    d = device.asAutoDetectDevice()
-                    n = type(d).__name__
-                    ff = d.service._isGateway()
-                    online = device.isOnline()
-                    hp = device.asHeatPump()
+                    if device_type == DeviceType.UNKNOWN:
+                        logger.warning(f"Unknown device type for device id: {device_id}, model: {device_model}")
+                        continue
 
-                    logger.debug(f"Found device: {device_id} (Model: {device_model})")
+                    logger.debug(f"Found device: {device_type} (id: '{device_id}', model: {device_model})")
                     self.devices.append(
                         {
                             "id": device_id,
                             "modelId": device_model,
                             "device": device,  # Store the device object for later use
+                            "device_type": device_type,
                         }
                     )
                 except Exception as e:
