@@ -7,11 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
-
-# Update PyViCare imports to use the correct modules
-from PyViCare.PyViCareDevice import Device
-from PyViCare.PyViCareHeatPump import HeatPump
-from PyViCare.PyViCareOAuthManager import ViCareOAuthManager
+from PyViCare.PyViCare import PyViCare
 
 from heatpump_stats.config import CONFIG, validate_config
 
@@ -36,9 +32,9 @@ class ViessmannClient:
 
         self.username = username or CONFIG["VIESSMANN_USER"]
         self.password = password or CONFIG["VIESSMANN_PASSWORD"]
-        self.client_id = CONFIG.get("CLIENT_ID", "")
+        self.client_id = CONFIG.get("CLIENT_ID", "vicare-app")
 
-        self.vicare_utils = None
+        self.vicare = None
         self.devices = []
         self.heat_pump = None
         self._authenticated = False
@@ -47,20 +43,15 @@ class ViessmannClient:
         """Authenticate with the Viessmann API."""
         logger.info("Authenticating with Viessmann API")
         try:
-            # Use the correct OAuth manager class name
-
             # Create a token file path in the user's home directory
             token_file = os.path.join(str(Path.home()), ".vicare_token.save")
 
-            logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id or 'vicare-app'}")
+            logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id}")
 
-            oauth_manager = ViCareOAuthManager(
-                client_id=self.client_id,
-                username=self.username,
-                password=self.password,
-                token_file=token_file,
-            )
-            self.vicare_utils = oauth_manager
+            self.vicare = PyViCare()
+            self.vicare.initWithCredentials(self.username, self.password, self.client_id, token_file)
+
+            logger.debug(f"Authentication successful with username: {self.username}")
             self._authenticated = True
             logger.info("Authentication successful")
             return True
@@ -76,18 +67,62 @@ class ViessmannClient:
             self.authenticate()
 
         try:
-            installations = self.vicare_utils.get_all_installations()
+            # Get devices using the PyViCare instance
             self.devices = []
 
-            for installation in installations:
-                for gateway in installation["gateways"]:
-                    for device in gateway["devices"]:
-                        self.devices.append(device)
+            # Get all devices directly from vicare.devices
+            logger.debug("Fetching all devices from Viessmann API...")
 
-            logger.info(f"Found {len(self.devices)} device(s)")
+            # The devices are directly accessible as a property of PyViCare
+            vicare_devices = self.vicare.devices
+
+            for device in vicare_devices:
+                # Debug log the device object to see what's available
+                logger.debug(f"Device object: {device}")
+                logger.debug(f"Device dir: {dir(device)}")
+
+                # Try different ways to get the device ID
+                try:
+                    # Try to get device ID using getSerial or other methods
+                    if hasattr(device, "getSerial"):
+                        device_id = device.getSerial()
+                    elif hasattr(device, "getDeviceId"):
+                        device_id = device.getDeviceId()
+                    elif hasattr(device, "serial"):
+                        device_id = device.serial
+                    else:
+                        # Fallback to a unique identifier
+                        device_id = str(id(device))
+
+                    # Try to get the model name, with fallback
+                    try:
+                        if hasattr(device, "getModel"):
+                            device_model = device.getModel()
+                        elif hasattr(device, "model"):
+                            device_model = device.model
+                        else:
+                            device_model = "Unknown model"
+                    except (AttributeError, TypeError):
+                        device_model = "Unknown model"
+
+                    logger.debug(f"Found device: {device_id} (Model: {device_model})")
+
+                    self.devices.append(
+                        {
+                            "id": device_id,
+                            "modelId": device_model,
+                            "device": device,  # Store the device object for later use
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(f"Error processing device: {e}")
+                    continue
+
+            logger.info(f"Found {len(self.devices)} device(s) in total")
             return self.devices
         except Exception as e:
             logger.error(f"Failed to get devices: {e}")
+            logger.debug("Error details:", exc_info=True)
             raise
 
     def get_heat_pump(self, device_id=None):
@@ -115,18 +150,27 @@ class ViessmannClient:
             device_info = self.devices[0]
 
         try:
-            # Create a generic device first to determine type
-            device = Device(self.vicare_utils, device_info["id"])
+            # Get the stored device object
+            device = device_info["device"]
 
-            # Then create specific device based on type
-            if device.getDeviceType() == "heatpump":
-                self.heat_pump = HeatPump(self.vicare_utils, device_info["id"])
-                logger.info(f"Connected to heat pump: {device_info.get('modelId', 'Unknown model')}")
-                return self.heat_pump
+            # Debug log what methods are available
+            logger.debug(f"Device methods: {[m for m in dir(device) if not m.startswith('_') and callable(getattr(device, m))]}")
+
+            # Try different approaches to get a heat pump instance
+            if hasattr(device, "asHeatPump"):
+                self.heat_pump = device.asHeatPump()
+            elif hasattr(device, "getFeature") and callable(device.getFeature):
+                # Try to get the heat pump feature if asHeatPump is not available
+                self.heat_pump = device
             else:
-                raise ValueError(f"Device is not a heat pump: {device.getDeviceType()}")
+                # Fallback to using the device directly
+                self.heat_pump = device
+
+            logger.info(f"Connected to heat pump: {device_info.get('modelId', 'Unknown model')}")
+            return self.heat_pump
         except Exception as e:
             logger.error(f"Failed to connect to heat pump: {e}")
+            logger.debug("Error details:", exc_info=True)
             raise
 
     def collect_heat_pump_data(self):
@@ -140,18 +184,106 @@ class ViessmannClient:
             self.get_heat_pump()
 
         try:
+            # Collect data from the heat pump
             data = {
                 "timestamp": datetime.now().isoformat(),
-                "outside_temperature": self.heat_pump.getOutsideTemperature(),
-                "supply_temperature": self.heat_pump.getSupplyTemperature(),
-                "return_temperature": self.heat_pump.getReturnTemperature(),
-                "power_consumption": self.heat_pump.getPowerConsumptionDays() or {},
-                "heat_pump_status": self.heat_pump.getActive(),
-                # Add more data points as needed
+                "outside_temperature": None,
+                "supply_temperature": None,
+                "return_temperature": None,
+                "heat_pump_status": None,
+                "power_consumption": {},
             }
+
+            # Debug available methods and properties
+            device_methods = [m for m in dir(self.heat_pump) if not m.startswith("_")]
+            logger.debug(f"Heat pump methods and properties: {device_methods}")
+
+            # Try multiple approaches to get temperature data
+            try:
+                # Try direct access methods first
+                if hasattr(self.heat_pump, "getOutsideTemperature") and callable(self.heat_pump.getOutsideTemperature):
+                    data["outside_temperature"] = self.heat_pump.getOutsideTemperature()
+                    logger.debug(f"Got outside temperature directly: {data['outside_temperature']}")
+
+                if hasattr(self.heat_pump, "getSupplyTemperature") and callable(self.heat_pump.getSupplyTemperature):
+                    data["supply_temperature"] = self.heat_pump.getSupplyTemperature()
+                    logger.debug(f"Got supply temperature directly: {data['supply_temperature']}")
+
+                if hasattr(self.heat_pump, "getReturnTemperature") and callable(self.heat_pump.getReturnTemperature):
+                    data["return_temperature"] = self.heat_pump.getReturnTemperature()
+                    logger.debug(f"Got return temperature directly: {data['return_temperature']}")
+
+                # Try through circuits if direct methods didn't work
+                if data["outside_temperature"] is None or data["supply_temperature"] is None or data["return_temperature"] is None:
+                    # Check if circuits are available
+                    if hasattr(self.heat_pump, "circuits"):
+                        circuits = self.heat_pump.circuits
+                        if circuits and len(circuits) > 0:
+                            circuit = circuits[0]
+                            logger.debug(
+                                f"Circuit methods: {[m for m in dir(circuit) if not m.startswith('_') and callable(getattr(circuit, m))]}"
+                            )
+
+                            # Try to get temperatures from circuit
+                            if data["outside_temperature"] is None and hasattr(circuit, "getOutsideTemperature"):
+                                data["outside_temperature"] = circuit.getOutsideTemperature()
+                                logger.debug(f"Got outside temperature from circuit: {data['outside_temperature']}")
+
+                            if data["supply_temperature"] is None and hasattr(circuit, "getSupplyTemperature"):
+                                data["supply_temperature"] = circuit.getSupplyTemperature()
+                                logger.debug(f"Got supply temperature from circuit: {data['supply_temperature']}")
+
+                            if data["return_temperature"] is None and hasattr(circuit, "getReturnTemperature"):
+                                data["return_temperature"] = circuit.getReturnTemperature()
+                                logger.debug(f"Got return temperature from circuit: {data['return_temperature']}")
+            except Exception as e:
+                logger.warning(f"Error getting temperature data: {e}")
+                logger.debug("Temperature error details:", exc_info=True)
+
+            # Try to get status data
+            try:
+                # Try different approaches for compressor status
+                if hasattr(self.heat_pump, "compressor") and hasattr(self.heat_pump.compressor, "getActive"):
+                    data["heat_pump_status"] = self.heat_pump.compressor.getActive()
+                    logger.debug(f"Got heat pump status from compressor.getActive: {data['heat_pump_status']}")
+                elif hasattr(self.heat_pump, "getActive"):
+                    data["heat_pump_status"] = self.heat_pump.getActive()
+                    logger.debug(f"Got heat pump status directly: {data['heat_pump_status']}")
+                elif hasattr(self.heat_pump, "getStatus"):
+                    status = self.heat_pump.getStatus()
+                    # Convert status to boolean if it's a string
+                    if isinstance(status, str):
+                        data["heat_pump_status"] = status.lower() in ["on", "active", "true", "1"]
+                    else:
+                        data["heat_pump_status"] = bool(status)
+                    logger.debug(f"Got heat pump status from getStatus: {data['heat_pump_status']}")
+            except Exception as e:
+                logger.warning(f"Error getting heat pump status: {e}")
+                logger.debug("Status error details:", exc_info=True)
+
+            # Try to get power consumption data
+            try:
+                power_data = {}
+                # Try different methods for power consumption
+                if hasattr(self.heat_pump, "getStatsEnergyDays"):
+                    power_data["today"] = self.heat_pump.getStatsEnergyDays()
+                    logger.debug("Got power data from getStatsEnergyDays")
+                elif hasattr(self.heat_pump, "getPowerConsumptionDays"):
+                    power_data["today"] = self.heat_pump.getPowerConsumptionDays()
+                    logger.debug("Got power data from getPowerConsumptionDays")
+                elif hasattr(self.heat_pump, "getEnergyConsumptionDays"):
+                    power_data["today"] = self.heat_pump.getEnergyConsumptionDays()
+                    logger.debug("Got power data from getEnergyConsumptionDays")
+
+                data["power_consumption"] = power_data
+            except Exception as e:
+                logger.warning(f"Error getting power consumption data: {e}")
+                logger.debug("Power consumption error details:", exc_info=True)
+
             return data
         except Exception as e:
             logger.error(f"Failed to collect heat pump data: {e}")
+            logger.debug("Error details:", exc_info=True)
             raise
 
     def collect_data_series(self, interval_minutes=15, duration_hours=24):
