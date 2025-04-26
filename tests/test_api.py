@@ -1,11 +1,13 @@
 """Tests for the Viessmann API client."""
 
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
+
+# Import the actual class for spec
+from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
 
 from heatpump_stats.api import DeviceType, HeatPump, ViessmannClient
 
-MockPyViCareDeviceConfig = MagicMock(spec=["device_id", "getModel"])
 PyViCareDeviceConfigPath = "heatpump_stats.api.PyViCareDeviceConfig"
 
 
@@ -21,11 +23,13 @@ class TestViessmannClient(unittest.TestCase):
         self.client = ViessmannClient(username="test@example.com", password="password")
         self.client._authenticated = True
 
-        self.hp_config = Mock(spec=MockPyViCareDeviceConfig)
+        # Use MagicMock with the actual class as spec
+        self.hp_config = MagicMock(spec=PyViCareDeviceConfig)
         self.hp_config.device_id = "hp_device_123"
         self.hp_config.getModel.return_value = "Vitocal 200"
 
-        self.gw_config = Mock(spec=MockPyViCareDeviceConfig)
+        # Use MagicMock with the actual class as spec
+        self.gw_config = MagicMock(spec=PyViCareDeviceConfig)
         self.gw_config.device_id = "gw_device_456"
         self.gw_config.getModel.return_value = "Vitoconnect"
 
@@ -99,17 +103,15 @@ class TestViessmannClient(unittest.TestCase):
         self.assertEqual(devices[1]["device_type"], DeviceType.GATEWAY)
         self.assertEqual(devices[1]["device"], mock_gw_device_raw)
 
-    @patch(PyViCareDeviceConfigPath, new_callable=Mock)
-    def test_get_heat_pump_found(self, mock_config_class, mock_validate_config_ignored):
+    def test_get_heat_pump_found(self, mock_validate_config_ignored):
         """Test finding a heat pump when one exists in the list."""
-        mock_config_class.return_value = self.hp_config
-
         heat_pump = self.client.get_heat_pump(self.mock_devices)
 
         self.assertIsInstance(heat_pump, HeatPump)
         self.assertEqual(heat_pump.device_id, "hp_device_123")
         self.assertEqual(heat_pump.model_id, "Vitocal 200")
-        self.assertEqual(heat_pump.device_config, self.hp_config)
+        self.assertIsInstance(heat_pump.device_config, MagicMock)  # It should be the MagicMock from setUp
+        self.assertEqual(heat_pump.device_config.device_id, "hp_device_123")
 
     def test_get_heat_pump_not_found(self, mock_validate_config_ignored):
         """Test ValueError is raised when no heat pump is in the list."""
@@ -123,8 +125,7 @@ class TestViessmannClient(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "No heat pump device found"):
             self.client.get_heat_pump([])
 
-    @patch(PyViCareDeviceConfigPath, new_callable=Mock)
-    def test_get_heat_pump_invalid_config_none(self, mock_config_class, mock_validate_config_ignored):
+    def test_get_heat_pump_invalid_config_none(self, mock_validate_config_ignored):
         """Test ValueError is raised if the device config object is None."""
         invalid_devices = [
             {
@@ -139,19 +140,17 @@ class TestViessmannClient(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid device configuration found"):
             self.client.get_heat_pump(invalid_devices)
 
-    @patch(PyViCareDeviceConfigPath, new_callable=Mock)
-    def test_get_heat_pump_invalid_config_wrong_type(self, mock_config_class, mock_validate_config_ignored):
+    def test_get_heat_pump_invalid_config_wrong_type(self, mock_validate_config_ignored):
         """Test ValueError is raised if the device config object is the wrong type."""
         invalid_devices_wrong_type = [
             {
                 "id": "hp_device_789",
                 "modelId": "Vitocal Invalid",
-                "device": {"some": "dict"},
+                "device": {"some": "dict"},  # Pass an actual dict
                 "device_type": DeviceType.HEAT_PUMP,
             },
             self.mock_devices[1],
         ]
-        mock_config_class.__instancecheck__ = lambda _, instance: isinstance(instance, dict)
 
         with self.assertRaisesRegex(ValueError, "Invalid device configuration found"):
             self.client.get_heat_pump(invalid_devices_wrong_type)

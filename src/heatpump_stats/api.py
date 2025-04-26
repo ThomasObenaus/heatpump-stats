@@ -173,8 +173,12 @@ class ViessmannClient:
 
         # Extract the PyViCare device config object
         device_config = heat_pump_device_dict.get("device")
+        # Ensure we check against the actual PyViCareDeviceConfig type
         if not device_config or not isinstance(device_config, PyViCareDeviceConfig):
-            logger.error(f"Invalid device configuration found for heat pump: {heat_pump_device_dict.get('id')}")
+            logger.error(
+                "Invalid device configuration found for heat pump: %s",
+                heat_pump_device_dict.get("id", "Unknown ID"),
+            )
             raise ValueError("Invalid device configuration found for heat pump")
 
         logger.info(f"Found heat pump device: {heat_pump_device_dict['id']}")
