@@ -43,6 +43,25 @@ class DeviceType(Enum):
         return self.value
 
 
+class HeatPump:
+    """Class representing a heat pump device."""
+
+    def __init__(self, device_config: PyViCareDeviceConfig):
+        """
+        Initialize the API with the specified device and model identifiers, and device configuration.
+
+        Args:
+            device_config (PyViCareDeviceConfig): The configuration object for the device.
+        """
+        self.device_config = device_config
+        self.device_id = device_config.device_id
+        self.model_id = device_config.getModel()
+        self.device_type = DeviceType.HEAT_PUMP
+
+    def __str__(self):
+        return f"HeatPump(device_id={self.device_config.device_id})"
+
+
 class ViessmannClient:
     """Client for interacting with Viessmann API via PyViCare."""
 
@@ -132,7 +151,25 @@ class ViessmannClient:
             logger.debug("Error details:", exc_info=True)
             raise
 
-    def get_heat_pump(self, device_id=None):
+    def get_heat_pump(self, devices: list) -> HeatPump:
+        """
+        Get a heat pump device instance.
+
+        Args:
+            devices: List of devices to search for a heat pump
+
+        Returns:
+            HeatPump: PyViCare HeatPump instance
+        """
+
+        # Find the first heat pump device
+        heat_pump_device = next((d for d in self.devices if d["device_type"] == DeviceType.HEAT_PUMP), None)
+        if not heat_pump_device:
+            raise ValueError("No heat pump device found")
+
+        return heat_pump_device
+
+    def get_heat_pump_data(self, device_id=None):
         """
         Get a heat pump device instance.
 
