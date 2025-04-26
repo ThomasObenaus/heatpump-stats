@@ -51,6 +51,8 @@ This project uses modern Python packaging with `pyproject.toml` and the followin
 
 ## Usage
 
+After installing the package and configuring your `.env` file (see Installation section), you can run the project using the following command-line interface (CLI) commands:
+
 ### Command Line Interface
 
 The package provides a command line interface with several commands:

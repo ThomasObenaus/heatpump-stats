@@ -153,21 +153,33 @@ class ViessmannClient:
 
     def get_heat_pump(self, devices: list) -> HeatPump:
         """
-        Get a heat pump device instance.
+        Find and return a HeatPump instance from the provided list of devices.
 
         Args:
-            devices: List of devices to search for a heat pump
+            devices: List of device dictionaries (as returned by get_devices).
 
         Returns:
-            HeatPump: PyViCare HeatPump instance
+            HeatPump: An instance of the HeatPump class representing the found device.
+
+        Raises:
+            ValueError: If no heat pump device is found in the list.
         """
+        # Find the first heat pump device dictionary in the provided list
+        heat_pump_device_dict = next((d for d in devices if d["device_type"] == DeviceType.HEAT_PUMP), None)
 
-        # Find the first heat pump device
-        heat_pump_device = next((d for d in self.devices if d["device_type"] == DeviceType.HEAT_PUMP), None)
-        if not heat_pump_device:
-            raise ValueError("No heat pump device found")
+        if not heat_pump_device_dict:
+            logger.error("No heat pump device found in the provided list.")
+            raise ValueError("No heat pump device found in the provided list")
 
-        return heat_pump_device
+        # Extract the PyViCare device config object
+        device_config = heat_pump_device_dict.get("device")
+        if not device_config or not isinstance(device_config, PyViCareDeviceConfig):
+            logger.error(f"Invalid device configuration found for heat pump: {heat_pump_device_dict.get('id')}")
+            raise ValueError("Invalid device configuration found for heat pump")
+
+        logger.info(f"Found heat pump device: {heat_pump_device_dict['id']}")
+        # Create and return an instance of the local HeatPump class
+        return HeatPump(device_config)
 
     def get_heat_pump_data(self, device_id=None):
         """
