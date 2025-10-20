@@ -6,3 +6,5 @@ src/heatpump_stats/__pycache__/
 tests/__pycache__/
 
 .env
+
+.coverage

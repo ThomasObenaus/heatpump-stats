@@ -8,8 +8,6 @@ from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
 
 from heatpump_stats.api import DeviceType, HeatPump, ViessmannClient
 
-PyViCareDeviceConfigPath = "heatpump_stats.api.PyViCareDeviceConfig"
-
 
 @patch.dict("heatpump_stats.api.CONFIG", {"VIESSMANN_USER": "test_user", "VIESSMANN_PASSWORD": "test_password"}, clear=True)
 @patch("heatpump_stats.api.validate_config", return_value=None)
