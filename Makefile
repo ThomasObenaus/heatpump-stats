@@ -1,6 +1,6 @@
-.PHONY: help lint format all
+.PHONY: help lint format all run
 
-all: format lint
+all: format lint ## Run formatting and lint checks
 
 
 lint: ## Run Ruff linting via uv and ruff
@@ -11,3 +11,6 @@ help: ## Show this help message with available commands
 
 format: ## Format codebase using Ruff via uv
 	uv run ruff format
+
+run: ## Run the heatpump-stats fetch command via uv
+	uv run heatpump-stats fetch
