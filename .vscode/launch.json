@@ -17,18 +17,6 @@
       }
     },
     {
-      "name": "Python: Show Stats",
-      "type": "debugpy",
-      "request": "launch",
-      "module": "heatpump_stats.cli",
-      "args": ["stats", "--days", "7"],
-      "console": "integratedTerminal",
-      "justMyCode": false,
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src"
-      }
-    },
-    {
       "name": "Python: Current File",
       "type": "debugpy",
       "request": "launch",

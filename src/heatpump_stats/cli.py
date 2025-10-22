@@ -26,11 +26,6 @@ def setup_parser():
     fetch_parser = subparsers.add_parser("fetch", help="Fetch current heat pump data")
     fetch_parser.add_argument("-s", "--save", action="store_true", help="Save data to the data store")
 
-    # Stats command
-    stats_parser = subparsers.add_parser("stats", help="Show statistics")
-    stats_parser.add_argument("-d", "--days", type=int, default=7, help="Number of days to analyze (default: 7)")
-    stats_parser.add_argument("--date", help="Specific date to analyze (format: YYYY-MM-DD)")
-
     # Plot command
     plot_parser = subparsers.add_parser("plot", help="Generate plots")
     plot_parser.add_argument("-d", "--days", type=int, default=7, help="Number of days to plot (default: 7)")
@@ -67,54 +62,6 @@ def fetch_data(save=False):
     except Exception as e:
         logger.error(f"Error fetching data: {e}")
         sys.exit(1)
-
-
-def show_stats(days=7, date=None):
-    """
-    Show statistics from collected data.
-
-    Args:
-        days: Number of days to analyze
-        date: Specific date to analyze (format: YYYY-MM-DD)
-    """
-    data_store = HeatPumpDataStore()
-
-    if date:
-        # Show stats for specific day
-        stats = data_store.get_daily_stats(date)
-        if not stats:
-            print(f"No data available for {date}")
-            return
-
-        print(f"Statistics for {date}:")
-        for key, value in stats.items():
-            if key != "date":
-                print(f"  {key}: {value}")
-    else:
-        # Show stats for last N days
-        df = data_store.load_data(days)
-        if df.empty:
-            print("No data available")
-            return
-
-        print(f"Statistics for the last {days} days:")
-        print(f"  Total readings: {len(df)}")
-        print(f"  Date range: {df['timestamp'].min()} to {df['timestamp'].max()}")
-        print(f"  Temperature range: {df['outside_temperature'].min()} to {df['outside_temperature'].max()}°C")
-        print(f"  Average outside temperature: {df['outside_temperature'].mean():.1f}°C")
-        print(f"  Average supply temperature: {df['supply_temperature'].mean():.1f}°C")
-        print(f"  Average return temperature: {df['return_temperature'].mean():.1f}°C")
-
-        # Daily summaries
-        daily = df.groupby(df["timestamp"].dt.date).agg({"outside_temperature": ["mean", "min", "max"], "heat_pump_status": "mean"})
-
-        print("\nDaily summaries:")
-        for idx, row in daily.iterrows():
-            print(
-                f"  {idx}: Avg: {row[('outside_temperature', 'mean')]:.1f}°C, "
-                f"Range: {row[('outside_temperature', 'min')]:.1f}-{row[('outside_temperature', 'max')]:.1f}°C, "
-                f"Active: {row[('heat_pump_status', 'mean')] * 100:.1f}%"
-            )
 
 
 def generate_plot(days=7, output=None):
@@ -190,8 +137,6 @@ def main():
     # Execute command
     if args.command == "fetch":
         fetch_data(args.save)
-    elif args.command == "stats":
-        show_stats(args.days, args.date)
     elif args.command == "plot":
         generate_plot(args.days, args.output)
     else:
