@@ -22,10 +22,6 @@ dev = ["ruff>=0.1.6"]
 [project.scripts]
 heatpump-stats = "heatpump_stats.cli:main"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
-packages = { find = { where = ["src"] } }
-
 [tool.ruff]
 # Target Python 3.9+
 target-version = "py39"
