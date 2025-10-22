@@ -1,5 +1,19 @@
 # Heatpump Stats
 
+- [Heatpump Stats](#heatpump-stats)
+  - [Features](#features)
+  - [Installation](#installation)
+  - [Development](#development)
+  - [Usage](#usage)
+    - [Command Line Interface](#command-line-interface)
+      - [Fetch current data](#fetch-current-data)
+      - [Monitor data over time](#monitor-data-over-time)
+      - [View statistics](#view-statistics)
+      - [Generate plots](#generate-plots)
+    - [Python API](#python-api)
+  - [Data Storage](#data-storage)
+  - [License](#license)
+
 A Python utility for collecting and analyzing data from Viessmann heat pumps using the Viessmann API.
 
 ## Features
