@@ -13,21 +13,24 @@ A Python utility for collecting and analyzing data from Viessmann heat pumps usi
 ## Installation
 
 1. Clone this repository:
+
    ```bash
    git clone https://github.com/yourusername/heatpump-stats.git
    cd heatpump-stats
    ```
 
 2. Install the package and dependencies:
+
    ```bash
    # Install the package with development dependencies
    pip install -e ".[dev]"
-   
+
    # Or install only runtime dependencies
    pip install -e .
    ```
 
 3. Configure your environment:
+
    ```bash
    cp .env.example .env
    # Edit .env with your Viessmann credentials
@@ -38,13 +41,14 @@ A Python utility for collecting and analyzing data from Viessmann heat pumps usi
 This project uses modern Python packaging with `pyproject.toml` and the following development tools:
 
 - **Ruff**: For linting and formatting code
+
   ```bash
   # Run linting
   ruff check .
-  
+
   # Apply automatic fixes
   ruff check --fix .
-  
+
   # Format code
   ruff format .
   ```
