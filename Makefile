@@ -1,4 +1,4 @@
-.PHONY: help lint format all run
+.PHONY: help lint format all run test
 
 all: format lint ## Run formatting and lint checks
 
@@ -14,3 +14,6 @@ format: ## Format codebase using Ruff via uv
 
 run: ## Run the heatpump-stats fetch command via uv
 	uv run heatpump-stats fetch
+
+test: ## Execute the test suite via uv and pytest
+	uv run python -m pytest
