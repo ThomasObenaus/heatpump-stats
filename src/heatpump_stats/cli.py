@@ -5,8 +5,6 @@ import json
 import logging
 import sys
 
-import matplotlib.pyplot as plt
-
 from heatpump_stats.api import ViessmannClient
 from heatpump_stats.config import init_config
 from heatpump_stats.models import HeatPumpDataStore
@@ -25,11 +23,6 @@ def setup_parser():
     # Fetch command
     fetch_parser = subparsers.add_parser("fetch", help="Fetch current heat pump data")
     fetch_parser.add_argument("-s", "--save", action="store_true", help="Save data to the data store")
-
-    # Plot command
-    plot_parser = subparsers.add_parser("plot", help="Generate plots")
-    plot_parser.add_argument("-d", "--days", type=int, default=7, help="Number of days to plot (default: 7)")
-    plot_parser.add_argument("-o", "--output", help="Output file for plot (e.g., plot.png)")
 
     return parser
 
@@ -64,59 +57,6 @@ def fetch_data(save=False):
         sys.exit(1)
 
 
-def generate_plot(days=7, output=None):
-    """
-    Generate plots from collected data.
-
-    Args:
-        days: Number of days to plot
-        output: Output file path
-    """
-    data_store = HeatPumpDataStore()
-    df = data_store.load_data(days)
-
-    if df.empty:
-        print("No data available for plotting")
-        return
-
-    # Create figure with multiple subplots
-    fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
-
-    # Temperature plot
-    axs[0].plot(df["timestamp"], df["outside_temperature"], label="Outside")
-    axs[0].plot(df["timestamp"], df["supply_temperature"], label="Supply")
-    axs[0].plot(df["timestamp"], df["return_temperature"], label="Return")
-    axs[0].set_ylabel("Temperature (°C)")
-    axs[0].set_title("Heat Pump Temperatures")
-    axs[0].legend()
-    axs[0].grid(True)
-
-    # Heat pump status
-    axs[1].scatter(df["timestamp"], df["heat_pump_status"], marker="|")
-    axs[1].set_ylabel("Status")
-    axs[1].set_title("Heat Pump Activity")
-    axs[1].set_yticks([0, 1])
-    axs[1].set_yticklabels(["Off", "On"])
-    axs[1].grid(True)
-
-    # Temperature delta (supply - return)
-    if "supply_temperature" in df.columns and "return_temperature" in df.columns:
-        df["temp_delta"] = df["supply_temperature"] - df["return_temperature"]
-        axs[2].plot(df["timestamp"], df["temp_delta"])
-        axs[2].set_ylabel("Temperature Δ (°C)")
-        axs[2].set_title("Supply-Return Temperature Delta")
-        axs[2].grid(True)
-
-    plt.xlabel("Date/Time")
-    plt.tight_layout()
-
-    if output:
-        plt.savefig(output)
-        print(f"Plot saved to {output}")
-    else:
-        plt.show()
-
-
 def main():
     """Main entry point for the CLI."""
     # Initialize configuration
@@ -137,8 +77,6 @@ def main():
     # Execute command
     if args.command == "fetch":
         fetch_data(args.save)
-    elif args.command == "plot":
-        generate_plot(args.days, args.output)
     else:
         parser.print_help()
 

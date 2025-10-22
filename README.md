@@ -7,7 +7,6 @@
   - [Usage](#usage)
     - [Command Line Interface](#command-line-interface)
       - [Fetch current data](#fetch-current-data)
-      - [Generate plots](#generate-plots)
     - [Python API](#python-api)
   - [Data Storage](#data-storage)
   - [License](#license)
@@ -18,7 +17,6 @@ A Python utility for collecting and analyzing data from Viessmann heat pumps usi
 
 - Fetch current heat pump data from the Viessmann API
 - Store data in CSV format for easy analysis
-- Create plots of temperature trends and heat pump activity
 
 ## Installation
 
@@ -83,20 +81,6 @@ Add the `--save` flag to store the data in the data store:
 
 ```bash
 heatpump-stats fetch --save
-```
-
-#### Generate plots
-
-Create visualizations of heat pump data:
-
-```bash
-heatpump-stats plot
-```
-
-Save the plot to a file:
-
-```bash
-heatpump-stats plot --output temperatures.png
 ```
 
 ### Python API
