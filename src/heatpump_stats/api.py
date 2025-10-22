@@ -4,10 +4,12 @@ import logging
 import os
 import time
 from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
 
 import pandas as pd
 from PyViCare.PyViCare import PyViCare
+from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
 
 from heatpump_stats.config import CONFIG, validate_config
 
@@ -15,6 +17,49 @@ from heatpump_stats.config import CONFIG, validate_config
 log_level = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, log_level), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+
+class DeviceType(Enum):
+    """Enumeration for device types."""
+
+    GATEWAY = "Gateway"
+    HEAT_PUMP = "HeatPump"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def from_device(cls, device_config: PyViCareDeviceConfig):
+        """Convert string to DeviceType enum."""
+        device = device_config.asAutoDetectDevice()
+        device_type = type(device).__name__
+
+        if device_type == "Gateway":
+            return cls.GATEWAY
+        elif device_type == "HeatPump":
+            return cls.HEAT_PUMP
+        else:
+            return cls.UNKNOWN
+
+    def __str__(self):
+        return self.value
+
+
+class HeatPump:
+    """Class representing a heat pump device."""
+
+    def __init__(self, device_config: PyViCareDeviceConfig):
+        """
+        Initialize the API with the specified device and model identifiers, and device configuration.
+
+        Args:
+            device_config (PyViCareDeviceConfig): The configuration object for the device.
+        """
+        self.device_config = device_config
+        self.device_id = device_config.device_id
+        self.model_id = device_config.getModel()
+        self.device_type = DeviceType.HEAT_PUMP
+
+    def __str__(self):
+        return f"HeatPump(device_id={self.device_config.device_id})"
 
 
 class ViessmannClient:
@@ -77,41 +122,22 @@ class ViessmannClient:
             vicare_devices = self.vicare.devices
 
             for device in vicare_devices:
-                # Debug log the device object to see what's available
-                logger.debug(f"Device object: {device}")
-                logger.debug(f"Device dir: {dir(device)}")
-
-                # Try different ways to get the device ID
                 try:
-                    # Try to get device ID using getSerial or other methods
-                    if hasattr(device, "getSerial"):
-                        device_id = device.getSerial()
-                    elif hasattr(device, "getDeviceId"):
-                        device_id = device.getDeviceId()
-                    elif hasattr(device, "serial"):
-                        device_id = device.serial
-                    else:
-                        # Fallback to a unique identifier
-                        device_id = str(id(device))
+                    device_id = device.device_id
+                    device_model = device.getModel()
+                    device_type = DeviceType.from_device(device)
 
-                    # Try to get the model name, with fallback
-                    try:
-                        if hasattr(device, "getModel"):
-                            device_model = device.getModel()
-                        elif hasattr(device, "model"):
-                            device_model = device.model
-                        else:
-                            device_model = "Unknown model"
-                    except (AttributeError, TypeError):
-                        device_model = "Unknown model"
+                    if device_type == DeviceType.UNKNOWN:
+                        logger.warning(f"Unknown device type for device id: {device_id}, model: {device_model}")
+                        continue
 
-                    logger.debug(f"Found device: {device_id} (Model: {device_model})")
-
+                    logger.debug(f"Found device: {device_type} (id: '{device_id}', model: {device_model})")
                     self.devices.append(
                         {
                             "id": device_id,
                             "modelId": device_model,
                             "device": device,  # Store the device object for later use
+                            "device_type": device_type,
                         }
                     )
                 except Exception as e:
@@ -125,7 +151,41 @@ class ViessmannClient:
             logger.debug("Error details:", exc_info=True)
             raise
 
-    def get_heat_pump(self, device_id=None):
+    def get_heat_pump(self, devices: list) -> HeatPump:
+        """
+        Find and return a HeatPump instance from the provided list of devices.
+
+        Args:
+            devices: List of device dictionaries (as returned by get_devices).
+
+        Returns:
+            HeatPump: An instance of the HeatPump class representing the found device.
+
+        Raises:
+            ValueError: If no heat pump device is found in the list.
+        """
+        # Find the first heat pump device dictionary in the provided list
+        heat_pump_device_dict = next((d for d in devices if d["device_type"] == DeviceType.HEAT_PUMP), None)
+
+        if not heat_pump_device_dict:
+            logger.error("No heat pump device found in the provided list.")
+            raise ValueError("No heat pump device found in the provided list")
+
+        # Extract the PyViCare device config object
+        device_config = heat_pump_device_dict.get("device")
+        # Ensure we check against the actual PyViCareDeviceConfig type
+        if not device_config or not isinstance(device_config, PyViCareDeviceConfig):
+            logger.error(
+                "Invalid device configuration found for heat pump: %s",
+                heat_pump_device_dict.get("id", "Unknown ID"),
+            )
+            raise ValueError("Invalid device configuration found for heat pump")
+
+        logger.info(f"Found heat pump device: {heat_pump_device_dict['id']}")
+        # Create and return an instance of the local HeatPump class
+        return HeatPump(device_config)
+
+    def get_heat_pump_data(self, device_id=None):
         """
         Get a heat pump device instance.
 

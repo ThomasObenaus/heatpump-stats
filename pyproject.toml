@@ -90,3 +90,10 @@ known-third-party = ["PyViCare", "pandas", "matplotlib", "dotenv"]
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = ["tests/*"]  # Exclude all files within the tests directory

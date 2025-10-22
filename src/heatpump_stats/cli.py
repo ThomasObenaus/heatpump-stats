@@ -62,6 +62,8 @@ def fetch_data(save=False):
     client = ViessmannClient()
     try:
         client.authenticate()
+        devices = client.get_devices()
+
         client.get_heat_pump()
         data = client.collect_heat_pump_data()
 
