@@ -4,13 +4,11 @@ import argparse
 import json
 import logging
 import sys
-import time
-from datetime import datetime
 
 import matplotlib.pyplot as plt
 
 from heatpump_stats.api import ViessmannClient
-from heatpump_stats.config import CONFIG, init_config
+from heatpump_stats.config import init_config
 from heatpump_stats.models import HeatPumpDataStore
 
 # Configure logging
@@ -27,17 +25,6 @@ def setup_parser():
     # Fetch command
     fetch_parser = subparsers.add_parser("fetch", help="Fetch current heat pump data")
     fetch_parser.add_argument("-s", "--save", action="store_true", help="Save data to the data store")
-
-    # Monitor command
-    monitor_parser = subparsers.add_parser("monitor", help="Continuously monitor heat pump data")
-    monitor_parser.add_argument(
-        "-i",
-        "--interval",
-        type=int,
-        default=CONFIG["POLLING_INTERVAL"],
-        help=f"Polling interval in minutes (default: {CONFIG['POLLING_INTERVAL']})",
-    )
-    monitor_parser.add_argument("-d", "--duration", type=int, default=24, help="Monitoring duration in hours (default: 24)")
 
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show statistics")
@@ -64,7 +51,7 @@ def fetch_data(save=False):
         client.authenticate()
         devices = client.get_devices()
 
-        client.get_heat_pump()
+        client.get_heat_pump(devices)
         data = client.collect_heat_pump_data()
 
         # Print data to console
@@ -79,55 +66,6 @@ def fetch_data(save=False):
         return data
     except Exception as e:
         logger.error(f"Error fetching data: {e}")
-        sys.exit(1)
-
-
-def monitor_data(interval_minutes=15, duration_hours=24):
-    """
-    Monitor heat pump data continuously.
-
-    Args:
-        interval_minutes: Interval between data points in minutes
-        duration_hours: Duration to monitor in hours
-    """
-    client = ViessmannClient()
-    data_store = HeatPumpDataStore()
-
-    try:
-        client.authenticate()
-        client.get_heat_pump()
-
-        end_time = datetime.now().timestamp() + (duration_hours * 3600)
-        count = 0
-
-        print(f"Starting monitoring for {duration_hours} hours at {interval_minutes} minute intervals")
-        print(f"Data will be saved to {data_store.csv_path}")
-        print("Press Ctrl+C to stop...")
-
-        while datetime.now().timestamp() < end_time:
-            try:
-                data = client.collect_heat_pump_data()
-                data_store.save_data_point(data)
-                count += 1
-
-                print(
-                    f"\rCollected {count} data points. Last: {data['timestamp']} - Outside: {data['outside_temperature']}°C",
-                    end="",
-                )
-
-                # Sleep until next interval
-                time.sleep(interval_minutes * 60)
-            except KeyboardInterrupt:
-                print("\nMonitoring stopped by user")
-                break
-            except Exception as e:
-                logger.error(f"Error collecting data point: {e}")
-                # Continue after error, with a short delay
-                time.sleep(60)
-
-        print(f"\nMonitoring complete. Collected {count} data points.")
-    except Exception as e:
-        logger.error(f"Error during monitoring: {e}")
         sys.exit(1)
 
 
@@ -252,8 +190,6 @@ def main():
     # Execute command
     if args.command == "fetch":
         fetch_data(args.save)
-    elif args.command == "monitor":
-        monitor_data(args.interval, args.duration)
     elif args.command == "stats":
         show_stats(args.days, args.date)
     elif args.command == "plot":

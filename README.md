@@ -7,7 +7,6 @@
   - [Usage](#usage)
     - [Command Line Interface](#command-line-interface)
       - [Fetch current data](#fetch-current-data)
-      - [Monitor data over time](#monitor-data-over-time)
       - [View statistics](#view-statistics)
       - [Generate plots](#generate-plots)
     - [Python API](#python-api)
@@ -19,7 +18,6 @@ A Python utility for collecting and analyzing data from Viessmann heat pumps usi
 ## Features
 
 - Fetch current heat pump data from the Viessmann API
-- Monitor heat pump data at regular intervals
 - Store data in CSV format for easy analysis
 - Generate statistics from collected data
 - Create plots of temperature trends and heat pump activity
@@ -88,22 +86,6 @@ Add the `--save` flag to store the data in the data store:
 ```bash
 heatpump-stats fetch --save
 ```
-
-#### Monitor data over time
-
-Continuously monitor and save heat pump data:
-
-```bash
-heatpump-stats monitor
-```
-
-Customize the interval and duration:
-
-```bash
-heatpump-stats monitor --interval 5 --duration 48
-```
-
-This will collect data every 5 minutes for 48 hours.
 
 #### View statistics
 
