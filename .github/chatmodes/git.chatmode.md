@@ -18,4 +18,4 @@ This chat mode helps you create a concise and informative git commit message bas
    Subject Line (max 20 characters)
    Body (max 50 characters)
    ```
-6. Finally, execute the git commit command with the generated message to commit the changes to the repository.
+6. Finally, execute the `git add` and `git commit` command with the generated message to commit the changes to the repository in one command.
