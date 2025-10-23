@@ -327,7 +327,6 @@ def authenticate(username:str, password:str, client_id:str) -> PyViCare:
         token_file = os.path.join(str(Path.home()), ".vicare_token.save")
 
         logger.debug(f"Authentication parameters - username: {username}, client_id: {client_id}")
-
         vicare = PyViCare()
         vicare.initWithCredentials(username, password, client_id, token_file)
 
