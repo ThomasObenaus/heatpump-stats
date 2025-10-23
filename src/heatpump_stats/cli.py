@@ -5,9 +5,9 @@ import json
 import logging
 import sys
 
-from heatpump_stats.api import ViessmannClient
 from heatpump_stats.config import init_config
 from heatpump_stats.models import HeatPumpDataStore
+from heatpump_stats.viessmann_client import ViessmannClient
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

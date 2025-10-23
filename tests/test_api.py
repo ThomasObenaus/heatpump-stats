@@ -1,22 +1,23 @@
 """Tests for the Viessmann API client."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 # Import the actual class for spec
 from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
 
-from heatpump_stats.api import DeviceType, HeatPump, ViessmannClient
+from heatpump_stats.types import DeviceType, HeatPump
+from heatpump_stats.viessmann_client import ViessmannClient
 
 
-@patch.dict("heatpump_stats.api.CONFIG", {"VIESSMANN_USER": "test_user", "VIESSMANN_PASSWORD": "test_password"}, clear=True)
-@patch("heatpump_stats.api.validate_config", return_value=None)
+@patch.dict("heatpump_stats.viessmann_client.CONFIG", {"VIESSMANN_USER": "test_user", "VIESSMANN_PASSWORD": "test_password"}, clear=True)
+@patch("heatpump_stats.viessmann_client.validate_config", return_value=None)
 class TestViessmannClient(unittest.TestCase):
     """Test cases for the ViessmannClient class."""
 
     def setUp(self):
         """Set up common test resources."""
-        self.authenticate_patch = patch("heatpump_stats.api.ViessmannClient.authenticate")
+        self.authenticate_patch = patch("heatpump_stats.viessmann_client.ViessmannClient.authenticate")
         self.mock_authenticate = self.authenticate_patch.start()
         self.client = ViessmannClient(username="test@example.com", password="password")
         self.client._authenticated = True
@@ -50,7 +51,7 @@ class TestViessmannClient(unittest.TestCase):
         """Clean up patches."""
         self.authenticate_patch.stop()
 
-    @patch("heatpump_stats.api.PyViCare")
+    @patch("heatpump_stats.viessmann_client.PyViCare")
     def test_authenticate(self, mock_pyvicare_constructor, mock_validate_config_ignored):
         """Test authentication with the Viessmann API."""
         self.authenticate_patch.stop()
@@ -63,10 +64,10 @@ class TestViessmannClient(unittest.TestCase):
         self.assertTrue(result)
         self.assertTrue(client._authenticated)
         mock_pyvicare_constructor.assert_called_once()
-        mock_vicare_instance.initWithCredentials.assert_called_once_with("test@example.com", "password", "vicare-app", unittest.mock.ANY)
+        mock_vicare_instance.initWithCredentials.assert_called_once_with("test@example.com", "password", "vicare-app", ANY)
         self.authenticate_patch.start()
 
-    @patch("heatpump_stats.api.PyViCare")
+    @patch("heatpump_stats.viessmann_client.PyViCare")
     def test_get_devices(self, mock_pyvicare_constructor, mock_validate_config_ignored):
         """Test retrieving devices from the API."""
         mock_vicare_instance = MagicMock()
@@ -153,7 +154,7 @@ class TestViessmannClient(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Invalid device configuration found"):
             self.client.get_heat_pump(invalid_devices_wrong_type)
 
-    @patch("heatpump_stats.api.ViessmannClient.get_heat_pump")
+    @patch("heatpump_stats.viessmann_client.ViessmannClient.get_heat_pump")
     def test_collect_heat_pump_data(self, mock_get_heat_pump, mock_validate_config_ignored):
         """Test collecting data from heat pump."""
         self.client.heat_pump = MagicMock()
