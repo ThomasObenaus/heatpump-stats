@@ -5,9 +5,9 @@ import json
 import logging
 import sys
 
-from heatpump_stats.config import init_config,CONFIG
+from heatpump_stats.config import CONFIG, init_config
 from heatpump_stats.models import HeatPumpDataStore
-from heatpump_stats.viessmann_client import NewViessmannClient
+from heatpump_stats.viessmann_client import new_viessmann_client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -39,7 +39,7 @@ def fetch_data(save=False):
     password = CONFIG["VIESSMANN_PASSWORD"]
     client_id = CONFIG.get("CLIENT_ID", "vicare-app")
 
-    client = NewViessmannClient(username=username, password=password, client_id=client_id)
+    client = new_viessmann_client(username=username, password=password, client_id=client_id)
     try:
         devices = client.get_devices()
 

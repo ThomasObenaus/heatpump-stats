@@ -1,13 +1,16 @@
 import logging
 import os
+from datetime import datetime
+
 from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
+
 from heatpump_stats.types import DeviceType
-from datetime import datetime, timedelta
 
 # Configure logging based on environment variable
 log_level = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=getattr(logging, log_level), format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 class HeatPump:
     """Representation of a heat pump device returned by the Viessmann API."""
@@ -22,7 +25,7 @@ class HeatPump:
 
     def __str__(self) -> str:  # pragma: no cover - trivial wrapper
         return f"HeatPump(device_id={self.device_config.device_id})"
-    
+
     def collect_heat_pump_data(self):
         """
         Collect all relevant data from the heat pump.

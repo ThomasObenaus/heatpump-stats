@@ -26,5 +26,3 @@ class DeviceType(Enum):
 
     def __str__(self) -> str:  # pragma: no cover - trivial wrapper
         return self.value
-
-

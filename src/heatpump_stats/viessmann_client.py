@@ -10,8 +10,8 @@ import pandas as pd
 from PyViCare.PyViCare import PyViCare
 from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
 
-from heatpump_stats.types import DeviceType
 from heatpump_stats.heatpump import HeatPump
+from heatpump_stats.types import DeviceType
 
 # Configure logging based on environment variable
 log_level = os.environ.get("LOGLEVEL", "INFO").upper()
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ViessmannClient:
     """Client for interacting with Viessmann API via PyViCare."""
 
-    def __init__(self, vicare:PyViCare):
+    def __init__(self, vicare: PyViCare):
         """
         Initialize the Viessmann API client.
 
@@ -303,7 +303,7 @@ class ViessmannClient:
         return pd.DataFrame(data_points)
 
 
-def NewViessmannClient(username:str, password:str, client_id:str) -> ViessmannClient:
+def new_viessmann_client(username: str, password: str, client_id: str) -> ViessmannClient:
     """
     Create a new ViessmannClient instance.
 
@@ -319,7 +319,8 @@ def NewViessmannClient(username:str, password:str, client_id:str) -> ViessmannCl
 
     return ViessmannClient(vicare=vicare)
 
-def authenticate(username:str, password:str, client_id:str) -> PyViCare:
+
+def authenticate(username: str, password: str, client_id: str) -> PyViCare:
     """Authenticate with the Viessmann API."""
     logger.info("Authenticating with Viessmann API")
     try:
