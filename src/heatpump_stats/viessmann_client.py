@@ -22,51 +22,20 @@ logger = logging.getLogger(__name__)
 class ViessmannClient:
     """Client for interacting with Viessmann API via PyViCare."""
 
-    def __init__(self, username=None, password=None):
+    def __init__(self, vicare:PyViCare):
         """
         Initialize the Viessmann API client.
 
         Args:
-            username: Viessmann account username (email)
-            password: Viessmann account password
+            vicare: An authenticated PyViCare instance
         """
-        validate_config()
 
-        self.username = username or CONFIG["VIESSMANN_USER"]
-        self.password = password or CONFIG["VIESSMANN_PASSWORD"]
-        self.client_id = CONFIG.get("CLIENT_ID", "vicare-app")
-
-        self.vicare = None
+        self.vicare = vicare
         self.devices = []
         self.heat_pump = None
-        self._authenticated = False
-
-    def authenticate(self):
-        """Authenticate with the Viessmann API."""
-        logger.info("Authenticating with Viessmann API")
-        try:
-            # Create a token file path in the user's home directory
-            token_file = os.path.join(str(Path.home()), ".vicare_token.save")
-
-            logger.debug(f"Authentication parameters - username: {self.username}, client_id: {self.client_id}")
-
-            self.vicare = PyViCare()
-            self.vicare.initWithCredentials(self.username, self.password, self.client_id, token_file)
-
-            logger.debug(f"Authentication successful with username: {self.username}")
-            self._authenticated = True
-            logger.info("Authentication successful")
-            return True
-        except Exception as e:
-            logger.error(f"Authentication failed: {e}")
-            logger.debug("Authentication error details", exc_info=True)
-            self._authenticated = False
-            raise
 
     def get_devices(self):
         """Get all available devices from the account."""
-        if not self._authenticated:
-            self.authenticate()
 
         try:
             # Get devices using the PyViCare instance
@@ -332,3 +301,40 @@ class ViessmannClient:
 
         # Convert to DataFrame
         return pd.DataFrame(data_points)
+
+
+def NewViessmannClient(username:str, password:str, client_id:str) -> ViessmannClient:
+    """
+    Create a new ViessmannClient instance.
+
+    Args:
+        username: Viessmann account username (email)
+        password: Viessmann account password
+        client_id: Viessmann API client ID
+
+    Returns:
+        ViessmannClient: A new instance of ViessmannClient
+    """
+    vicare = authenticate(username, password, client_id)
+
+    return ViessmannClient(vicare=vicare)
+
+def authenticate(username:str, password:str, client_id:str) -> PyViCare:
+    """Authenticate with the Viessmann API."""
+    logger.info("Authenticating with Viessmann API")
+    try:
+        # Create a token file path in the user's home directory
+        token_file = os.path.join(str(Path.home()), ".vicare_token.save")
+
+        logger.debug(f"Authentication parameters - username: {username}, client_id: {client_id}")
+
+        vicare = PyViCare()
+        vicare.initWithCredentials(username, password, client_id, token_file)
+
+        logger.debug(f"Authentication successful with username: {username}")
+        logger.info("Authentication successful")
+        return vicare
+    except Exception as e:
+        logger.error(f"Authentication failed: {e}")
+        logger.debug("Authentication error details", exc_info=True)
+        raise
