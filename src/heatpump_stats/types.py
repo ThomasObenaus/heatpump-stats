@@ -28,15 +28,3 @@ class DeviceType(Enum):
         return self.value
 
 
-class HeatPump:
-    """Representation of a heat pump device returned by the Viessmann API."""
-
-    def __init__(self, device_config: PyViCareDeviceConfig):
-        """Store core metadata about a heat pump."""
-        self.device_config = device_config
-        self.device_id = device_config.device_id
-        self.model_id = device_config.getModel()
-        self.device_type = DeviceType.HEAT_PUMP
-
-    def __str__(self) -> str:  # pragma: no cover - trivial wrapper
-        return f"HeatPump(device_id={self.device_config.device_id})"

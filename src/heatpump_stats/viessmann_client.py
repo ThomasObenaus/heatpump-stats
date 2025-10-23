@@ -10,8 +10,8 @@ import pandas as pd
 from PyViCare.PyViCare import PyViCare
 from PyViCare.PyViCareDeviceConfig import PyViCareDeviceConfig
 
-from heatpump_stats.config import CONFIG, validate_config
-from heatpump_stats.types import DeviceType, HeatPump
+from heatpump_stats.types import DeviceType
+from heatpump_stats.heatpump import HeatPump
 
 # Configure logging based on environment variable
 log_level = os.environ.get("LOGLEVEL", "INFO").upper()

@@ -43,8 +43,8 @@ def fetch_data(save=False):
     try:
         devices = client.get_devices()
 
-        client.get_heat_pump(devices)
-        data = client.collect_heat_pump_data()
+        heat_pump = client.get_heat_pump(devices)
+        data = heat_pump.collect_heat_pump_data()
 
         # Print data to console
         print(json.dumps(data, indent=2))
