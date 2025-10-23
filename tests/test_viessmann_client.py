@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from PyViCare.PyViCare import PyViCare
 
-from heatpump_stats.viessmann_client import NewViessmannClient, ViessmannClient
+from heatpump_stats.viessmann_client import ViessmannClient, new_viessmann_client
 
 
 class TestNewViessmannClient(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestNewViessmannClient(unittest.TestCase):
         vicare_instance = MagicMock(spec=PyViCare)
         mock_authenticate.return_value = vicare_instance
 
-        client = NewViessmannClient("test@example.com", "test-password", "test-client-id")
+        client = new_viessmann_client("test@example.com", "test-password", "test-client-id")
 
         mock_authenticate.assert_called_once_with("test@example.com", "test-password", "test-client-id")
         self.assertIsInstance(client, ViessmannClient)
@@ -27,7 +27,7 @@ class TestNewViessmannClient(unittest.TestCase):
         mock_authenticate.side_effect = RuntimeError("Invalid credentials")
 
         with self.assertRaises(RuntimeError) as exc_info:
-            NewViessmannClient("test@example.com", "test-password", "test-client-id")
+            new_viessmann_client("test@example.com", "test-password", "test-client-id")
 
         mock_authenticate.assert_called_once_with("test@example.com", "test-password", "test-client-id")
         self.assertEqual(str(exc_info.exception), "Invalid credentials")
