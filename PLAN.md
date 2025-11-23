@@ -17,12 +17,18 @@ The solution will be containerized and run on a home server, providing a web das
 - **Why**: Industry standard for IoT time-series data. Handles high-frequency writes (from Shelly) efficiently and integrates well with Python.
 - **Deployment**: Docker container.
 
+### Database (Events): **SQLite**
+
+- **Why**: Lightweight, serverless, relational database perfect for storing structured user events (logs, optimization notes). No extra container required (file-based).
+- **Deployment**: Embedded in the Backend container (data stored on a Docker Volume).
+
 ### Backend: **Python + FastAPI**
 
 - **Why**: Modern, high-performance, and easy to build REST APIs. Python is already used for the data collection logic.
 - **Role**:
   - Expose data from InfluxDB to the frontend.
   - Manage the data collection service (background tasks).
+  - Manage system events/logs (CRUD operations via SQLite).
 
 ### Frontend: **React (TypeScript + Tailwind CSS)**
 
@@ -59,6 +65,8 @@ The solution will be containerized and run on a home server, providing a web das
 2. **API Endpoints**:
    - `GET /api/status`: Current system status (latest readings).
    - `GET /api/history`: Historical data for charts (accepting time ranges).
+   - `GET /api/events`: Retrieve user logs/events.
+   - `POST /api/events`: Add a new optimization note/event.
 3. **InfluxDB Querying**: Implement Flux queries to retrieve aggregated data for the API.
 
 ### Phase 3: Frontend Dashboard
@@ -67,6 +75,7 @@ The solution will be containerized and run on a home server, providing a web das
 2. **Dashboard Layout**:
    - **Current Status Cards**: Current Power (W), Outside Temp (°C), Supply Temp (°C).
    - **Charts**: Power consumption over time, Temperature curves.
+   - **Event Log**: A list/timeline of manual optimization notes.
 3. **Integration**: Connect frontend to FastAPI endpoints.
 
 ## 4. Key Considerations
