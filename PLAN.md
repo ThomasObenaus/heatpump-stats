@@ -339,7 +339,15 @@ To store configuration changes and user notes, we will use a single flexible tab
 ### 1. Measurement: `heatpump_sensors`
 
 - **Tags**: `source="viessmann"`, `circuit` ("0", "1", "dhw", or null)
-- **Fields**: `outside_temp`, `return_temp`, `supply_temp`, `dhw_storage_temp`, `compressor_modulation`, `compressor_power_rated`
+- **Fields**:
+  - `outside_temp` (float)
+  - `return_temp` (float)
+  - `supply_temp` (float)
+  - `dhw_storage_temp` (float)
+  - `compressor_modulation` (float, %)
+  - `compressor_power_rated` (float, kW)
+  - `compressor_runtime_hours` (float, cumulative hours)
+- **Note**: Fields not applicable to a specific tag set (e.g., `supply_temp` for `circuit=dhw` if unavailable) will be omitted (stored as **null/missing**), NOT zero.
 
 ### 2. Measurement: `electrical_power`
 
