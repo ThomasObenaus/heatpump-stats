@@ -93,18 +93,29 @@ def main():
     check_feature("Compressor 0 Modulation", lambda: device.service.getProperty("heating.compressors.0.sensors.power")["properties"]["value"]["value"])
 
     # 5. Heating Schedule
+    print("\n--- Checking Heating Circuits ---")
     try:
-        circuit = device.circuits[0]
-        check_feature("Heating Schedule", lambda: circuit.getHeatingSchedule())
-    except:
-        pass
+        circuits = device.circuits
+        print(f"Found {len(circuits)} heating circuits.")
+        
+        for i, circuit in enumerate(circuits):
+            print(f"\n[Circuit {i}]")
+            # Schedule
+            check_feature(f"Circuit {i} Schedule", lambda: circuit.getHeatingSchedule())
+            
+            # Target Temperatures
+            check_feature(f"Circuit {i} Target Temp (Current)", lambda: circuit.getCurrentDesiredTemperature())
+            check_feature(f"Circuit {i} Target Temp (Comfort)", lambda: circuit.getDesiredTemperatureForProgram("comfort"))
+            check_feature(f"Circuit {i} Target Temp (Normal)", lambda: circuit.getDesiredTemperatureForProgram("normal"))
+            check_feature(f"Circuit {i} Target Temp (Reduced)", lambda: circuit.getDesiredTemperatureForProgram("reduced"))
+            
+            # Supply Temp (if available per circuit)
+            check_feature(f"Circuit {i} Supply Temp", lambda: circuit.getSupplyTemperature())
 
-    # 6. Target Temperature
-    try:
-        circuit = device.circuits[0]
-        check_feature("Target Temperature", lambda: circuit.getCurrentDesiredTemperature())
-    except:
-        pass
+    except Exception as e:
+        print(f"[MISSING] Circuit Data: {e}")
+
+    # 6. Target Temperature (Legacy check removed)
     
     # 7. Power Consumption (Heating) - Just to see if we have it
     check_feature("Power Consumption Summary (Heating, Today)", lambda: device.getPowerSummaryConsumptionHeatingCurrentDay())
