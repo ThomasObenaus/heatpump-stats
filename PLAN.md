@@ -48,9 +48,32 @@ It will also track configuration changes (e.g., temperature settings, schedules)
   - `backend`: Python service (runs Collector + FastAPI).
   - `frontend`: Nginx web server (serves the React application).
 
-## 3. Implementation Steps
+## 3. Required Viessmann Data
+
+To ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device:
+
+| Data Point                  | Purpose              | API Feature / Method (PyViCare)                |
+| :-------------------------- | :------------------- | :--------------------------------------------- |
+| **Outside Temperature**     | Dashboard & Charts   | `getOutsideTemperature()`                      |
+| **Supply Temperature**      | Dashboard & COP Calc | `getSupplyTemperature()`                       |
+| **Return Temperature**      | COP Calc (DeltaT)    | `getReturnTemperature()`                       |
+| **Current Heat Production** | JAZ Calculation      | `getCompressor(id).getHeatProductionCurrent()` |
+| **Heating Schedule**        | Change Log           | `getHeatingSchedule()`                         |
+| **Target Temperature**      | Change Log           | `getCurrentDesiredTemperature()`               |
+| **Compressor Status**       | Status               | `getCompressor(id).isActive()`                 |
+
+_Note: If "Current Heat Production" is missing, the JAZ/COP calculation strategy will need to be adjusted (e.g., relying solely on SPF)._
+
+## 4. Implementation Steps
 
 ### Phase 1: Infrastructure & Data Collection
+
+0. **API Verification (Prerequisite)**:
+
+   - Write a standalone Python script (`verify_api.py`) to connect to the Viessmann API.
+   - Attempt to fetch all data points listed in Section 3.
+   - Log which data points are available and which are missing.
+   - **Stop and Refine**: If critical data (like Heat Production) is missing, adjust the calculation strategy before proceeding.
 
 1. **Docker Setup**: Create `docker-compose.yml` to spin up InfluxDB.
 2. **Shelly Integration**: Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
@@ -81,7 +104,7 @@ It will also track configuration changes (e.g., temperature settings, schedules)
    - **Change Log**: A list/timeline of manual optimization notes.
 3. **Integration**: Connect frontend to FastAPI endpoints.
 
-## 4. Metrics & Calculations
+## 5. Metrics & Calculations
 
 ### Handling Data Resolution Mismatch
 
@@ -121,13 +144,13 @@ It will also track configuration changes (e.g., temperature settings, schedules)
    - **Implementation**: Backend API logic.
    - **Method**: Extrapolation based on current average daily consumption + remaining days.
 
-## 5. Key Considerations
+## 6. Key Considerations
 
 - **Rate Limiting**: Strict enforcement of Viessmann API limits is crucial to avoid bans (max. 1450 calls for a time window of 24 hours). See [Viessmann Developer FAQ](https://developer.viessmann-climatesolutions.com/start/faq.html).
 - **Data Correlation**: Timestamps need to be aligned. InfluxDB handles this well, but we might need to interpolate data if we want to calculate COP (Coefficient of Performance) in real-time (combining slow Viessmann data with fast Shelly data).
 - **Local Access**: Shelly should be accessed via local IP to avoid cloud dependency.
 
-## 6. Component Diagram
+## 7. Component Diagram
 
 ```mermaid
 graph TD
