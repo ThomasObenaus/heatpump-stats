@@ -102,11 +102,13 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 2. **Shelly Integration**: Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
 3. **Collector Service**:
    - Create a main loop in Python.
-   - **Viessmann**: Poll every 5 minutes.
-     - **CRITICAL**: Must use **Batch Fetching** (`fetch_all_features()`) to retrieve all data in a **single API call**.
-       - _Reasoning_: Individual getters would exceed the daily rate limit (1450 calls). 1 call/5min = 288 calls/day (Safe).
-     - **Sensors**: Parse JSON locally to extract Outside, Return, Supply (per circuit), DHW Storage, Compressor Modulation. -> InfluxDB.
-     - **Configuration**: Extract Schedules & Target Temps. -> Compare with previous state -> Write changes to SQLite (Change Log).
+   - **Viessmann**:
+     - **Sensors (Every 5 minutes)**:
+       - Use **Batch Fetching** (`fetch_all_features()`) to retrieve all data in a **single API call**.
+       - Parse JSON locally to extract Outside, Return, Supply (per circuit), DHW Storage, Compressor Modulation. -> InfluxDB.
+     - **Configuration (Every 5 hours)**:
+       - Use the same batch fetch mechanism (or a separate one if needed, but batch is preferred).
+       - Extract Schedules (Circuits, DHW, Circ. Pump) & Target Temps. -> Compare with previous state -> Write changes to SQLite (Change Log).
    - **Shelly**: Poll every 10 seconds for high resolution.
    - **Storage**: Write batched data points to InfluxDB.
 
@@ -189,7 +191,17 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 ## 6. Key Considerations
 
-- **Rate Limiting**: Strict enforcement of Viessmann API limits is crucial to avoid bans (max. 1450 calls for a time window of 24 hours). See [Viessmann Developer FAQ](https://developer.viessmann-climatesolutions.com/start/faq.html).
+- **Rate Limiting Strategy**:
+  - **Constraint**: Max 1450 calls per rolling 24-hour window.
+  - **Budget Calculation**:
+    - Polling (5m interval): 288 calls/day.
+    - Token Refresh: ~24 calls/day.
+    - Buffer for restarts/debugging: ~100 calls/day.
+    - **Total Projected**: ~412 calls/day (Utilization: ~28%).
+  - **Enforcement**:
+    - The Collector Service will track API usage in a persistent store (SQLite).
+    - **Safety Cutoff**: If usage > 1400 in the last 24h, suspend polling until the window clears.
+    - **Backoff**: On HTTP 429, pause for 60 minutes.
 - **Data Correlation**: Timestamps need to be aligned. InfluxDB handles this well, but we might need to interpolate data if we want to calculate COP (Coefficient of Performance) in real-time (combining slow Viessmann data with fast Shelly data).
 - **Local Access**: Shelly should be accessed via local IP to avoid cloud dependency.
 
