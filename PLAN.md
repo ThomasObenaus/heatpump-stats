@@ -249,6 +249,21 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 ## 7. Error Handling & Data Quality
 
+### Data Validation Layer
+
+To ensure data integrity, the Collector Service will implement a strict validation layer before writing to InfluxDB.
+
+- **Pydantic Models**: All API responses (Viessmann & Shelly) will be parsed into Pydantic models.
+  - **Validation**: Ensure types match (e.g., float for temps).
+  - **Range Checks**:
+    - Temps: -40°C to +100°C.
+    - Power: 0W to 20,000W.
+    - Modulation: 0% to 100%.
+- **Partial Failure Handling**:
+  - If a specific field is missing or invalid (e.g., `supply_temp` is null or -999), it will be logged as a warning.
+  - **Action**: The valid fields from the same batch **WILL** be written to InfluxDB. The invalid field will be omitted (stored as null).
+  - **Goal**: Maximize data availability; do not discard the entire batch due to one bad sensor.
+
 ### Failure Scenarios
 
 1. **Viessmann API Outage / Connection Loss**
