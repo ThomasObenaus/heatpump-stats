@@ -347,7 +347,32 @@ To store configuration changes and user notes, we will use a single flexible tab
   - **Downsampling Tasks**: Flux scripts will be version-controlled in the repo (`/influxdb/tasks/`).
   - **Deployment**: A startup script will check/update the tasks in InfluxDB via the API.
 
-## 13. Component Diagram
+## 13. Backup Strategy
+
+To prevent data loss, we will implement an automated daily backup of the Docker volumes.
+
+### Strategy
+
+- **Frequency**: Daily (e.g., 03:00 AM).
+- **Method**: A dedicated `backup` container (Alpine Linux) running a cron job.
+- **Destination**: A mounted host directory `./backups/` (which should be synced to cloud/NAS by the host).
+
+### Specifics
+
+1. **SQLite (`changelog.db`)**:
+
+   - Command: `sqlite3 /data/changelog.db ".backup '/backups/changelog_$(date +%F).db'"`
+   - Ensures a safe "hot" backup without locking the DB for long.
+
+2. **InfluxDB**:
+
+   - Command: `influx backup /backups/influx_$(date +%F) -t <admin-token> --host http://influxdb:8086`
+   - Creates a portable backup of all buckets.
+
+3. **Retention**:
+   - The backup script will delete backups older than 30 days to save space.
+
+## 14. Component Diagram
 
 ```mermaid
 graph TD
