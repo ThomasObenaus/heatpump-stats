@@ -1,290 +1,104 @@
-# Review of PLAN.md (Heatpump Monitoring System)
+## Review of PLAN.md (GPT-5.1)
 
-## 1. Overall assessment
+### 1. Overall architecture
 
-The plan is coherent and technically feasible. Architecture (InfluxDB + FastAPI + React + Docker) fits the problem well, and the metrics/JAZ strategy is reasonable given Viessmann API constraints.
+- The end-to-end architecture is coherent and technically feasible.
+- Clear separation of concerns between data collection (Collector), storage (InfluxDB/SQLite), backend (FastAPI), and frontend (React).
 
-Below are concrete findings: potential gaps, risks, and a few clarifications that may help before you start implementing.
+### 2. Potential gaps / missing details
 
----
+1. **InfluxDB bucket & auth wiring**
 
-## 2. Viessmann API & data model
+   - Buckets `heatpump_raw` and `heatpump_downsampled` are defined conceptually, but:
+     - No explicit plan for **bucket creation & retention setup** (init script, Influx CLI, or API call) is described.
+     - InfluxDB **org, token, and bucket names** should be spelled out as env vars (`INFLUX_URL`, `INFLUX_TOKEN`, `INFLUX_ORG`, `INFLUX_BUCKET_RAW`, `INFLUX_BUCKET_DOWNSAMPLED`).
+   - Downsampling tasks are mentioned, but the **deployment mechanism** (e.g., bootstrap script in the backend container) could be clarified.
 
-- **Token refresh / authentication flow not specified** (X)
+2. **Collector scheduling & process model**
 
-  - PLAN.md assumes Viessmann API access is “given”, but there’s no explicit strategy for:
-    - How you will obtain and refresh access/refresh tokens (PyViCare vs. own OAuth flow).
-    - Where tokens/credentials will be stored (env vars vs. file vs. Docker secrets).
-  - **Suggestion**: Add a short “Authentication & Secrets” subsection describing:
-    - Use of PyViCare’s token handling or your own wrapper.
-    - Storage of credentials (e.g. `.env` + Docker secrets; never baked into images).
+   - The Collector runs 10s and 5m tasks, but it is not fully specified whether:
+     - It runs as a **standalone process** in the backend container (e.g., a supervisor/`gunicorn`+`uvicorn`+background process) or as a **FastAPI background task**.
+     - How **graceful shutdown** and restart (e.g., container restarts) are handled so that intervals are not double-counted.
+   - Consider explicitly deciding between:
+     - One container with `FastAPI + Collector` (single process with scheduler library like `APScheduler` or `asyncio` loops), or
+     - Two processes/containers: `collector` and `api`, both talking to InfluxDB+SQLite.
 
-- **PyViCare feature → measurement mapping only partially covered** (X)
+3. **Time alignment for COP/JAZ**
 
-  - The table lists methods/properties, but you don’t yet define the InfluxDB measurement/field/tags mapping (e.g. `measurement=heating`, `field=outside_temp`, `tag=circuit_id`).
-  - **Suggestion**: Add a “Data schema for InfluxDB” section with:
-    - Measurements (e.g. `viessmann_sensors`, `shelly_power`, `cop`, `jaz`).
-    - Tags (e.g. `source`, `circuit`, `sensor_type`).
-    - Field names and units.
+   - Strategy for alignment (Shelly avg over 5m window) is described conceptually, but:
+     - It is not clear **where** this aggregation happens: inside the Collector using Shelly 10s samples from InfluxDB vs. InfluxDB tasks feeding pre-aggregated power.
+     - If using InfluxDB to aggregate, the **exact Flux query/window alignment** for COP calculation should be defined (e.g., `aggregateWindow(every: 5m, offset: 0m, createEmpty: false)`).
 
-- **Configuration change detection strategy needs more detail**
+4. **Shelly Pro3EM connectivity & auth**
 
-  - You state: _“Compare with previous state -> Write changes to SQLite”_ but do not define:
-    - How you represent the “current snapshot” for comparison (JSON blob per poll? normalized per circuit?)
-    - How to avoid noisy changes (rounding temps, schedule order changes, daylight saving time shifts).
-  - **Suggestion**:
-    - Define a normalized config model in SQLite (circuits, DHW, circulation, schedule entries).
-    - Use hashing or canonical JSON representation to detect “real” changes.
+   - Plan assumes local `http://<ip>/rpc/EM.GetStatus` without mentioning:
+     - Whether **auth** (basic token / password) is required or disabled in your setup.
+     - How to handle **IP changes** (DHCP vs. static lease); the plan assumes a fixed IP.
+   - Might be worth defining env vars (`SHELLY_HOST`, `SHELLY_AUTH`) and a brief retry/backoff strategy beyond the single retry.
 
-- **Missing handling for partially unavailable data**
-  - Some devices/firmware may not expose all documented properties (e.g. certain schedules or modulation properties).
-  - **Suggestion**: Explicitly plan for:
-    - Optional metrics (graceful handling when a feature is missing).
-    - Logging of missing/unsupported features so you can adjust.
+5. **Viessmann API token lifecycle**
 
----
+   - Rate limiting strategy is well defined, but the **auth flow** details are light:
+     - How refresh tokens are stored (file vs. env vs. SQLite) and rotated.
+     - How the Collector reacts to **expired/invalid tokens** (e.g., backoff vs. reauth).
+   - Given `token.save` exists, you might want an explicit subsection describing the **token cache** mechanism and failure modes.
 
-## 3. Shelly Pro3EM integration
+6. **SQLite deployment & schema migration details**
 
-- **Local IP / discovery not specified**
+   - Alembic is mentioned but without:
+     - Concrete **directory layout** (e.g., `backend/alembic/`, `alembic.ini`).
+     - Strategy for **first-run DB creation** (bootstrap script vs. entrypoint running `alembic upgrade head`).
+   - Backups use `sqlite3` CLI; ensure that binary is actually present in the backup container (currently implicit).
 
-  - Assumes you know the Shelly IP and it is static.
-  - **Suggestion**: Add a note that Shelly should use a DHCP reservation / static IP, and that the IP is configured via env var.
+7. **Security & auth hardening**
 
-- **Time synchronization & timestamp source**
+   - Plan has a basic username/password auth for FastAPI, but misses:
+     - Password **hashing** vs. plain text in env vars.
+     - **HTTPS termination** strategy (reverse proxy in front of Nginx? handled by home router / Traefik / Caddy?).
+     - Protection against **CSRF** is probably not needed for a pure token-based API used by a JS SPA, but worth stating explicitly.
+   - Consider whether the API is only reachable on the **LAN** and if so, mention that in the Security section.
 
-  - PLAN.md doesn’t define whether you trust Shelly’s timestamp or assign timestamps in the collector.
-  - **Suggestion**: Decide that the collector assigns timestamps (using host time in UTC) to all readings, to ensure consistency across Viessmann and Shelly sources.
+8. **Error logging & observability**
 
-- **Error handling / retries and backoff**
-  - No plan for connection failures or Shelly reboots.
-  - **Suggestion**: Add high-level behavior:
-    - Retry with exponential backoff for transient failures.
-    - Log and skip intervals instead of blocking the main loop.
+   - Error reactions are described, but no concrete logging strategy:
+     - Centralized log format (JSON vs. plain text).
+     - Log levels (INFO/WARN/ERROR) and where logs end up (Docker stdout vs. file).
+   - No explicit mention of **alerts** or at least visual indicators beyond dashboard status; for a home setup this might be fine, but you might want optional email/Push/Telegram alerts for prolonged outages.
 
----
+9. **Testing scope for collector & hardware integration**
 
-## 4. InfluxDB details
+   - Unit and integration testing are nicely described for backend.
+   - The **Collector** logic (scheduling, retry, rate limiting, COP/JAZ math) should be explicitly listed as a test target, ideally separated from I/O so it can run in simulation.
+   - Simulation mode is planned but not explicitly wired into the testing section (e.g., "integration tests will use simulation mode data sources").
 
-- **InfluxDB v2 org/bucket/retention policy not detailed**
+10. **Configuration management** - Many runtime knobs (intervals, buckets, flow rate, thresholds, backup retention) are described textually but not grouped: - It may help to define a dedicated **"Configuration"** section that lists all env vars and their defaults (collector intervals, paths, tokens, `ESTIMATED_FLOW_RATE`, rate limit thresholds, etc.). - That will reduce drift between docs and implementation.
 
-  - You mention bucket `heatpump` but not retention or downsampling.
-  - **Suggestion**:
-    - Define default retention (e.g. raw Shelly data 6–12 months, downsampled series for long-term).
-    - Plan for continuous queries / tasks (if needed) for downsampling to coarser resolutions.
+11. **Docker Compose & volumes** - Compose file is mentioned but not shaped yet: - Volumes for `influxdb`, `sqlite` (mounted directory), and `backups` should be explicitly named and mapped. - Networking between containers (default bridge network is fine) could be briefly stated (e.g., service names used as hosts). - Nothing is technically wrong, but a short subsection with **service definitions summary** would remove ambiguity.
 
-- **Write strategy & batching**
+12. **InfluxDB schema vs. raw Viessmann data** - `heatpump_sensors` model is sound but it assumes all fields are present for all tag combinations: - In practice, different circuits or DHW may miss some fields; document that non-applicable values are stored as **null/missing**, not 0. - Clarify whether compressor statistics (`hours`) are stored directly in InfluxDB (and if so, under which measurement/fields).
 
-  - You mention “batched data points”, but not how batching interacts with 10 s reads.
-  - **Suggestion**:
-    - Specify batch size or flush interval (e.g. write every N points or every M seconds).
-    - Confirm that batching is separate for Shelly and Viessmann to avoid mixing different cadences.
+13. **Derived metric calculation location** - COP/JAZ are described as calculated by Collector and/or backend API: - For `COP` you state "Collector Service"; for `JAZ` you state "calculated dynamically by the Backend API". - This split is fine, but you may want a clear rule: **all per-interval metrics in Collector, long-range aggregates in API**, or similar.
 
-- **Time zones**
-  - Time zone handling is not explicitly described.
-  - **Suggestion**: Decide:
-    - All timestamps stored as UTC in InfluxDB.
-    - UI/backend applies local time zone for display.
+14. **Backup container lifecycle** - Backup strategy is sound, but a few operational edges are not mentioned: - How the backup job is triggered (cron inside container vs. host cron hitting `docker exec`). - Where backup logs go and how failures are surfaced. - What happens if `influx backup` or `sqlite3` fails (retry/log-only?).
 
----
+15. **Local development ergonomics** - There is no explicit plan for: - A `Makefile`/`justfile` or helper scripts to run "dev stack" (e.g., `docker compose up`, `backend` reload, `frontend` dev server). - Seed/sample data in simulation mode for frontend development without hardware.
 
-## 5. Collector service behavior
+16. **Versioning & upgrades** - InfluxDB v2, Shelly firmware, and Viessmann API/pyViCare versions are not pinned in the plan. - Consider stating that container images and Python deps will be **version-pinned** and periodically updated, to avoid silent behaviour changes.
 
-- **Concurrency / scheduling model not spelled out**
+### 3. Things that look especially solid
 
-  - You have two cadences (10s and 30m) plus background metric calculations (COP).
-  - **Suggestion**:
-    - Decide whether to use a single event loop (e.g. `asyncio`) with scheduled tasks, or a threaded approach.
-    - Document that the collector is a long-running process (one per deployment) with graceful shutdown.
+- **Shadow State + hashing** for change detection is a robust approach.
+- **Rate limiting strategy** with safety cutoff and HTTP 429 backoff is well thought out.
+- **Tiered storage + downsampling** in InfluxDB is appropriate for the data rates.
+- **Simulation mode** is an excellent idea for both development and testing.
 
-- **Rate limit enforcement**
+### 4. Suggested concrete additions to PLAN.md
 
-  - You note the 1450 calls/24h but don’t define:
-    - Calls per poll (how many PyViCare calls per 30m cycle).
-    - Safety margin (e.g. stay < 50% of the limit).
-  - **Suggestion**:
-    - Explicitly calculate expected calls per day and document the budget.
-    - Implement a central Viessmann client wrapper that rate-limits and logs usage.
-
-- **Resilience and restart behavior**
-
-  - There is no mention of:
-    - What happens on backend/container restart (e.g. last config snapshot, missed data windows).
-    - Whether the collector can resume using persisted state for config comparison.
-  - **Suggestion**:
-    - Store last known configuration in SQLite and reuse it after restart.
-    - Accept that power data is missing for downtime; do not try to backfill.
-
-- **Logging and observability**
-  - No explicit logging strategy.
-  - **Suggestion**:
-    - Add at least a minimal plan: structured logs from the collector and FastAPI (JSON or key=value), log level env-var controlled.
-
----
-
-## 6. Metrics & calculations
-
-- **COP & JAZ calculations: edge cases**
-
-  - You describe formulas but not:
-    - Handling of intervals with zero or near-zero electrical power (avoid division by zero).
-    - Handling of intervals where Viessmann data is missing or stale.
-  - **Suggestion**:
-    - Define minimum data quality requirements for a valid COP point (e.g. require Shelly data coverage > X% of the 30min window and valid modulation data).
-
-- **Rated power constant vs configuration**
-
-  - PLAN.md assumes `Rated Power (16 kW)` but does not say where this constant comes from.
-  - **Suggestion**:
-    - If possible, read rated power from the API and store it in config/SQLite; only fall back to a constant.
-
-- **Derivation of daily/weekly/annual stats**
-
-  - You mention Flux `spread` on `total_act_energy`, which is good, but:
-    - No mention of how to handle counter resets (e.g. Shelly firmware upgrade, device reset).
-  - **Suggestion**:
-    - Plan a sanity-check for large negative deltas or sudden drops and either mark them as resets or have a mitigation strategy.
-
-- **Yearly estimation assumptions**
-  - PLAN.md proposes extrapolation from current average daily consumption but not how you bound or label it.
-  - **Suggestion**:
-    - Clearly label estimations as such in the API/Frontend (e.g. `estimate: true`).
-    - Consider exposing both YTD actuals and forecast separately.
-
----
-
-## 7. Backend (FastAPI)
-
-- **Project layout / modules not defined**
-
-  - Only endpoints are listed; no structure.
-  - **Suggestion**: Add a brief structure, e.g.:
-    - `app/main.py` (FastAPI app + lifespan).
-    - `app/api/` (routers for status/history/changelog).
-    - `app/services/` (InfluxDB & SQLite access, COP/JAZ calculations).
-    - `app/models/` (Pydantic models / DTOs).
-
-- **Authentication / access control**
-
-  - Not mentioned.
-  - For home-network only, you might accept “open” access, but it’s worth documenting.
-  - **Suggestion**:
-    - State explicitly whether API is LAN-only, behind reverse proxy, or protected (e.g. basic auth or token).
-
-- **Pagination and query limits**
-
-  - `GET /api/history` and `/api/changelog` may need:
-    - Time range parameters (already mentioned) plus limit/offset or cursor.
-  - **Suggestion**: Plan for reasonable defaults and max window to avoid huge responses.
-
-- **Error handling / status codes**
-  - Not yet specified.
-  - **Suggestion**: Document that the API will return structured error responses (e.g. problem+json style or a custom simple schema).
-
----
-
-## 8. Frontend (React + Tailwind)
-
-- **State management and data fetching strategy**
-
-  - You mention charts and status cards but not how data is fetched/cached.
-  - **Suggestion**:
-    - Decide early whether to use React Query (TanStack Query) or a simple custom hook layer for API calls.
-
-- **Time range and resolution controls**
-
-  - The plan mentions history but not UI controls for date range and aggregation.
-  - **Suggestion**:
-    - Include a basic requirement: dropdown or date-picker for time range (e.g. last 24h, 7d, 30d, custom).
-
-- **Responsive layout**
-
-  - Not mentioned, but important for tablets/phones.
-  - **Suggestion**: Confirm dashboard is mobile-friendly in the design goals.
-
-- **Error & loading states**
-  - No explicit mention of how the frontend shows API errors or loading skeletons.
-  - **Suggestion**: Add acceptance criteria that all main views handle loading/error/empty states.
-
----
-
-## 9. Docker & deployment
-
-- **docker-compose details**
-
-  - Only high-level components are listed.
-  - **Suggestion**:
-    - Define in the plan:
-      - Volume mounts for InfluxDB and SQLite (e.g. `influxdb-data`, `backend-data`).
-      - Network mode (bridge with a dedicated network).
-      - Env var handling for all services.
-
-- **Secrets management**
-
-  - Viessmann tokens and InfluxDB admin credentials should not be hard-coded.
-  - **Suggestion**:
-    - Mention `.env` + `docker-compose` `env_file` or Docker secrets for sensitive data.
-
-- **Backup and upgrade strategy**
-  - Not mentioned.
-  - **Suggestion**:
-    - Briefly note how you plan to back up InfluxDB and SQLite volumes (e.g. periodic `docker run --rm` backup jobs or host-level backups).
-
----
-
-## 10. Testing & validation
-
-- **No explicit testing strategy**
-
-  - PLAN.md doesn’t mention tests.
-  - **Suggestion**:
-    - Add a small section:
-      - Unit tests for metric calculations (COP, JAZ, aggregation).
-      - Integration tests for the FastAPI endpoints using a test InfluxDB/SQLite.
-      - At least a basic end-to-end sanity check script that polls both sources and writes to InfluxDB.
-
-- **Simulation / mock mode**
-  - For development, relying on real Viessmann/Shelly devices is limiting.
-  - **Suggestion**:
-    - Define a "simulation mode" where the collector uses mocked data sources and writes to a dev bucket.
-
----
-
-## 11. Security & privacy
-
-- **Network exposure**
-
-  - Not explicitly stated where the stack is reachable from.
-  - **Suggestion**:
-    - Clarify that the stack is meant for a trusted home LAN and should not be directly exposed to the public internet.
-
-- **Data privacy**
-  - Some metrics (schedules, occupancy patterns via heating behavior) are sensitive.
-  - **Suggestion**:
-    - Mention that data remains local; no cloud uploads beyond Viessmann’s existing cloud API.
-
----
-
-## 12. Documentation & operations
-
-- **Missing minimal README / operations notes**
-  - PLAN.md is excellent as a design spec but doesn’t cover day-2 operations.
-  - **Suggestion**:
-    - Add a brief checklist:
-      - How to start/stop the system.
-      - How to rotate logs.
-      - Where to look if data stops flowing (InfluxDB UI, backend logs, collector logs).
-
----
-
-## 13. Summary of key additions to consider
-
-- Clarify authentication & secret management for Viessmann, InfluxDB, and Shelly.
-- Define InfluxDB schema (measurements/fields/tags) and retention/downsampling strategy.
-- Flesh out configuration change detection (SQLite schema, snapshot strategy, noise reduction).
-- Make explicit decisions about timestamp source (UTC) and handling partial/missing data.
-- Add basic plans for resilience (retries, restarts), logging, and simple test coverage.
-- Specify a bit more structure for the FastAPI backend and React frontend (layout, state management).
-- Document deployment/ops basics: volumes, backups, LAN-only access.
-
-These additions don’t change your core design but will significantly reduce surprises during implementation and operation.
+- Add a **Configuration** section listing all important env vars and intervals.
+- Add a short **"Collector Process Model"** subsection specifying whether it is an internal FastAPI task or a separate process/container.
+- Add a **"Token Management"** subsection clarifying how Viessmann tokens are stored/rotated and how failures are handled.
+- Add a concise **Docker Compose overview** (services, volumes, and main env vars per service).
+- In the **Testing Strategy**, explicitly mention tests for:
+  - Rate limiting logic.
+  - COP/JAZ calculation using simulated data across realistic intervals.
+  - Shadow state change detection using canonicalization & hashing.

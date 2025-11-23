@@ -1,280 +1,253 @@
-# Review Findings for Heatpump Monitoring System Plan
-
-## Overview
-
-This document contains a comprehensive review of the PLAN.md file, identifying potential issues, missing considerations, and recommendations for improvement.
+# Review Findings for PLAN.md
 
 ## Critical Issues
 
-### 1. **COP Calculation Method Inconsistency** (X)
-
-- **Issue**: The plan mentions calculating COP using "Flow Rate x DeltaT x Specific Heat Capacity" but doesn't list flow rate as a required data point from the Viessmann API.
-- **Impact**: Cannot calculate actual thermal power without flow rate data.
-- **Current Workaround**: Uses estimated power (Rated Power \* Modulation %), but this is an estimation, not actual thermal output.
-- **Recommendation**:
-  - Verify if flow rate data is available via the Viessmann API
-  - If not available, document clearly that COP will be estimated, not measured
-  - Consider alternative: Use supply-return temperature delta with estimated flow rate
-
-### 2. **Rate Limiting Strategy Missing** (X)
-
-- **Issue**: While the plan mentions the 1450 calls/24h limit, there's no concrete strategy for handling rate limit enforcement.
-- **Calculation**: Polling every 30 minutes = 48 polls/day. Assuming ~20 data points per poll = 960 calls/day.
-- **Risk**: No buffer for retries, errors, or manual API interactions.
-- **Recommendation**:
-  - Implement exponential backoff for retries
-  - Add rate limit monitoring/alerting
-  - Consider implementing a token bucket algorithm
-  - Add configurable polling intervals
-
-### 3. **Data Persistence & Backup Strategy Missing** (X)
-
-- **Issue**: No mention of backup strategy for InfluxDB and SQLite data.
-- **Impact**: Risk of data loss if container or host fails.
-- **Recommendation**:
-  - Define backup schedules (daily/weekly)
-  - Document restore procedures
-  - Consider using Docker volume backups or external storage
-
-## Important Missing Components
-
-### 4. **Error Handling & Resilience** (X)
-
-- **Missing**: No strategy for handling API failures, network issues, or data collection gaps.
-- **Considerations Needed**:
-  - What happens if Viessmann API is down for hours?
-  - What happens if Shelly is unreachable?
-  - How to handle incomplete data for COP calculations?
-  - Should the system queue failed requests for retry?
-- **Recommendation**: Add a dedicated section on error handling and resilience patterns.
-
-### 5. **Authentication & Security** (X)
-
-- **Missing**:
-  - No mention of securing the FastAPI endpoints
-  - No authentication strategy for the web dashboard
-  - Viessmann API credentials management not detailed
-  - No mention of HTTPS/TLS for the frontend
-- **Risk**: Exposed system with sensitive home data.
-- **Recommendation**:
-  - Add authentication (JWT, OAuth, or basic auth)
-  - Use environment variables for credentials (mentioned .env exists)
-  - Consider reverse proxy with TLS termination
-  - Document credential rotation strategy
-
-### 6. **Monitoring & Observability**
-
-- **Missing**: No strategy for monitoring the monitoring system itself.
-- **Needed**:
-  - Health checks for all services
-  - Logging strategy (log levels, retention, rotation)
-  - Alerting for system failures
-  - Metrics about the collector service (API call success rate, data collection latency)
-- **Recommendation**: Add Prometheus + Grafana or similar for system monitoring, separate from heatpump monitoring.
-
-### 7. **Configuration Management**
-
-- **Missing**: How to configure system parameters without rebuilding containers.
-- **Examples**:
-  - Polling intervals
-  - Shelly IP address
-  - InfluxDB retention policies
-  - Alert thresholds
-- **Recommendation**: Use environment variables and/or a configuration file mounted as a volume.
-
-### 8. **Data Retention Policy**
-
-- **Missing**: No mention of how long to keep data in InfluxDB. (X)
-- **Considerations**:
-  - Raw 10-second Shelly data grows quickly
-  - Should old data be downsampled?
-  - What's the retention period for different data resolutions?
-- **Recommendation**:
-  - Define retention policies (e.g., 7 days of 10s data, 90 days of 1m data, infinite yearly aggregates)
-  - Use InfluxDB's automatic downsampling features
+### 1. **COP Calculation Timing Logic Flaw**
 
-## Technical Concerns
+**Location**: Section 5 (Metrics & Calculations)
 
-### 9. **JAZ Calculation Accuracy** (X)
+**Problem**: The plan states COP will be calculated at 5-minute intervals using "average electrical power from Shelly over the last 5m (queried from InfluxDB)". However, the Collector Service writes to InfluxDB but also needs to read from it to calculate COP. This creates a circular dependency and timing complexity.
 
-- **Issue**: JAZ calculation uses estimated thermal power, not measured.
-- **Accuracy Concern**: Modulation percentage may not linearly correspond to actual heat output due to:
-  - Defrost cycles
-  - Startup/shutdown inefficiencies
-  - Varying outdoor temperatures affecting efficiency
-- **Impact**: JAZ figures may be optimistic or inaccurate.
-- **Recommendation**:
-  - Clearly document this limitation
-  - Consider adding calibration factors based on outdoor temperature
-  - Validate against utility bills or other measurements
+**Impact**:
 
-### 10. **Time Synchronization** (not relevant)
+- The collector needs to query InfluxDB during its own write cycle
+- Risk of race conditions or incomplete data if Shelly writes haven't finished
+- Adds unnecessary database round-trips
 
-- **Missing**: No mention of time synchronization between components.
-- **Issue**: Docker containers may have time drift, affecting timestamp correlation.
-- **Recommendation**:
-  - Ensure NTP is configured on the host
-  - Use UTC consistently across all services
-  - Document timezone handling strategy
+**Recommendation**: Calculate the 5-minute average electrical power directly in the Collector Service's memory buffer before writing to InfluxDB, rather than querying back from the database.
 
-### 11. **Network Architecture**
+---
 
-- **Missing**: Docker networking configuration details.
-- **Questions**:
-  - Should services use bridge network or custom network?
-  - How does the backend container reach the local Shelly device?
-  - What ports need to be exposed?
-- **Recommendation**: Document Docker network configuration in the docker-compose.yml design.
+### 2. **Compressor Runtime Delta Calculation Gap**
 
-### 12. **Shelly Data Buffering**
+**Location**: Section 5, JAZ calculation
 
-- **Issue**: Polling Shelly every 10 seconds generates 8640 data points/day.
-- **Concern**: Writing to InfluxDB every 10s may be inefficient.
-- **Recommendation**:
-  - Implement batching (e.g., write every minute with 6 data points)
-  - Document buffering strategy and memory implications
+**Problem**: The plan mentions using `heating.compressors.0.statistics.hours` (cumulative runtime) to determine runtime fraction within 5-minute intervals: `Hours_Current - Hours_Previous`. However, there's no mention of:
 
-## Missing Implementation Details (X)
+- How to handle the initial state (first poll has no "previous" value)
+- How to handle counter resets (if they occur)
+- Persistence of the previous value across collector restarts
 
-### 13. **Frontend State Management**
+**Impact**: Could lead to incorrect thermal energy calculations or crashes on first run/restart.
 
-- **Missing**: No mention of state management for React (Redux, Zustand, Context API).
-- **Recommendation**: Decide on state management approach, especially for real-time updates.
+**Recommendation**:
 
-### 14. **Real-time Updates** (X)
+- Store the previous runtime value in SQLite or a persistent state file
+- Implement counter reset detection logic
+- Handle the cold-start case gracefully
 
-- **Missing**: How does the frontend get real-time data?
-- **Options**: Polling, WebSockets, Server-Sent Events.
-- **Recommendation**: Define the real-time update strategy.
+---
 
-### 15. **API Versioning** (X)
+### 3. **Rate Limiting Persistence Location Ambiguity**
 
-- **Missing**: No API versioning strategy.
-- **Recommendation**: Use versioned endpoints (e.g., `/api/v1/status`) from the start.
+**Location**: Section 6 (Key Considerations)
 
-### 16. **Testing Strategy**
+**Problem**: States "The Collector Service will track API usage in a persistent store (SQLite)" but this table is never defined in Section 10 (Database Schema).
 
-- **Missing**: No mention of testing (unit tests, integration tests, end-to-end tests).
-- **Recommendation**: Define testing approach for each component.
+**Impact**: Implementation gap - developers don't know what table structure to create.
 
-### 17. **Deployment & CI/CD** (later)
+**Recommendation**: Add a `rate_limit_log` table to Section 10 with columns: `timestamp`, `endpoint`, `response_code`, etc.
 
-- **Missing**: How to deploy updates? Manual or automated?
-- **Recommendation**: Document deployment process, consider GitHub Actions for CI/CD.
+---
 
-### 18. **Documentation** (X)
+## Design Concerns
 
-- **Missing**: Plan for API documentation (OpenAPI/Swagger).
-- **Recommendation**: FastAPI auto-generates Swagger docs - plan to use this feature.
+### 4. **JAZ Calculation Complexity vs. User Value**
 
-## Data Model Concerns
+**Location**: Section 5, JAZ metric
 
-### 19. **InfluxDB Schema Design** (X)
+**Concern**: The plan proposes two methods for thermal power estimation (Modulation-based and Delta-T-based), with the Delta-T method requiring user-configured flow rate. This adds significant complexity:
 
-- **Missing**: Detailed schema design (measurements, tags, fields).
-- **Recommendation**: Define:
-  - Measurement names (e.g., `temperature`, `power`, `cop`)
-  - Tags for grouping (e.g., `source=viessmann`, `circuit=0`, `sensor=supply`)
-  - Field keys and data types
+- Users may not know their flow rate
+- Wrong flow rate = wrong JAZ
+- Two metrics to maintain and explain to users
 
-### 20. **SQLite Change Log Schema** (X)
+**Question**: Is the Delta-T method necessary for MVP? Consider making it a "Phase 2" feature.
 
-- **Missing**: Table structure for the change log database.
-- **Recommendation**: Define schema with fields like:
-  - `id`, `timestamp`, `change_type` (manual/automatic), `component`, `old_value`, `new_value`, `notes`
+---
 
-## Edge Cases & Scenarios
+### 5. **Missing Authentication Implementation Details**
 
-### 21. **System State Changes**
+**Location**: Section 2 (Architecture), Section 7 (Phase 2)
 
-- **Missing**: How to handle heatpump state changes (e.g., switched off, maintenance mode).
-- **Recommendation**: Track operational state and filter metrics accordingly.
+**Gap**: The plan mentions "Token-based authentication (OAuth2 Password Flow)" and a single user, but doesn't specify:
 
-### 22. **Seasonal Considerations**
+- How the password will be hashed (bcrypt? argon2?)
+- Where user credentials are stored (environment variable? SQLite?)
+- Token expiration strategy and refresh mechanism
+- JWT signing secret management
 
-- **Issue**: JAZ calculation is yearly, but partial year results may be misleading.
-- **Example**: Starting monitoring in summer shows unrealistic JAZ.
-- **Recommendation**: Add context indicators (e.g., "90 days of data collected").
+**Recommendation**: Add explicit security requirements, e.g., "Use bcrypt for password hashing, store credentials in environment variables, JWT tokens expire after 24h."
 
-### 23. **Data Migration** (X)
+---
 
-- **Missing**: Strategy for schema changes or data migration.
-- **Recommendation**: Version the database schemas and plan for migrations.
+### 6. **Backup Strategy - Missing SQLite Locking Consideration**
 
-## Performance Considerations
+**Location**: Section 13 (Backup Strategy)
 
-### 24. **Query Performance**
+**Problem**: The backup command `sqlite3 /data/changelog.db ".backup '/backups/...'` is mentioned as ensuring a "hot backup without locking the DB for long." However:
 
-- **Missing**: No mention of expected data volume and query optimization.
-- **Calculation**: 1 year of 10s Shelly data ≈ 3.15M data points.
-- **Recommendation**:
-  - Plan for indexing strategy
-  - Consider using InfluxDB continuous queries for pre-aggregation
-  - Define query performance requirements
+- SQLite still acquires locks during backup
+- If the collector is writing during backup, it could fail or be delayed
+- No mention of WAL mode (Write-Ahead Logging) which would minimize lock contention
 
-### 25. **Frontend Bundle Size**
+**Recommendation**:
 
-- **Missing**: No consideration for frontend performance.
-- **Recommendation**:
-  - Plan for code splitting
-  - Consider lazy loading for charts
-  - Document target bundle size
+- Enable WAL mode for SQLite: `PRAGMA journal_mode=WAL;`
+- Document this in the implementation phase
+- Consider using `PRAGMA wal_checkpoint(TRUNCATE)` before backup
 
-## Operational Concerns
+---
 
-### 26. **Cost Analysis**
+## Missing Components
 
-- **Missing**: Resource requirements (CPU, RAM, disk space).
-- **Recommendation**: Estimate and document resource requirements for each container.
+### 7. **No Error Recovery for Partial API Responses**
 
-### 27. **Maintenance Windows**
+**Location**: Section 7 (Error Handling)
 
-- **Missing**: How to handle system updates without data loss.
-- **Recommendation**: Document update procedures and expected downtime.
+**Gap**: The plan handles complete API failures (Viessmann/Shelly down) but doesn't address scenarios where:
 
-### 28. **User Management**
+- Viessmann API returns HTTP 200 but with partial/malformed JSON
+- Some features are present but others missing in the batch response
+- Invalid data values (e.g., temperature = -999 indicating sensor error)
 
-- **Missing**: Multi-user support or single user assumption?
-- **Recommendation**: Clarify if this is needed and plan accordingly.
+**Recommendation**: Add data validation layer:
 
-## Recommendations Summary
+- Use Pydantic models with validation for all API responses
+- Log warnings for out-of-range values (e.g., outside temp < -40°C or > 50°C)
+- Skip writing individual bad data points while keeping good ones
 
-### High Priority
+---
 
-1. ✅ Clarify COP calculation limitations and accuracy
-2. ✅ Implement comprehensive error handling and retry logic
-3. ✅ Add authentication and security measures
-4. ✅ Define data retention and backup strategy
-5. ✅ Document InfluxDB and SQLite schemas
+### 8. **Shelly Phase Imbalance Detection Missing**
 
-### Medium Priority
+**Location**: Section 11 (InfluxDB Schema)
 
-6. Add system monitoring and health checks
-7. Implement rate limiting enforcement
-8. Define configuration management approach
-9. Document Docker networking architecture
-10. Plan testing strategy
+**Observation**: The schema includes per-phase power data (`phase` tag: "a", "b", "c") but there's no mention of why or how this will be used. If it's for monitoring phase imbalance, this should be explicit.
 
-### Low Priority
+**Question**: Is phase-level data just for debugging, or will there be a dashboard feature showing phase distribution? If not needed, remove the complexity.
 
-11. Add API versioning
-12. Define CI/CD pipeline
-13. Consider frontend performance optimizations
-14. Document maintenance procedures
-15. Add multi-user support (if needed)
+---
 
-## Positive Aspects
+### 9. **Time Zone Handling for Schedules**
 
-The plan demonstrates:
+**Location**: Section 6 (Time Zone Handling)
 
-- ✅ Well-thought-out technology choices
-- ✅ Clear separation of concerns
-- ✅ Appropriate use of time-series database
-- ✅ Recognition of API rate limiting constraints
-- ✅ Good understanding of COP/JAZ metrics
-- ✅ Practical approach to data resolution mismatch
-- ✅ Clear phase-based implementation strategy
+**Gap**: While the plan correctly specifies UTC storage and local display, it doesn't address how **heating schedules** (which are inherently local-time-based) will be handled:
 
-## Conclusion
+- Viessmann API likely returns schedules in local time
+- Storing them as-is means daylight saving time changes could trigger false "change detections"
+- Comparing schedules across DST boundaries is complex
 
-The plan is solid and well-structured but would benefit from addressing the above concerns, particularly around error handling, security, data persistence, and operational aspects. Most issues are not blockers but should be addressed before production deployment.
+**Recommendation**:
+
+- Document the assumption that schedules are in device local time
+- Store schedules in SQLite with a timezone field
+- Add DST-aware comparison logic for change detection
+
+---
+
+### 10. **No Monitoring/Alerting Strategy**
+
+**Location**: Missing from plan
+
+**Gap**: For a long-running system that needs to be reliable, there's no mention of:
+
+- How to monitor if the collector crashes (Docker restart policy?)
+- Alerting if data collection stops (email? push notification?)
+- Health check endpoints for Docker
+
+**Recommendation**: Add Section 17: "Monitoring & Alerting"
+
+- Implement Docker health checks for all containers
+- Add a `/health` endpoint to FastAPI that checks DB connectivity
+- Consider a simple "data freshness" check that alerts if no new data in 10+ minutes
+
+---
+
+## Minor Issues
+
+### 11. **InfluxDB Task Scheduling Overlap**
+
+**Location**: Section 8 (Data Retention & Downsampling)
+
+**Concern**: The 5-minute aggregation task "runs every 15m". This means it processes 3 windows at once. While not incorrect, it's less intuitive than running every 5 minutes (processing 1 window per run).
+
+**Recommendation**: Consider running the task every 5 minutes for simpler mental model, or document why the 15-minute interval was chosen (e.g., reducing task overhead).
+
+---
+
+### 12. **React Query Configuration Missing**
+
+**Location**: Section 2 (Frontend)
+
+**Gap**: React Query is mentioned as the state management solution, but there's no guidance on critical configuration like:
+
+- `staleTime` / `cacheTime` for efficient polling
+- `refetchInterval` for live dashboard updates
+- Error retry logic
+
+**Recommendation**: Add a subsection under Phase 3 with recommended React Query defaults for time-series dashboards.
+
+---
+
+### 13. **Docker Compose Networking Not Specified**
+
+**Location**: Section 2 (Infrastructure)
+
+**Gap**: Three containers (InfluxDB, Backend, Frontend) need to communicate, but there's no mention of:
+
+- Docker network configuration
+- Whether containers use default bridge or custom network
+- Port exposure strategy (which ports are exposed to host?)
+
+**Recommendation**: Add a "Docker Networking" section specifying:
+
+- Custom bridge network for inter-container communication
+- Only expose Frontend (port 80/443) and optionally Backend API (port 8000) to host
+- Keep InfluxDB internal-only
+
+---
+
+## Positive Observations
+
+### ✅ Well-Considered Areas:
+
+1. **Rate limiting strategy** with clear budget calculation and safety margins
+2. **Data quality** approach with gaps instead of zeros for missing data
+3. **Shadow state** mechanism for change detection is sophisticated and handles restarts correctly
+4. **Tiered storage** with raw + downsampled buckets is industry best practice
+5. **Simulation mode** for development is excellent for iteration speed
+
+---
+
+## Summary
+
+**Critical (Must Fix)**:
+
+- #1: COP calculation timing
+- #2: Compressor runtime delta handling
+- #3: Rate limiting schema missing
+
+**High Priority (Should Fix)**:
+
+- #5: Authentication details
+- #6: SQLite backup + WAL mode
+- #7: Partial API response handling
+- #10: Monitoring strategy
+
+**Medium Priority (Consider)**:
+
+- #4: Simplify JAZ calculation for MVP
+- #9: Schedule timezone handling
+- #13: Docker networking specification
+
+**Low Priority (Nice to Have)**:
+
+- #8: Phase data usage clarification
+- #11: Task scheduling documentation
+- #12: React Query configuration guidance
+
+---
+
+**Overall Assessment**: The plan is comprehensive and shows strong architectural thinking, particularly around time-series data handling and change detection. The main gaps are in operational concerns (monitoring, error handling edge cases) and some implementation details that would block development (missing schemas, authentication specifics). With the critical issues addressed, this is a solid foundation for implementation.
