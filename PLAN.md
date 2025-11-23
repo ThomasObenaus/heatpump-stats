@@ -171,8 +171,19 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
      - Calculated dynamically by the Backend API.
 
 4. **Yearly Estimation**
+
    - **Implementation**: Backend API logic.
    - **Method**: Extrapolation based on current average daily consumption + remaining days.
+
+5. **Thermal Power Output**
+   - **Implementation**: Calculated by the **Collector Service** at each 30m interval and stored as two separate measurements in InfluxDB.
+   - **Metric A (Modulation Based)**:
+     - Formula: `Power (kW) = Rated Power (16kW) * Modulation (%)`.
+     - Measurement Name: `thermal_power_modulation`.
+   - **Metric B (Delta T Based)**:
+     - Formula: $P (kW) = \dot{V} (m^3/h) \times 1.16 (kWh/m^3K) \times (T_{supply} - T_{return})$.
+     - Measurement Name: `thermal_power_delta_t`.
+     - Note: Relies on `ESTIMATED_FLOW_RATE` (user setting). And relies on the assumption that the flow rate is constant.
 
 ## 6. Key Considerations
 
