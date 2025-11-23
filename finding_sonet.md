@@ -6,9 +6,9 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
 
 ## Critical Issues
 
-### 1. **COP Calculation Method Inconsistency**
+### 1. **COP Calculation Method Inconsistency** (X)
 
-- (x) **Issue**: The plan mentions calculating COP using "Flow Rate x DeltaT x Specific Heat Capacity" but doesn't list flow rate as a required data point from the Viessmann API.
+- **Issue**: The plan mentions calculating COP using "Flow Rate x DeltaT x Specific Heat Capacity" but doesn't list flow rate as a required data point from the Viessmann API.
 - **Impact**: Cannot calculate actual thermal power without flow rate data.
 - **Current Workaround**: Uses estimated power (Rated Power \* Modulation %), but this is an estimation, not actual thermal output.
 - **Recommendation**:
