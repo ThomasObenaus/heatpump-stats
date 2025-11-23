@@ -134,7 +134,20 @@ def main():
     except Exception as e:
         print(f"[MISSING] DHW Data: {e}")
 
-    # 8. Power Consumption (Heating) - Just to see if we have it
+    # 8. Circulation Pump (DHW)
+    print("\n--- Checking Circulation Pump ---")
+    try:
+        # Schedule - The method name might be different or it might be a property
+        # Let's try to find it via the feature name directly if the method doesn't exist
+        check_feature("Circulation Pump Schedule", lambda: device.service.getProperty("heating.dhw.pumps.circulation.schedule")["properties"]["entries"]["value"])
+        
+        # Status
+        check_feature("Circulation Pump Active", lambda: device.service.getProperty("heating.dhw.pumps.circulation")["properties"]["status"]["value"])
+        
+    except Exception as e:
+        print(f"[MISSING] Circulation Pump Data: {e}")
+
+    # 9. Power Consumption (Heating) - Just to see if we have it
     check_feature("Power Consumption Summary (Heating, Today)", lambda: device.getPowerSummaryConsumptionHeatingCurrentDay())
 
     print("\n--- Verification Complete ---")
