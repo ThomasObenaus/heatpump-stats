@@ -205,7 +205,43 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 - **Data Correlation**: Timestamps need to be aligned. InfluxDB handles this well, but we might need to interpolate data if we want to calculate COP (Coefficient of Performance) in real-time (combining slow Viessmann data with fast Shelly data).
 - **Local Access**: Shelly should be accessed via local IP to avoid cloud dependency.
 
-## 7. Component Diagram
+## 7. Error Handling & Data Quality
+
+### Failure Scenarios
+
+1. **Viessmann API Outage / Connection Loss**
+
+   - **Reaction**:
+     - Log error details to standard output/logs.
+     - **Do NOT retry immediately** (to protect rate limits). Wait for the next scheduled 5m poll.
+     - Skip writing any Viessmann-dependent metrics for this interval.
+   - **Data Flagging**:
+     - Write a `system_health` measurement to InfluxDB: `status=0` (Error), `service="viessmann"`.
+     - **Crucial**: Do **not** write "0" for missing temperatures or power. Leave **gaps** in the time series so charts show breaks instead of false drops.
+
+2. **Shelly Unreachable**
+
+   - **Reaction**:
+     - Log error.
+     - Retry once after 1 second. If it fails again, skip this interval.
+   - **Data Flagging**:
+     - Write `system_health` measurement: `status=0` (Error), `service="shelly"`.
+     - Leave gaps in `electrical_power` series.
+
+3. **Partial Data (One source down)**
+   - **Impact**: Derived metrics (COP, JAZ) cannot be calculated accurately.
+   - **Reaction**:
+     - **Skip calculation** of COP/JAZ for this interval.
+     - Log warning: "Skipping derived metrics due to missing source data".
+
+### User Visibility
+
+- **Dashboard Indicators**:
+  - A "System Status" widget will display the live status of both connections (Green/Red) based on the latest `system_health` metric.
+- **Charts**:
+  - Graphs will render with **gaps** (null values) during outages, clearly indicating missing data to the user.
+
+## 8. Component Diagram
 
 ```mermaid
 graph TD
