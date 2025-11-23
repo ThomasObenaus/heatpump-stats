@@ -459,3 +459,31 @@ graph TD
     FastAPI -- "Query Data" --> InfluxDB
     FastAPI -- "Query/Add Logs" --> SQLite
 ```
+
+## 16. Testing Strategy
+
+To ensure system reliability and data accuracy, we will employ a tiered testing strategy.
+
+### 1. Unit Tests (`pytest`)
+
+- **Focus**: Individual functions and logic isolation.
+- **Key Areas**:
+  - **Metric Calculations**: Verify `calculate_cop` and `calculate_jaz` against known inputs to ensure formulas are correct.
+  - **Data Normalization**: Test the "Shadow State" normalization logic (sorting, rounding) to ensure it produces consistent hashes.
+  - **Parsers**: Validate that API JSON responses are correctly parsed into Pydantic models.
+
+### 2. Integration Tests
+
+- **Focus**: Component interaction (FastAPI + Database).
+- **Strategy**:
+  - Use `pytest-asyncio` and `TestClient` for FastAPI.
+  - **Mocking**: Use an in-memory SQLite database for testing the Change Log. Mock the InfluxDB client to verify write payloads without needing a running DB instance.
+  - **Scenarios**: Test API endpoints (`/history`, `/changelog`) to ensure they query and return data correctly.
+
+### 3. Simulation Mode (Development)
+
+- **Problem**: Developing against live hardware is slow and risky.
+- **Solution**: Implement a **Simulation Mode**.
+  - **Mechanism**: Abstract the data sources behind an interface (`DataSource`).
+  - **Mock Implementation**: Create a `MockViessmann` and `MockShelly` class that generates realistic synthetic data (e.g., sine waves for temps, random noise for power).
+  - **Config**: Controlled via `COLLECTOR_MODE=simulation` env var.
