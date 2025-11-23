@@ -254,7 +254,37 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 - **Charts**:
   - Graphs will render with **gaps** (null values) during outages, clearly indicating missing data to the user.
 
-## 8. Component Diagram
+## 8. Data Retention & Downsampling
+
+To manage storage growth from high-frequency Shelly data (10s), we will use a **Tiered Storage Strategy** via InfluxDB Tasks.
+
+### Buckets
+
+1. **`heatpump_raw`**:
+
+   - **Retention**: 7 Days.
+   - **Content**: Raw Shelly data (10s) + Raw Viessmann data (5m).
+   - **Use Case**: Real-time dashboard, debugging short-cycling.
+
+2. **`heatpump_downsampled`**:
+   - **Retention**: Infinite.
+   - **Content**: Aggregated data.
+   - **Use Case**: Long-term trends, COP/JAZ analysis.
+
+### Downsampling Tasks (Flux Scripts)
+
+1. **5-Minute Aggregation** (Runs every 15m):
+
+   - Source: `heatpump_raw` -> Destination: `heatpump_downsampled`.
+   - **Logic**: Calculate `mean()` of Shelly power over 5m windows (aligned with Viessmann polls).
+   - **Metric**: `electrical_power_5m`.
+
+2. **1-Hour Aggregation** (Runs every 1h):
+   - Source: `heatpump_downsampled` -> Destination: `heatpump_downsampled`.
+   - **Logic**: Calculate `mean()` of Power and `sum()` of Energy.
+   - **Metric**: `electrical_power_1h`, `thermal_power_1h`.
+
+## 9. Component Diagram
 
 ```mermaid
 graph TD
