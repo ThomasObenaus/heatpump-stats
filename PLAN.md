@@ -229,6 +229,10 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
     - **Backoff**: On HTTP 429, pause for 60 minutes.
 - **Data Correlation**: Timestamps need to be aligned. InfluxDB handles this well, but we might need to interpolate data if we want to calculate COP (Coefficient of Performance) in real-time (combining slow Viessmann data with fast Shelly data).
 - **Local Access**: Shelly should be accessed via local IP to avoid cloud dependency.
+- **Time Zone Handling**:
+  - **Storage**: All timestamps in InfluxDB and SQLite will be stored in **UTC**.
+  - **Display**: The Frontend (React) will convert UTC timestamps to the user's **Local Time** (Browser Time) for display.
+  - **Collector**: The Python Collector will use `datetime.now(timezone.utc)` for all generated timestamps.
 
 ## 7. Error Handling & Data Quality
 
