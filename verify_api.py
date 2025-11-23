@@ -1,7 +1,6 @@
 import os
 import sys
 from dotenv import load_dotenv
-from PyViCare.PyViCareService import PyViCareService
 from PyViCare.PyViCare import PyViCare
 
 # Load environment variables
@@ -30,13 +29,44 @@ def main():
     try:
         vicare = PyViCare()
         vicare.initWithCredentials(USER, PASSWORD, CLIENT_ID, "token.save")
-        device = vicare.devices[0] # Get the first device
-        print(f"Connected to device: {device.getModel()} (Status: {device.isOnline()})")
+        
+        print(f"Found {len(vicare.devices)} devices/components:")
+        target_device = None
+        
+        for i, dev in enumerate(vicare.devices):
+            print(f"  [{i}] Model: {dev.getModel()}, Status: {dev.isOnline()}")
+            # We are looking for the heating device, usually ID 0, but let's check the model
+            # The gateway is usually Heatbox... or Vitoconnect...
+            # The heatpump is usually something else.
+            if "Heatbox" not in dev.getModel() and "Vitoconnect" not in dev.getModel():
+                 target_device = dev
+
+        if target_device:
+            print(f"\nSelected device: {target_device.getModel()}")
+            device = target_device.asHeatPump()
+        else:
+            print("\nCould not identify a specific heating device. Using the first one.")
+            device = vicare.devices[0].asHeatPump()
+
     except Exception as e:
         print(f"Failed to connect: {e}")
         sys.exit(1)
 
     print("\n--- Verifying Required Data Points ---")
+
+    # Dump all data for debugging
+    print("\n--- Dumping All Available Features ---")
+    try:
+        # This fetches the raw JSON data from the API
+        dump = device.service.fetch_all_features()
+        print(f"Total features found: {len(dump['data'])}")
+        # Save to a file for inspection
+        import json
+        with open("viessmann_dump.json", "w") as f:
+            json.dump(dump, f, indent=2)
+        print("Saved feature dump to 'viessmann_dump.json'.")
+    except Exception as e:
+        print(f"Failed to dump features: {e}")
 
     # 1. Outside Temperature
     check_feature("Outside Temperature", lambda: device.getOutsideTemperature())
@@ -56,17 +86,11 @@ def main():
     check_feature("Return Temperature", lambda: device.getReturnTemperature())
 
     # 4. Current Heat Production (Critical for JAZ)
-    # This is usually on the compressor.
-    try:
-        compressors = device.compressors
-        if compressors:
-            compressor = compressors[0]
-            check_feature("Current Heat Production (Compressor 0)", lambda: compressor.getHeatProductionCurrent())
-            check_feature("Compressor Active", lambda: compressor.isActive())
-        else:
-            print("[MISSING] No compressors found.")
-    except Exception as e:
-        print(f"[MISSING] Compressor Data: {e}")
+    # We found 'heating.compressors.0.power' in the dump.
+    check_feature("Compressor 0 Power (Thermal?)", lambda: device.service.getProperty("heating.compressors.0.power")["properties"]["value"]["value"])
+    
+    # Check modulation
+    check_feature("Compressor 0 Modulation", lambda: device.service.getProperty("heating.compressors.0.sensors.power")["properties"]["value"]["value"])
 
     # 5. Heating Schedule
     try:
