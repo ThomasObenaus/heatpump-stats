@@ -180,7 +180,10 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
    - **Implementation**: Calculated by the **Collector Service** at each 5m interval.
      - **Thermal Power**: Estimated using `Rated Power (16kW) * Modulation (%)` (same as JAZ).
        - _Note: A secondary `COP_delta_t` will also be calculated using the Delta T method for comparison._
-     - **Electrical Power**: Average Shelly Power over the last 5m (queried from InfluxDB).
+     - **Electrical Power**:
+       - **Strategy**: The Collector Service will maintain an **in-memory buffer** of Shelly readings (last 5 minutes).
+       - **Calculation**: Compute the average of the buffered readings locally.
+       - **Reason**: Avoids circular dependency (writing to DB then reading back) and race conditions.
      - Store calculated `COP` as a new measurement in InfluxDB.
 
 2. **Power Consumption (Day/Week/Month/Year)**
