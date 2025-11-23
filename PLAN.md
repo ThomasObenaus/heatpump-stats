@@ -67,12 +67,13 @@ It will also track configuration changes (e.g., temperature settings, schedules)
 
 ### General System
 
-| Data Point                | Purpose            | API Feature / Method (PyViCare)                  |
-| :------------------------ | :----------------- | :----------------------------------------------- |
-| **Outside Temperature**   | Dashboard & Charts | `getOutsideTemperature()`                        |
-| **Return Temperature**    | COP Calc (DeltaT)  | `getReturnTemperature()`                         |
-| **Compressor Modulation** | JAZ Calculation    | `heating.compressors.0.sensors.power` (Property) |
-| **Rated Power**           | JAZ Calculation    | `heating.compressors.0.power` (Property)         |
+| Data Point                | Purpose            | API Feature / Method (PyViCare)                       |
+| :------------------------ | :----------------- | :---------------------------------------------------- |
+| **Outside Temperature**   | Dashboard & Charts | `getOutsideTemperature()`                             |
+| **Return Temperature**    | COP Calc (DeltaT)  | `getReturnTemperature()`                              |
+| **Compressor Modulation** | JAZ Calculation    | `heating.compressors.0.sensors.power` (Property)      |
+| **Rated Power**           | JAZ Calculation    | `heating.compressors.0.power` (Property)              |
+| **Compressor Runtime**    | JAZ Calculation    | `heating.compressors.0.statistics` (Property `hours`) |
 
 ### Heating Circuits (Iterate over all available circuits)
 
@@ -191,6 +192,10 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
        - **Primary Strategy (Modulation)**:
          - Formula: `Power (kW) = Rated Power (16kW) * Modulation (%)`.
          - API Properties: `heating.compressors.0.power` (Rated) and `heating.compressors.0.sensors.power` (Modulation).
+         - **Refinement**: We will use `heating.compressors.0.statistics.hours` (Cumulative Runtime) to determine the exact runtime fraction within the 5-minute interval.
+           - `Energy (kWh) = Power (kW) * (Hours_Current - Hours_Previous)`.
+           - This accounts for short-cycling where the pump might be OFF at the moment of polling but ran during the interval.
+           - _Limitation_: We still assume constant modulation during the run interval, which is an approximation.
        - **Secondary Strategy (Delta T)**:
          - Formula: $P (kW) = \dot{V} (m^3/h) \times 1.16 (kWh/m^3K) \times (T_{supply} - T_{return})$.
          - Requires: User-configured `ESTIMATED_FLOW_RATE` (since pump speed is unknown).
