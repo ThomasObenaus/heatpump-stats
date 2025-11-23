@@ -16,7 +16,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
   - If not available, document clearly that COP will be estimated, not measured
   - Consider alternative: Use supply-return temperature delta with estimated flow rate
 
-### 2. **Rate Limiting Strategy Missing**
+### 2. **Rate Limiting Strategy Missing** (X)
 
 - **Issue**: While the plan mentions the 1450 calls/24h limit, there's no concrete strategy for handling rate limit enforcement.
 - **Calculation**: Polling every 30 minutes = 48 polls/day. Assuming ~20 data points per poll = 960 calls/day.
@@ -38,7 +38,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
 
 ## Important Missing Components
 
-### 4. **Error Handling & Resilience**
+### 4. **Error Handling & Resilience** (X)
 
 - **Missing**: No strategy for handling API failures, network issues, or data collection gaps.
 - **Considerations Needed**:
@@ -48,7 +48,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
   - Should the system queue failed requests for retry?
 - **Recommendation**: Add a dedicated section on error handling and resilience patterns.
 
-### 5. **Authentication & Security**
+### 5. **Authentication & Security** (X)
 
 - **Missing**:
   - No mention of securing the FastAPI endpoints
@@ -84,7 +84,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
 
 ### 8. **Data Retention Policy**
 
-- **Missing**: No mention of how long to keep data in InfluxDB.
+- **Missing**: No mention of how long to keep data in InfluxDB. (X)
 - **Considerations**:
   - Raw 10-second Shelly data grows quickly
   - Should old data be downsampled?
@@ -95,7 +95,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
 
 ## Technical Concerns
 
-### 9. **JAZ Calculation Accuracy**
+### 9. **JAZ Calculation Accuracy** (X)
 
 - **Issue**: JAZ calculation uses estimated thermal power, not measured.
 - **Accuracy Concern**: Modulation percentage may not linearly correspond to actual heat output due to:
@@ -108,7 +108,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
   - Consider adding calibration factors based on outdoor temperature
   - Validate against utility bills or other measurements
 
-### 10. **Time Synchronization**
+### 10. **Time Synchronization** (not relevant)
 
 - **Missing**: No mention of time synchronization between components.
 - **Issue**: Docker containers may have time drift, affecting timestamp correlation.
@@ -134,20 +134,20 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
   - Implement batching (e.g., write every minute with 6 data points)
   - Document buffering strategy and memory implications
 
-## Missing Implementation Details
+## Missing Implementation Details (X)
 
 ### 13. **Frontend State Management**
 
 - **Missing**: No mention of state management for React (Redux, Zustand, Context API).
 - **Recommendation**: Decide on state management approach, especially for real-time updates.
 
-### 14. **Real-time Updates**
+### 14. **Real-time Updates** (X)
 
 - **Missing**: How does the frontend get real-time data?
 - **Options**: Polling, WebSockets, Server-Sent Events.
 - **Recommendation**: Define the real-time update strategy.
 
-### 15. **API Versioning**
+### 15. **API Versioning** (X)
 
 - **Missing**: No API versioning strategy.
 - **Recommendation**: Use versioned endpoints (e.g., `/api/v1/status`) from the start.
@@ -157,19 +157,19 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
 - **Missing**: No mention of testing (unit tests, integration tests, end-to-end tests).
 - **Recommendation**: Define testing approach for each component.
 
-### 17. **Deployment & CI/CD**
+### 17. **Deployment & CI/CD** (later)
 
 - **Missing**: How to deploy updates? Manual or automated?
 - **Recommendation**: Document deployment process, consider GitHub Actions for CI/CD.
 
-### 18. **Documentation**
+### 18. **Documentation** (X)
 
 - **Missing**: Plan for API documentation (OpenAPI/Swagger).
 - **Recommendation**: FastAPI auto-generates Swagger docs - plan to use this feature.
 
 ## Data Model Concerns
 
-### 19. **InfluxDB Schema Design**
+### 19. **InfluxDB Schema Design** (X)
 
 - **Missing**: Detailed schema design (measurements, tags, fields).
 - **Recommendation**: Define:

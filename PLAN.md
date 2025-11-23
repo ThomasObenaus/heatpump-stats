@@ -131,6 +131,9 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
    - `GET /api/changelog`: Retrieve user change logs.
    - `POST /api/changelog`: Add a new optimization note/change log entry.
 4. **InfluxDB Querying**: Implement Flux queries to retrieve aggregated data for the API.
+5. **Documentation**:
+   - Enable automatic Swagger UI (`/docs`) and ReDoc (`/redoc`) for API exploration.
+   - Ensure all endpoints have proper Pydantic models and docstrings.
 
 ### Phase 3: Frontend Dashboard
 
@@ -286,7 +289,49 @@ To manage storage growth from high-frequency Shelly data (10s), we will use a **
    - **Logic**: Calculate `mean()` of Power and `sum()` of Energy.
    - **Metric**: `electrical_power_1h`, `thermal_power_1h`.
 
-## 9. Component Diagram
+## 10. Database Schema (SQLite - Change Log)
+
+To store configuration changes and user notes, we will use a single flexible table `changelog`.
+
+| Column        | Type         | Description                                                |
+| :------------ | :----------- | :--------------------------------------------------------- |
+| `id`          | INTEGER (PK) | Auto-incrementing ID.                                      |
+| `timestamp`   | DATETIME     | When the change was detected or made.                      |
+| `source`      | TEXT         | `"system"` (auto-detected) or `"user"` (manual note).      |
+| `category`    | TEXT         | `"schedule"`, `"temperature"`, `"mode"`, `"optimization"`. |
+| `item`        | TEXT         | Specific item changed (e.g., `"circuit_0_schedule"`).      |
+| `old_value`   | TEXT (JSON)  | Previous value (serialized JSON).                          |
+| `new_value`   | TEXT (JSON)  | New value (serialized JSON).                               |
+| `description` | TEXT         | Human-readable description.                                |
+
+## 11. InfluxDB Schema
+
+### 1. Measurement: `heatpump_sensors`
+
+- **Tags**: `source="viessmann"`, `circuit` ("0", "1", "dhw", or null)
+- **Fields**: `outside_temp`, `return_temp`, `supply_temp`, `dhw_storage_temp`, `compressor_modulation`, `compressor_power_rated`
+
+### 2. Measurement: `electrical_power`
+
+- **Tags**: `source="shelly"`, `phase` ("total", "a", "b", "c")
+- **Fields**: `power` (W), `energy_total` (Wh)
+
+### 3. Measurement: `thermal_power`
+
+- **Tags**: `source="calculated"`, `method` ("modulation", "delta_t")
+- **Fields**: `power_kw` (kW)
+
+### 4. Measurement: `efficiency`
+
+- **Tags**: `source="calculated"`, `metric` ("cop", "jaz")
+- **Fields**: `value` (float)
+
+### 5. Measurement: `system_health`
+
+- **Tags**: `service` ("viessmann", "shelly")
+- **Fields**: `status` (0=Error, 1=OK), `message` (string)
+
+## 12. Component Diagram
 
 ```mermaid
 graph TD
