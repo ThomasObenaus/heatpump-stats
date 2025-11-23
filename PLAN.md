@@ -111,8 +111,11 @@ It will also track configuration changes (e.g., temperature settings, schedules)
 
    - **Formula**: $JAZ = \frac{\sum \text{Thermal Energy (kWh)}}{\sum \text{Electrical Energy (kWh)}}$
    - **Implementation**:
-     - Requires fetching cumulative "Thermal Energy Produced" from Viessmann (if available) or integrating Thermal Power.
-     - Calculated dynamically by the Backend API over the selected time range (e.g., 1 year).
+     - **Thermal Energy**: Calculated by integrating the **Current Heat Production Rate** over time.
+       - API Method: `getCompressor(id).getHeatProductionCurrent()` (polled every 30m).
+       - Logic: `Energy (kWh) = Power (kW) * 0.5h`. Sum these values over the year.
+     - **Electrical Energy**: Sum of Shelly consumption over the same period.
+     - Calculated dynamically by the Backend API.
 
 4. **Yearly Estimation**
    - **Implementation**: Backend API logic.
