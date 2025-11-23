@@ -337,6 +337,16 @@ To store configuration changes and user notes, we will use a single flexible tab
 | `hash`       | TEXT        | SHA256 hash of the value for quick comparison.    |
 | `updated_at` | DATETIME    | When this state was last confirmed.               |
 
+### Table: `api_usage` (Rate Limiting)
+
+| Column          | Type         | Description                                |
+| :-------------- | :----------- | :----------------------------------------- |
+| `id`            | INTEGER (PK) | Auto-incrementing ID.                      |
+| `timestamp`     | DATETIME     | When the API call was made.                |
+| `endpoint`      | TEXT         | The API endpoint or feature accessed.      |
+| `response_code` | INTEGER      | HTTP status code (e.g., 200, 429).         |
+| `call_count`    | INTEGER      | Number of calls in this batch (usually 1). |
+
 ## 11. InfluxDB Schema
 
 ### 1. Measurement: `heatpump_sensors`
