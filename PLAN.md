@@ -50,17 +50,42 @@ It will also track configuration changes (e.g., temperature settings, schedules)
 
 ## 3. Required Viessmann Data
 
-To ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device:
+To ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device (`CU401B_G`).
 
-| Data Point                | Purpose              | API Feature / Method (PyViCare)                            |
-| :------------------------ | :------------------- | :--------------------------------------------------------- |
-| **Outside Temperature**   | Dashboard & Charts   | `getOutsideTemperature()`                                  |
-| **Supply Temperature**    | Dashboard & COP Calc | `heating.circuits.0.sensors.temperature.supply` (Property) |
-| **Return Temperature**    | COP Calc (DeltaT)    | `getReturnTemperature()`                                   |
-| **Compressor Modulation** | JAZ Calculation      | `heating.compressors.0.sensors.power` (Property)           |
-| **Rated Power**           | JAZ Calculation      | `heating.compressors.0.power` (Property)                   |
-| **Heating Schedule**      | Change Log           | `getHeatingSchedule()`                                     |
-| **Target Temperature**    | Change Log           | `getCurrentDesiredTemperature()`                           |
+### General System
+
+| Data Point                | Purpose            | API Feature / Method (PyViCare)                  |
+| :------------------------ | :----------------- | :----------------------------------------------- |
+| **Outside Temperature**   | Dashboard & Charts | `getOutsideTemperature()`                        |
+| **Return Temperature**    | COP Calc (DeltaT)  | `getReturnTemperature()`                         |
+| **Compressor Modulation** | JAZ Calculation    | `heating.compressors.0.sensors.power` (Property) |
+| **Rated Power**           | JAZ Calculation    | `heating.compressors.0.power` (Property)         |
+
+### Heating Circuits (Iterate over all available circuits)
+
+| Data Point                | Purpose              | API Feature / Method (PyViCare)                      |
+| :------------------------ | :------------------- | :--------------------------------------------------- |
+| **Supply Temperature**    | Dashboard & COP Calc | `circuit.getSupplyTemperature()`                     |
+| **Heating Schedule**      | Change Log           | `circuit.getHeatingSchedule()`                       |
+| **Target Temp (Current)** | Change Log           | `circuit.getCurrentDesiredTemperature()`             |
+| **Target Temp (Comfort)** | Change Log           | `circuit.getDesiredTemperatureForProgram("comfort")` |
+| **Target Temp (Normal)**  | Change Log           | `circuit.getDesiredTemperatureForProgram("normal")`  |
+| **Target Temp (Reduced)** | Change Log           | `circuit.getDesiredTemperatureForProgram("reduced")` |
+
+### Domestic Hot Water (DHW)
+
+| Data Point              | Purpose    | API Feature / Method (PyViCare)           |
+| :---------------------- | :--------- | :---------------------------------------- |
+| **Storage Temperature** | Dashboard  | `getDomesticHotWaterStorageTemperature()` |
+| **Target Temperature**  | Change Log | `getDomesticHotWaterDesiredTemperature()` |
+| **DHW Schedule**        | Change Log | `getDomesticHotWaterSchedule()`           |
+
+### Circulation Pump
+
+| Data Point        | Purpose    | API Feature / Method (PyViCare)                      |
+| :---------------- | :--------- | :--------------------------------------------------- |
+| **Pump Status**   | Dashboard  | `heating.dhw.pumps.circulation` (Property -> status) |
+| **Pump Schedule** | Change Log | `heating.dhw.pumps.circulation.schedule` (Property)  |
 
 _Note: Direct "Current Heat Production" is missing. We will estimate it using `Rated Power _ Modulation %`.\*
 
@@ -78,8 +103,8 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 3. **Collector Service**:
    - Create a main loop in Python.
    - **Viessmann**: Poll every 30 minutes (to respect rate limits).
-     - Fetch sensor data -> InfluxDB.
-     - Fetch configuration (Schedules, Target Temp) -> Compare with previous state -> Write changes to SQLite (Change Log).
+     - **Sensors**: Fetch Outside, Return, Supply (per circuit), DHW Storage, Compressor Modulation. -> InfluxDB.
+     - **Configuration**: Fetch Schedules (Circuits, DHW, Circ. Pump) & Target Temps. -> Compare with previous state -> Write changes to SQLite (Change Log).
    - **Shelly**: Poll every 10 seconds for high resolution.
    - **Storage**: Write batched data points to InfluxDB.
 
