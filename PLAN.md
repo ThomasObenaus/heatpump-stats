@@ -32,11 +32,11 @@ The solution will be containerized and run on a home server, providing a web das
 ### Infrastructure: **Docker**
 
 - **Why**: Easy deployment and isolation.
-- **Components**:
-  - `influxdb`: Time-series database.
-  - `collector`: Python service fetching data.
-  - `backend`: FastAPI service (can be combined with collector or separate).
-  - `frontend`: Nginx serving the React app.
+- **Persistence**: Docker Volumes will be used to ensure InfluxDB data survives container restarts.
+- **Components** (3 separate containers):
+  - `influxdb`: Time-series database (stores data).
+  - `backend`: Python service (runs Collector + FastAPI).
+  - `frontend`: Nginx web server (serves the React application).
 
 ## 3. Implementation Steps
 
@@ -47,7 +47,7 @@ The solution will be containerized and run on a home server, providing a web das
 3. **Collector Service**:
    - Create a main loop in Python.
    - **Viessmann**: Poll every ~5-10 minutes (to respect ~1450 calls/day rate limit).
-   - **Shelly**: Poll every ~10-30 seconds for high resolution.
+   - **Shelly**: Poll every 10 seconds for high resolution.
    - **Storage**: Write batched data points to InfluxDB.
 
 ### Phase 2: Backend API
