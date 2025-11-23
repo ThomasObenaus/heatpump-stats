@@ -48,6 +48,11 @@ It will also track configuration changes (e.g., temperature settings, schedules)
   - `backend`: Python service (runs Collector + FastAPI).
   - `frontend`: Nginx web server (serves the React application).
 
+### Security
+
+- **Authentication**: Token-based authentication (OAuth2 Password Flow) for API access.
+- **Frontend**: Custom Login Screen.
+
 ## 3. Required Viessmann Data
 
 To ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device (`CU401B_G`).
@@ -115,21 +120,29 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 ### Phase 2: Backend API
 
 1. **FastAPI Setup**: Initialize a project structure.
-2. **API Endpoints**:
+2. **Authentication**:
+   - Implement `POST /token` endpoint for login (username/password).
+   - Protect API endpoints (`/api/history`, `/api/changelog`) using `OAuth2PasswordBearer`.
+   - Use environment variables for the single user credentials.
+3. **API Endpoints**:
    - `GET /api/status`: Current system status (latest readings).
    - `GET /api/history`: Historical data for charts (accepting time ranges).
    - `GET /api/changelog`: Retrieve user change logs.
    - `POST /api/changelog`: Add a new optimization note/change log entry.
-3. **InfluxDB Querying**: Implement Flux queries to retrieve aggregated data for the API.
+4. **InfluxDB Querying**: Implement Flux queries to retrieve aggregated data for the API.
 
 ### Phase 3: Frontend Dashboard
 
 1. **Scaffold React App**: Use Vite for a fast setup.
-2. **Dashboard Layout**:
+2. **Authentication UI**:
+   - Create a Login Page.
+   - Implement `AuthProvider` context to manage login state/tokens.
+   - Protect dashboard routes (redirect to login if unauthenticated).
+3. **Dashboard Layout**:
    - **Current Status Cards**: Current Power (W), Outside Temp (°C), Supply Temp (°C).
    - **Charts**: Power consumption over time, Temperature curves.
    - **Change Log**: A list/timeline of manual optimization notes.
-3. **Integration**: Connect frontend to FastAPI endpoints.
+4. **Integration**: Connect frontend to FastAPI endpoints.
 
 ## 5. Metrics & Calculations
 
