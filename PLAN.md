@@ -9,6 +9,7 @@ The system will combine data from:
 - **Shelly Pro3EM**: Real-time power consumption (since it's not available via the Viessmann API).
 
 The solution will be containerized and run on a home server, providing a web dashboard for visualization.
+It will also track configuration changes (e.g., temperature settings, schedules) to correlate them with performance improvements.
 
 ## 2. Architecture & Tech Stack
 
@@ -17,9 +18,9 @@ The solution will be containerized and run on a home server, providing a web das
 - **Why**: Industry standard for IoT time-series data. Handles high-frequency writes (from Shelly) efficiently and integrates well with Python.
 - **Deployment**: Docker container.
 
-### Database (Events): **SQLite**
+### Database (Change Log): **SQLite**
 
-- **Why**: Lightweight, serverless, relational database perfect for storing structured user events (logs, optimization notes). No extra container required (file-based).
+- **Why**: Lightweight, serverless, relational database perfect for storing structured user change logs (optimization notes) and **automatically detected configuration changes** (e.g., schedule updates, target temperature changes). No extra container required (file-based).
 - **Deployment**: Embedded in the Backend container (data stored on a Docker Volume).
 
 ### Backend: **Python + FastAPI**
@@ -28,7 +29,7 @@ The solution will be containerized and run on a home server, providing a web das
 - **Role**:
   - Expose data from InfluxDB to the frontend.
   - Manage the data collection service (background tasks).
-  - Manage system events/logs (CRUD operations via SQLite).
+  - Manage system change logs (CRUD operations via SQLite).
 
 ### Frontend: **React (TypeScript + Tailwind CSS)**
 
@@ -56,6 +57,8 @@ The solution will be containerized and run on a home server, providing a web das
 3. **Collector Service**:
    - Create a main loop in Python.
    - **Viessmann**: Poll every 30 minutes (to respect rate limits).
+     - Fetch sensor data -> InfluxDB.
+     - Fetch configuration (Schedules, Target Temp) -> Compare with previous state -> Write changes to SQLite (Change Log).
    - **Shelly**: Poll every 10 seconds for high resolution.
    - **Storage**: Write batched data points to InfluxDB.
 
@@ -65,8 +68,8 @@ The solution will be containerized and run on a home server, providing a web das
 2. **API Endpoints**:
    - `GET /api/status`: Current system status (latest readings).
    - `GET /api/history`: Historical data for charts (accepting time ranges).
-   - `GET /api/events`: Retrieve user logs/events.
-   - `POST /api/events`: Add a new optimization note/event.
+   - `GET /api/changelog`: Retrieve user change logs.
+   - `POST /api/changelog`: Add a new optimization note/change log entry.
 3. **InfluxDB Querying**: Implement Flux queries to retrieve aggregated data for the API.
 
 ### Phase 3: Frontend Dashboard
@@ -75,7 +78,7 @@ The solution will be containerized and run on a home server, providing a web das
 2. **Dashboard Layout**:
    - **Current Status Cards**: Current Power (W), Outside Temp (°C), Supply Temp (°C).
    - **Charts**: Power consumption over time, Temperature curves.
-   - **Event Log**: A list/timeline of manual optimization notes.
+   - **Change Log**: A list/timeline of manual optimization notes.
 3. **Integration**: Connect frontend to FastAPI endpoints.
 
 ## 4. Key Considerations
