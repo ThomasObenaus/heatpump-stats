@@ -26,6 +26,60 @@ def check_feature(name, func):
         print(f"[MISSING] {name}: {e}")
         return False
 
+def get_value_from_dump(dump_data, feature_name, property_name):
+    for feature in dump_data:
+        if feature["feature"] == feature_name:
+            if property_name in feature["properties"]:
+                return feature["properties"][property_name]["value"]
+    return None
+
+def verify_batch_fetch(device):
+    print("\n--- Verifying Batch Fetch (Single API Call) ---")
+    try:
+        # 1. Fetch all features (ONE API CALL)
+        print("Fetching all features...")
+        dump = device.service.fetch_all_features()
+        data = dump["data"]
+        print(f"Fetched {len(data)} features.")
+
+        # 2. Extract Metrics locally
+        print("\n[Metrics Extraction]")
+        
+        # Outside Temp
+        val = get_value_from_dump(data, "heating.sensors.temperature.outside", "value")
+        print(f"Outside Temp: {val}")
+
+        # Return Temp
+        val = get_value_from_dump(data, "heating.sensors.temperature.return", "value")
+        print(f"Return Temp: {val}")
+
+        # Supply Temp (Circuit 0)
+        val = get_value_from_dump(data, "heating.circuits.0.sensors.temperature.supply", "value")
+        print(f"Supply Temp (Circuit 0): {val}")
+        
+        # Supply Temp (Circuit 1)
+        val = get_value_from_dump(data, "heating.circuits.1.sensors.temperature.supply", "value")
+        print(f"Supply Temp (Circuit 1): {val}")
+
+        # Compressor Power (Rated)
+        val = get_value_from_dump(data, "heating.compressors.0.power", "value")
+        print(f"Compressor Rated Power: {val}")
+
+        # Compressor Modulation
+        val = get_value_from_dump(data, "heating.compressors.0.sensors.power", "value")
+        print(f"Compressor Modulation: {val}")
+        
+        # DHW Storage Temp
+        val = get_value_from_dump(data, "heating.dhw.sensors.temperature.hotWaterStorage", "value")
+        print(f"DHW Storage Temp: {val}")
+
+        # Circulation Pump Status
+        val = get_value_from_dump(data, "heating.dhw.pumps.circulation", "status")
+        print(f"Circulation Pump: {val}")
+
+    except Exception as e:
+        print(f"Batch fetch failed: {e}")
+
 def main():
     print("Connecting to Viessmann API...")
     try:
@@ -153,6 +207,9 @@ def main():
 
     # 9. Power Consumption (Heating) - Just to see if we have it
     check_feature("Power Consumption Summary (Heating, Today)", lambda: device.getPowerSummaryConsumptionHeatingCurrentDay())
+
+    # Verify batch fetch
+    verify_batch_fetch(device)
 
     print("\n--- Verification Complete ---")
 
