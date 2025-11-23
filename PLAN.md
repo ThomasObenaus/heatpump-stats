@@ -37,6 +37,7 @@ It will also track configuration changes (e.g., temperature settings, schedules)
   - **React**: Modern component-based framework with a rich ecosystem for charting (e.g., Recharts, Victory).
   - **TypeScript**: Ensures type safety, reducing bugs when handling API data.
   - **Tailwind CSS**: Rapid styling with a utility-first approach, ensuring a consistent look.
+  - **State Management**: **React Query (TanStack Query)** for server state (API data, caching, polling) + **Context API** for global app state (Auth).
 - **Role**: Visualize time-series data, status, and efficiency metrics.
 
 ### Infrastructure: **Docker**
@@ -134,6 +135,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 ### Phase 3: Frontend Dashboard
 
 1. **Scaffold React App**: Use Vite for a fast setup.
+   - Install `tanstack/react-query` for efficient data fetching and caching.
 2. **Authentication UI**:
    - Create a Login Page.
    - Implement `AuthProvider` context to manage login state/tokens.
