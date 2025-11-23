@@ -246,6 +246,10 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
   - **Storage**: All timestamps in InfluxDB and SQLite will be stored in **UTC**.
   - **Display**: The Frontend (React) will convert UTC timestamps to the user's **Local Time** (Browser Time) for display.
   - **Collector**: The Python Collector will use `datetime.now(timezone.utc)` for all generated timestamps.
+  - **Schedules**:
+    - Viessmann schedules are returned in **Device Local Time**.
+    - We will store them as-is in the `system_state` JSON blob.
+    - **Change Detection**: To avoid false positives during DST transitions, the normalization logic will treat schedule times as abstract strings (e.g., "06:00") rather than converting to UTC.
 
 ## 7. Error Handling & Data Quality
 
