@@ -177,7 +177,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
   - Tags for grouping (e.g., `source=viessmann`, `circuit=0`, `sensor=supply`)
   - Field keys and data types
 
-### 20. **SQLite Change Log Schema**
+### 20. **SQLite Change Log Schema** (X)
 
 - **Missing**: Table structure for the change log database.
 - **Recommendation**: Define schema with fields like:
@@ -196,7 +196,7 @@ This document contains a comprehensive review of the PLAN.md file, identifying p
 - **Example**: Starting monitoring in summer shows unrealistic JAZ.
 - **Recommendation**: Add context indicators (e.g., "90 days of data collected").
 
-### 23. **Data Migration**
+### 23. **Data Migration** (X)
 
 - **Missing**: Strategy for schema changes or data migration.
 - **Recommendation**: Version the database schemas and plan for migrations.
