@@ -113,7 +113,12 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
    - **Strategy Update**: JAZ will be calculated using estimated thermal power (Modulation \* Rated Power).
 
 1. **Docker Setup**: Create `docker-compose.yml` to spin up InfluxDB.
-2. **Shelly Integration**: Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
+2. **Shelly Integration**:
+   - Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
+   - **Configuration**:
+     - `SHELLY_HOST`: IP address or hostname of the Shelly device.
+     - `SHELLY_PASSWORD`: Password for authentication (if enabled).
+     - Both configured via environment variables.
 3. **Collector Service**:
    - Create a main loop in Python.
    - **Viessmann**:
@@ -469,7 +474,54 @@ graph TD
     FastAPI -- "Query/Add Logs" --> SQLite
 ```
 
-## 16. Testing Strategy
+## 16. Configuration Reference
+
+To ensure consistency and easy deployment, all configurable parameters are managed via Environment Variables.
+
+### General & Infrastructure
+
+| Variable         | Default      | Description                                               |
+| :--------------- | :----------- | :-------------------------------------------------------- |
+| `LOG_LEVEL`      | `INFO`       | Logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`).  |
+| `TZ`             | `UTC`        | Container timezone (recommended: UTC).                    |
+| `COLLECTOR_MODE` | `production` | `production` (real hardware) or `simulation` (mock data). |
+
+### Viessmann API
+
+| Variable                    | Default | Description                                          |
+| :-------------------------- | :------ | :--------------------------------------------------- |
+| `VIESSMANN_USER`            | -       | **(Required)** Viessmann account email.              |
+| `VIESSMANN_PASSWORD`        | -       | **(Required)** Viessmann account password.           |
+| `VIESSMANN_CLIENT_ID`       | -       | **(Required)** OAuth Client ID.                      |
+| `VIESSMANN_POLL_INTERVAL`   | `300`   | Polling interval in seconds (default: 5 minutes).    |
+| `VIESSMANN_CONFIG_INTERVAL` | `18000` | Config check interval in seconds (default: 5 hours). |
+
+### Shelly Pro3EM
+
+| Variable               | Default | Description                                                 |
+| :--------------------- | :------ | :---------------------------------------------------------- |
+| `SHELLY_HOST`          | -       | **(Required)** IP address or hostname of the Shelly device. |
+| `SHELLY_PASSWORD`      | -       | Password for Shelly authentication (if enabled).            |
+| `SHELLY_POLL_INTERVAL` | `10`    | Polling interval in seconds (default: 10 seconds).          |
+
+### InfluxDB
+
+| Variable                      | Default                | Description                                     |
+| :---------------------------- | :--------------------- | :---------------------------------------------- |
+| `INFLUXDB_URL`                | `http://influxdb:8086` | URL of the InfluxDB instance.                   |
+| `INFLUXDB_TOKEN`              | -                      | **(Required)** Admin token for writing/reading. |
+| `INFLUXDB_ORG`                | `home`                 | Organization name.                              |
+| `INFLUXDB_BUCKET_RAW`         | `heatpump_raw`         | Bucket for high-frequency data.                 |
+| `INFLUXDB_BUCKET_DOWNSAMPLED` | `heatpump_downsampled` | Bucket for long-term aggregated data.           |
+
+### Metrics & Calculations
+
+| Variable                | Default | Description                                                 |
+| :---------------------- | :------ | :---------------------------------------------------------- |
+| `HEAT_PUMP_RATED_POWER` | `16.0`  | Rated thermal power in kW (used for Modulation-based calc). |
+| `ESTIMATED_FLOW_RATE`   | `1000`  | Estimated flow rate in L/h (used for Delta T-based calc).   |
+
+## 17. Testing Strategy
 
 To ensure system reliability and data accuracy, we will employ a tiered testing strategy.
 
