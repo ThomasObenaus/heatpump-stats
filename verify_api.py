@@ -117,7 +117,24 @@ def main():
 
     # 6. Target Temperature (Legacy check removed)
     
-    # 7. Power Consumption (Heating) - Just to see if we have it
+    # 7. Domestic Hot Water (DHW)
+    print("\n--- Checking Domestic Hot Water (DHW) ---")
+    try:
+        # Schedule
+        check_feature("DHW Schedule", lambda: device.getDomesticHotWaterSchedule())
+        
+        # Target Temperature
+        check_feature("DHW Target Temp (Configured)", lambda: device.getDomesticHotWaterDesiredTemperature())
+        
+        # Supply Temperature (Storage Temp)
+        check_feature("DHW Storage Temp", lambda: device.getDomesticHotWaterStorageTemperature())
+        
+        # Check for specific DHW circuits if applicable (usually just one global DHW setting)
+        
+    except Exception as e:
+        print(f"[MISSING] DHW Data: {e}")
+
+    # 8. Power Consumption (Heating) - Just to see if we have it
     check_feature("Power Consumption Summary (Heating, Today)", lambda: device.getPowerSummaryConsumptionHeatingCurrentDay())
 
     print("\n--- Verification Complete ---")
