@@ -102,7 +102,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 2. **Shelly Integration**: Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
 3. **Collector Service**:
    - Create a main loop in Python.
-   - **Viessmann**: Poll every 30 minutes (to respect rate limits).
+   - **Viessmann**: Poll every 5 minutes (well within the 1450 calls/day limit).
      - **Sensors**: Fetch Outside, Return, Supply (per circuit), DHW Storage, Compressor Modulation. -> InfluxDB.
      - **Configuration**: Fetch Schedules (Circuits, DHW, Circ. Pump) & Target Temps. -> Compare with previous state -> Write changes to SQLite (Change Log).
    - **Shelly**: Poll every 10 seconds for high resolution.
@@ -131,21 +131,21 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 ### Handling Data Resolution Mismatch
 
-- **Challenge**: Shelly provides data every 10s (high res), while Viessmann provides data every 30m (low res).
+- **Challenge**: Shelly provides data every 10s (high res), while Viessmann provides data every 5m (medium res).
 - **Strategy**: **Downsampling & Alignment**.
   - We cannot calculate a valid COP every 10s because the thermal output is unknown.
-  - We will calculate metrics at the **30-minute intervals** (aligned with Viessmann polls).
-  - For the calculation, we will use the **average electrical power** from Shelly over the specific 30-minute window.
+  - We will calculate metrics at the **5-minute intervals** (aligned with Viessmann polls).
+  - For the calculation, we will use the **average electrical power** from Shelly over the specific 5-minute window.
 
 ### Key Metrics
 
 1. **COP (Coefficient of Performance)**
 
    - **Formula**: $COP = \frac{\text{Thermal Power Output (kW)}}{\text{Electrical Power Input (kW)}}$
-   - **Implementation**: Calculated by the **Collector Service** at each 30m interval.
+   - **Implementation**: Calculated by the **Collector Service** at each 5m interval.
      - **Thermal Power**: Estimated using `Rated Power (16kW) * Modulation (%)` (same as JAZ).
        - _Note: A secondary `COP_delta_t` will also be calculated using the Delta T method for comparison._
-     - **Electrical Power**: Average Shelly Power over the last 30m (queried from InfluxDB).
+     - **Electrical Power**: Average Shelly Power over the last 5m (queried from InfluxDB).
      - Store calculated `COP` as a new measurement in InfluxDB.
 
 2. **Power Consumption (Day/Week/Month/Year)**
@@ -166,7 +166,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
          - Formula: $P (kW) = \dot{V} (m^3/h) \times 1.16 (kWh/m^3K) \times (T_{supply} - T_{return})$.
          - Requires: User-configured `ESTIMATED_FLOW_RATE` (since pump speed is unknown).
          - Purpose: Validation and comparison. Stored as `thermal_power_delta_t`.
-       - Logic: `Energy (kWh) = Estimated Power (kW) * 0.5h`. Sum these values over the year.
+       - Logic: `Energy (kWh) = Estimated Power (kW) * Interval (h)`. Sum these values over the year.
      - **Electrical Energy**: Sum of Shelly consumption over the same period.
      - Calculated dynamically by the Backend API.
 
@@ -176,7 +176,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
    - **Method**: Extrapolation based on current average daily consumption + remaining days.
 
 5. **Thermal Power Output**
-   - **Implementation**: Calculated by the **Collector Service** at each 30m interval and stored as two separate measurements in InfluxDB.
+   - **Implementation**: Calculated by the **Collector Service** at each 5m interval and stored as two separate measurements in InfluxDB.
    - **Metric A (Modulation Based)**:
      - Formula: `Power (kW) = Rated Power (16kW) * Modulation (%)`.
      - Measurement Name: `thermal_power_modulation`.
@@ -221,7 +221,7 @@ graph TD
     end
 
     %% Data Flow
-    Collector -- "Poll (30m)" --> Viessmann
+    Collector -- "Poll (5m)" --> Viessmann
     Collector -- "Poll (10s)" --> Shelly
     Collector -- "Write Metrics" --> InfluxDB
     Collector -- "Read/Write Config" --> SQLite
