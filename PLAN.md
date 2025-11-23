@@ -144,7 +144,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
    - **Formula**: $COP = \frac{\text{Thermal Power Output (kW)}}{\text{Electrical Power Input (kW)}}$
    - **Implementation**: Calculated by the **Collector Service** at each 30m interval.
      - **Thermal Power**: Estimated using `Rated Power (16kW) * Modulation (%)` (same as JAZ).
-       - _Note: Direct calculation via Flow Rate x DeltaT is not possible due to missing flow sensors._
+       - _Note: A secondary `COP_delta_t` will also be calculated using the Delta T method for comparison._
      - **Electrical Power**: Average Shelly Power over the last 30m (queried from InfluxDB).
      - Store calculated `COP` as a new measurement in InfluxDB.
 
@@ -159,8 +159,13 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
    - **Formula**: $JAZ = \frac{\sum \text{Thermal Energy (kWh)}}{\sum \text{Electrical Energy (kWh)}}$
    - **Implementation**:
      - **Thermal Energy**: Calculated by integrating the **Estimated Heat Production Rate** over time.
-       - **Estimation Strategy**: `Power (kW) = Rated Power (16kW) * Modulation (%)`.
-       - API Properties: `heating.compressors.0.power` (Rated) and `heating.compressors.0.sensors.power` (Modulation).
+       - **Primary Strategy (Modulation)**:
+         - Formula: `Power (kW) = Rated Power (16kW) * Modulation (%)`.
+         - API Properties: `heating.compressors.0.power` (Rated) and `heating.compressors.0.sensors.power` (Modulation).
+       - **Secondary Strategy (Delta T)**:
+         - Formula: $P (kW) = \dot{V} (m^3/h) \times 1.16 (kWh/m^3K) \times (T_{supply} - T_{return})$.
+         - Requires: User-configured `ESTIMATED_FLOW_RATE` (since pump speed is unknown).
+         - Purpose: Validation and comparison. Stored as `thermal_power_delta_t`.
        - Logic: `Energy (kWh) = Estimated Power (kW) * 0.5h`. Sum these values over the year.
      - **Electrical Energy**: Sum of Shelly consumption over the same period.
      - Calculated dynamically by the Backend API.
