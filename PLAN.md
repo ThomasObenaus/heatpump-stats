@@ -52,11 +52,18 @@ It will also track configuration changes (e.g., temperature settings, schedules)
 ### Security
 
 - **Authentication**: Token-based authentication (OAuth2 Password Flow) for API access.
-- **Frontend**: Custom Login Screen.
+  - **Frontend**: Custom Login Screen.
 
-## 3. Required Viessmann Data
+### Security & Secrets
 
-To ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device (`CU401B_G`).
+- **Strategy**: Environment Variables via `.env` file.
+- **Implementation**:
+  - All sensitive data (Viessmann credentials, InfluxDB tokens, App Secrets) are stored in a `.env` file on the host.
+  - This file is **strictly git-ignored**.
+  - Docker Compose injects these variables into containers at runtime.
+  - _Alternative_: For higher security, Docker Secrets (file-based) can be used if needed.
+
+## 3. Required Viessmann DataTo ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device (`CU401B_G`).
 
 ### General System
 
