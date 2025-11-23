@@ -105,62 +105,108 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 ## 4. Implementation Steps
 
-### Phase 1: Infrastructure & Data Collection
+### Phase 1: Infrastructure & Core Data Collection
 
-0. **API Verification (Completed)**:
+#### Step 0: API Verification (Completed)
 
-   - Verified that `CU401B_G` supports necessary data points via specific properties.
-   - **Strategy Update**: JAZ will be calculated using estimated thermal power (Modulation \* Rated Power).
+- Verified that `CU401B_G` supports necessary data points.
+- Confirmed JAZ calculation strategy (Modulation \* Rated Power).
 
-1. **Docker Setup**: Create `docker-compose.yml` to spin up InfluxDB.
-2. **Shelly Integration**:
-   - Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
-   - **Configuration**:
-     - `SHELLY_HOST`: IP address or hostname of the Shelly device.
-     - `SHELLY_PASSWORD`: Password for authentication (if enabled).
-     - Both configured via environment variables.
-3. **Collector Service**:
-   - Create a main loop in Python.
-   - **Viessmann**:
-     - **Sensors (Every 5 minutes)**:
-       - Use **Batch Fetching** (`fetch_all_features()`) to retrieve all data in a **single API call**.
-       - Parse JSON locally to extract Outside, Return, Supply (per circuit), DHW Storage, Compressor Modulation. -> InfluxDB.
-     - **Configuration (Every 5 hours)**:
-       - Use the same batch fetch mechanism (or a separate one if needed, but batch is preferred).
-       - Extract Schedules (Circuits, DHW, Circ. Pump) & Target Temps. -> Compare with previous state -> Write changes to SQLite (Change Log).
-   - **Shelly**: Poll every 10 seconds for high resolution.
-   - **Storage**: Write batched data points to InfluxDB.
+#### Step 1.1: Environment & Docker Infrastructure
+
+- Create `.env.example` with all required variables.
+- Create `docker-compose.yml` defining the `influxdb` service.
+- Create `src/config.py` to load environment variables using Pydantic `BaseSettings`.
+- **Deliverable**: Running InfluxDB container and verified config loading.
+
+#### Step 1.2: Shelly Integration Module
+
+- Create `src/integrations/shelly.py`.
+- Define Pydantic models for Shelly API response.
+- Implement `fetch_realtime_power()` using `aiohttp`.
+- Add error handling and retries.
+- **Deliverable**: Python script that prints current Shelly power readings.
+
+#### Step 1.3: Viessmann Integration Module
+
+- Create `src/integrations/viessmann.py`.
+- Define Pydantic models for the specific Viessmann features (`CU401B_G`).
+- Implement `fetch_all_features()` using PyViCare (or direct API if needed for batching).
+- Implement data extraction logic (temps, modulation, runtime).
+- **Deliverable**: Python script that prints structured Viessmann data.
+
+#### Step 1.4: Database Layer (InfluxDB & SQLite)
+
+- Create `src/database/influx.py`: Wrapper for writing points and querying.
+- Create `src/database/sqlite.py`: SQLAlchemy/SQLModel setup for `changelog` and `system_state`.
+- Implement schema initialization (create buckets, create tables).
+- **Deliverable**: Helper classes to write metrics and read/write logs.
+
+#### Step 1.5: The Collector Service (Main Loop)
+
+- Create `src/collector/main.py`.
+- Implement the **Scheduler** (10s for Shelly, 5m for Viessmann).
+- Implement **In-Memory Buffering** for Shelly data (to calculate avg power for COP).
+- Implement **Metric Calculation** (COP, Thermal Power).
+- Wire everything together to write to InfluxDB.
+- **Deliverable**: Running service populating InfluxDB with sensor data.
+
+#### Step 1.6: Configuration Change Detection
+
+- Implement the "Shadow State" logic in `src/collector/change_detector.py`.
+- Normalize JSON, compute SHA256 hashes.
+- Compare with SQLite `system_state`.
+- Write detected changes to `changelog` table.
+- **Deliverable**: System automatically logs schedule changes to SQLite.
 
 ### Phase 2: Backend API
 
-1. **FastAPI Setup**: Initialize a project structure.
-2. **Authentication**:
-   - Implement `POST /token` endpoint for login (username/password).
-   - Protect API endpoints (`/api/history`, `/api/changelog`) using `OAuth2PasswordBearer`.
-   - Use environment variables for the single user credentials.
-3. **API Endpoints**:
-   - `GET /api/status`: Current system status (latest readings).
-   - `GET /api/history`: Historical data for charts (accepting time ranges).
-   - `GET /api/changelog`: Retrieve user change logs.
-   - `POST /api/changelog`: Add a new optimization note/change log entry.
-4. **InfluxDB Querying**: Implement Flux queries to retrieve aggregated data for the API.
-5. **Documentation**:
-   - Enable automatic Swagger UI (`/docs`) and ReDoc (`/redoc`) for API exploration.
-   - Ensure all endpoints have proper Pydantic models and docstrings.
+#### Step 2.1: API Skeleton & Authentication
+
+- Initialize FastAPI app in `src/api/main.py`.
+- Implement `POST /token` using `OAuth2PasswordBearer`.
+- Secure endpoints with dependency injection.
+- **Deliverable**: Secure API responding to health checks.
+
+#### Step 2.2: Data Endpoints (InfluxDB Integration)
+
+- Implement `GET /api/status`: Fetch latest system state.
+- Implement `GET /api/history`: Flux queries for historical data (resampled).
+- **Deliverable**: API serving JSON data for charts.
+
+#### Step 2.3: Changelog Endpoints (SQLite Integration)
+
+- Implement `GET /api/changelog`: List changes with filtering.
+- Implement `POST /api/changelog`: Add manual user notes.
+- **Deliverable**: Full CRUD for system logs.
 
 ### Phase 3: Frontend Dashboard
 
-1. **Scaffold React App**: Use Vite for a fast setup.
-   - Install `tanstack/react-query` for efficient data fetching and caching.
-2. **Authentication UI**:
-   - Create a Login Page.
-   - Implement `AuthProvider` context to manage login state/tokens.
-   - Protect dashboard routes (redirect to login if unauthenticated).
-3. **Dashboard Layout**:
-   - **Current Status Cards**: Current Power (W), Outside Temp (°C), Supply Temp (°C).
-   - **Charts**: Power consumption over time, Temperature curves.
-   - **Change Log**: A list/timeline of manual optimization notes.
-4. **Integration**: Connect frontend to FastAPI endpoints.
+#### Step 3.1: Project Scaffold & Authentication
+
+- Initialize Vite + React + TypeScript + Tailwind.
+- Implement Login Page and `AuthProvider`.
+- **Deliverable**: Frontend app with protected routes.
+
+#### Step 3.2: Dashboard Layout & Real-time Status
+
+- Create layout shell (Sidebar/Header).
+- Create "Current Status" widgets (Power, Temps, COP).
+- Hook up to `GET /api/status` with polling.
+- **Deliverable**: Dashboard showing live numbers.
+
+#### Step 3.3: Historical Charts
+
+- Integrate a charting library (e.g., Recharts).
+- Create components for Power, Temperatures, and Efficiency.
+- Hook up to `GET /api/history`.
+- **Deliverable**: Interactive charts.
+
+#### Step 3.4: Changelog UI
+
+- Create a timeline view for the Changelog.
+- Add a form to submit new notes.
+- **Deliverable**: Complete monitoring solution.
 
 ## 5. Metrics & Calculations
 
