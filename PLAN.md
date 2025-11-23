@@ -126,3 +126,47 @@ It will also track configuration changes (e.g., temperature settings, schedules)
 - **Rate Limiting**: Strict enforcement of Viessmann API limits is crucial to avoid bans (max. 1450 calls for a time window of 24 hours). See [Viessmann Developer FAQ](https://developer.viessmann-climatesolutions.com/start/faq.html).
 - **Data Correlation**: Timestamps need to be aligned. InfluxDB handles this well, but we might need to interpolate data if we want to calculate COP (Coefficient of Performance) in real-time (combining slow Viessmann data with fast Shelly data).
 - **Local Access**: Shelly should be accessed via local IP to avoid cloud dependency.
+
+## 6. Component Diagram
+
+```mermaid
+graph TD
+    subgraph "External"
+        Viessmann[Viessmann Cloud API]
+    end
+
+    subgraph "Home Network"
+        Shelly[Shelly Pro3EM]
+
+        subgraph "Docker Host"
+            subgraph "Frontend Container"
+                Nginx[Nginx]
+                ReactApp[React App]
+            end
+
+            subgraph "Backend Container"
+                Collector[Collector Service]
+                FastAPI[FastAPI Server]
+                SQLite[(SQLite Change Log)]
+            end
+
+            InfluxDB[(InfluxDB v2)]
+        end
+
+        User[User / Browser]
+    end
+
+    %% Data Flow
+    Collector -- "Poll (30m)" --> Viessmann
+    Collector -- "Poll (10s)" --> Shelly
+    Collector -- "Write Metrics" --> InfluxDB
+    Collector -- "Read/Write Config" --> SQLite
+
+    %% API & User Interaction
+    User -- "HTTP" --> Nginx
+    Nginx -- "Serve App" --> ReactApp
+    ReactApp -- "API Calls" --> FastAPI
+
+    FastAPI -- "Query Data" --> InfluxDB
+    FastAPI -- "Query/Add Logs" --> SQLite
+```
