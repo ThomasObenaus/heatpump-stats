@@ -102,9 +102,11 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 2. **Shelly Integration**: Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
 3. **Collector Service**:
    - Create a main loop in Python.
-   - **Viessmann**: Poll every 5 minutes (well within the 1450 calls/day limit).
-     - **Sensors**: Fetch Outside, Return, Supply (per circuit), DHW Storage, Compressor Modulation. -> InfluxDB.
-     - **Configuration**: Fetch Schedules (Circuits, DHW, Circ. Pump) & Target Temps. -> Compare with previous state -> Write changes to SQLite (Change Log).
+   - **Viessmann**: Poll every 5 minutes.
+     - **CRITICAL**: Must use **Batch Fetching** (`fetch_all_features()`) to retrieve all data in a **single API call**.
+       - _Reasoning_: Individual getters would exceed the daily rate limit (1450 calls). 1 call/5min = 288 calls/day (Safe).
+     - **Sensors**: Parse JSON locally to extract Outside, Return, Supply (per circuit), DHW Storage, Compressor Modulation. -> InfluxDB.
+     - **Configuration**: Extract Schedules & Target Temps. -> Compare with previous state -> Write changes to SQLite (Change Log).
    - **Shelly**: Poll every 10 seconds for high resolution.
    - **Storage**: Write batched data points to InfluxDB.
 
