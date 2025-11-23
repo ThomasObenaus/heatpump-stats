@@ -157,9 +157,10 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
    - **Formula**: $JAZ = \frac{\sum \text{Thermal Energy (kWh)}}{\sum \text{Electrical Energy (kWh)}}$
    - **Implementation**:
-     - **Thermal Energy**: Calculated by integrating the **Current Heat Production Rate** over time.
-       - API Method: `getCompressor(id).getHeatProductionCurrent()` (polled every 30m).
-       - Logic: `Energy (kWh) = Power (kW) * 0.5h`. Sum these values over the year.
+     - **Thermal Energy**: Calculated by integrating the **Estimated Heat Production Rate** over time.
+       - **Estimation Strategy**: `Power (kW) = Rated Power (16kW) * Modulation (%)`.
+       - API Properties: `heating.compressors.0.power` (Rated) and `heating.compressors.0.sensors.power` (Modulation).
+       - Logic: `Energy (kWh) = Estimated Power (kW) * 0.5h`. Sum these values over the year.
      - **Electrical Energy**: Sum of Shelly consumption over the same period.
      - Calculated dynamically by the Backend API.
 
