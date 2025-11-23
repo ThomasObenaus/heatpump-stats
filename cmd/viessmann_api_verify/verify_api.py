@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 from PyViCare.PyViCare import PyViCare
 
 # Load environment variables
-load_dotenv()
+script_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(script_dir, '.env')
+load_dotenv(env_path)
 
 USER = os.getenv("VIESSMANN_USER")
 PASSWORD = os.getenv("VIESSMANN_PASSWORD")
@@ -28,7 +30,8 @@ def main():
     print("Connecting to Viessmann API...")
     try:
         vicare = PyViCare()
-        vicare.initWithCredentials(USER, PASSWORD, CLIENT_ID, "token.save")
+        token_file = os.path.join(script_dir, "token.save")
+        vicare.initWithCredentials(USER, PASSWORD, CLIENT_ID, token_file)
         
         print(f"Found {len(vicare.devices)} devices/components:")
         target_device = None
@@ -62,9 +65,10 @@ def main():
         print(f"Total features found: {len(dump['data'])}")
         # Save to a file for inspection
         import json
-        with open("viessmann_dump.json", "w") as f:
+        dump_file = os.path.join(script_dir, "viessmann_dump.json")
+        with open(dump_file, "w") as f:
             json.dump(dump, f, indent=2)
-        print("Saved feature dump to 'viessmann_dump.json'.")
+        print(f"Saved feature dump to '{dump_file}'.")
     except Exception as e:
         print(f"Failed to dump features: {e}")
 
