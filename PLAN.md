@@ -49,7 +49,7 @@ The solution will be containerized and run on a home server, providing a web das
 2. **Shelly Integration**: Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
 3. **Collector Service**:
    - Create a main loop in Python.
-   - **Viessmann**: Poll every ~5-10 minutes (to respect ~1450 calls/day rate limit).
+   - **Viessmann**: Poll every 30 minutes (to respect rate limits).
    - **Shelly**: Poll every 10 seconds for high resolution.
    - **Storage**: Write batched data points to InfluxDB.
 
@@ -71,6 +71,6 @@ The solution will be containerized and run on a home server, providing a web das
 
 ## 4. Key Considerations
 
-- **Rate Limiting**: Strict enforcement of Viessmann API limits is crucial to avoid bans.
+- **Rate Limiting**: Strict enforcement of Viessmann API limits is crucial to avoid bans (max. 1450 calls for a time window of 24 hours). See [Viessmann Developer FAQ](https://developer.viessmann-climatesolutions.com/start/faq.html).
 - **Data Correlation**: Timestamps need to be aligned. InfluxDB handles this well, but we might need to interpolate data if we want to calculate COP (Coefficient of Performance) in real-time (combining slow Viessmann data with fast Shelly data).
 - **Local Access**: Shelly should be accessed via local IP to avoid cloud dependency.
