@@ -143,8 +143,9 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
    - **Formula**: $COP = \frac{\text{Thermal Power Output (kW)}}{\text{Electrical Power Input (kW)}}$
    - **Implementation**: Calculated by the **Collector Service** at each 30m interval.
-     - Fetch Viessmann Thermal Power (or calculate via Flow Rate x DeltaT x Specific Heat Capacity).
-     - Query InfluxDB for average Shelly Power over the last 30m.
+     - **Thermal Power**: Estimated using `Rated Power (16kW) * Modulation (%)` (same as JAZ).
+       - _Note: Direct calculation via Flow Rate x DeltaT is not possible due to missing flow sensors._
+     - **Electrical Power**: Average Shelly Power over the last 30m (queried from InfluxDB).
      - Store calculated `COP` as a new measurement in InfluxDB.
 
 2. **Power Consumption (Day/Week/Month/Year)**
