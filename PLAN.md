@@ -81,7 +81,44 @@ It will also track configuration changes (e.g., temperature settings, schedules)
    - **Change Log**: A list/timeline of manual optimization notes.
 3. **Integration**: Connect frontend to FastAPI endpoints.
 
-## 4. Key Considerations
+## 4. Metrics & Calculations
+
+### Handling Data Resolution Mismatch
+
+- **Challenge**: Shelly provides data every 10s (high res), while Viessmann provides data every 30m (low res).
+- **Strategy**: **Downsampling & Alignment**.
+  - We cannot calculate a valid COP every 10s because the thermal output is unknown.
+  - We will calculate metrics at the **30-minute intervals** (aligned with Viessmann polls).
+  - For the calculation, we will use the **average electrical power** from Shelly over the specific 30-minute window.
+
+### Key Metrics
+
+1. **COP (Coefficient of Performance)**
+
+   - **Formula**: $COP = \frac{\text{Thermal Power Output (kW)}}{\text{Electrical Power Input (kW)}}$
+   - **Implementation**: Calculated by the **Collector Service** at each 30m interval.
+     - Fetch Viessmann Thermal Power (or calculate via Flow Rate x DeltaT x Specific Heat Capacity).
+     - Query InfluxDB for average Shelly Power over the last 30m.
+     - Store calculated `COP` as a new measurement in InfluxDB.
+
+2. **Power Consumption (Day/Week/Month/Year)**
+
+   - **Source**: Shelly `total_act_energy` (cumulative counter).
+   - **Implementation**: **Flux Queries** in the Backend API.
+     - Use `aggregateWindow(every: 1d/1w/1mo, fn: spread)` to calculate consumption per period.
+
+3. **JAZ (Jahresarbeitszahl / Seasonal COP)**
+
+   - **Formula**: $JAZ = \frac{\sum \text{Thermal Energy (kWh)}}{\sum \text{Electrical Energy (kWh)}}$
+   - **Implementation**:
+     - Requires fetching cumulative "Thermal Energy Produced" from Viessmann (if available) or integrating Thermal Power.
+     - Calculated dynamically by the Backend API over the selected time range (e.g., 1 year).
+
+4. **Yearly Estimation**
+   - **Implementation**: Backend API logic.
+   - **Method**: Extrapolation based on current average daily consumption + remaining days.
+
+## 5. Key Considerations
 
 - **Rate Limiting**: Strict enforcement of Viessmann API limits is crucial to avoid bans (max. 1450 calls for a time window of 24 hours). See [Viessmann Developer FAQ](https://developer.viessmann-climatesolutions.com/start/faq.html).
 - **Data Correlation**: Timestamps need to be aligned. InfluxDB handles this well, but we might need to interpolate data if we want to calculate COP (Coefficient of Performance) in real-time (combining slow Viessmann data with fast Shelly data).
