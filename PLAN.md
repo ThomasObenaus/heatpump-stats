@@ -331,7 +331,23 @@ To store configuration changes and user notes, we will use a single flexible tab
 - **Tags**: `service` ("viessmann", "shelly")
 - **Fields**: `status` (0=Error, 1=OK), `message` (string)
 
-## 12. Component Diagram
+## 12. Database Migrations
+
+### SQLite (Change Log)
+
+- **Tool**: **Alembic**.
+- **Strategy**:
+  - Define schema changes as revision scripts (e.g., `versions/001_initial.py`).
+  - Run `alembic upgrade head` on container startup to ensure the DB is up-to-date.
+
+### InfluxDB (Time Series)
+
+- **Strategy**: **Schema-on-Write**.
+  - New fields/tags are added automatically by writing data.
+  - **Downsampling Tasks**: Flux scripts will be version-controlled in the repo (`/influxdb/tasks/`).
+  - **Deployment**: A startup script will check/update the tasks in InfluxDB via the API.
+
+## 13. Component Diagram
 
 ```mermaid
 graph TD
