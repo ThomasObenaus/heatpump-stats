@@ -52,28 +52,26 @@ It will also track configuration changes (e.g., temperature settings, schedules)
 
 To ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device:
 
-| Data Point                  | Purpose              | API Feature / Method (PyViCare)                |
-| :-------------------------- | :------------------- | :--------------------------------------------- |
-| **Outside Temperature**     | Dashboard & Charts   | `getOutsideTemperature()`                      |
-| **Supply Temperature**      | Dashboard & COP Calc | `getSupplyTemperature()`                       |
-| **Return Temperature**      | COP Calc (DeltaT)    | `getReturnTemperature()`                       |
-| **Current Heat Production** | JAZ Calculation      | `getCompressor(id).getHeatProductionCurrent()` |
-| **Heating Schedule**        | Change Log           | `getHeatingSchedule()`                         |
-| **Target Temperature**      | Change Log           | `getCurrentDesiredTemperature()`               |
-| **Compressor Status**       | Status               | `getCompressor(id).isActive()`                 |
+| Data Point                | Purpose              | API Feature / Method (PyViCare)                            |
+| :------------------------ | :------------------- | :--------------------------------------------------------- |
+| **Outside Temperature**   | Dashboard & Charts   | `getOutsideTemperature()`                                  |
+| **Supply Temperature**    | Dashboard & COP Calc | `heating.circuits.0.sensors.temperature.supply` (Property) |
+| **Return Temperature**    | COP Calc (DeltaT)    | `getReturnTemperature()`                                   |
+| **Compressor Modulation** | JAZ Calculation      | `heating.compressors.0.sensors.power` (Property)           |
+| **Rated Power**           | JAZ Calculation      | `heating.compressors.0.power` (Property)                   |
+| **Heating Schedule**      | Change Log           | `getHeatingSchedule()`                                     |
+| **Target Temperature**    | Change Log           | `getCurrentDesiredTemperature()`                           |
 
-_Note: If "Current Heat Production" is missing, the JAZ/COP calculation strategy will need to be adjusted (e.g., relying solely on SPF)._
+_Note: Direct "Current Heat Production" is missing. We will estimate it using `Rated Power _ Modulation %`.\*
 
 ## 4. Implementation Steps
 
 ### Phase 1: Infrastructure & Data Collection
 
-0. **API Verification (Prerequisite)**:
+0. **API Verification (Completed)**:
 
-   - Write a standalone Python script (`verify_api.py`) to connect to the Viessmann API.
-   - Attempt to fetch all data points listed in Section 3.
-   - Log which data points are available and which are missing.
-   - **Stop and Refine**: If critical data (like Heat Production) is missing, adjust the calculation strategy before proceeding.
+   - Verified that `CU401B_G` supports necessary data points via specific properties.
+   - **Strategy Update**: JAZ will be calculated using estimated thermal power (Modulation \* Rated Power).
 
 1. **Docker Setup**: Create `docker-compose.yml` to spin up InfluxDB.
 2. **Shelly Integration**: Implement a Python module to fetch power data from the Shelly Pro3EM (using local RPC API `http://<ip>/rpc/EM.GetStatus`).
