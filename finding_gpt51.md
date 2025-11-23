@@ -10,7 +10,7 @@ Below are concrete findings: potential gaps, risks, and a few clarifications tha
 
 ## 2. Viessmann API & data model
 
-- **Token refresh / authentication flow not specified**
+- **Token refresh / authentication flow not specified** (X)
 
   - PLAN.md assumes Viessmann API access is “given”, but there’s no explicit strategy for:
     - How you will obtain and refresh access/refresh tokens (PyViCare vs. own OAuth flow).
@@ -19,7 +19,7 @@ Below are concrete findings: potential gaps, risks, and a few clarifications tha
     - Use of PyViCare’s token handling or your own wrapper.
     - Storage of credentials (e.g. `.env` + Docker secrets; never baked into images).
 
-- **PyViCare feature → measurement mapping only partially covered**
+- **PyViCare feature → measurement mapping only partially covered** (X)
 
   - The table lists methods/properties, but you don’t yet define the InfluxDB measurement/field/tags mapping (e.g. `measurement=heating`, `field=outside_temp`, `tag=circuit_id`).
   - **Suggestion**: Add a “Data schema for InfluxDB” section with:

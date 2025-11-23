@@ -311,6 +311,15 @@ To store configuration changes and user notes, we will use a single flexible tab
 | `new_value`   | TEXT (JSON)  | New value (serialized JSON).                               |
 | `description` | TEXT         | Human-readable description.                                |
 
+### Table: `system_state` (Shadow State)
+
+| Column       | Type        | Description                                       |
+| :----------- | :---------- | :------------------------------------------------ |
+| `key`        | TEXT (PK)   | Unique identifier (e.g., `"circuit_0_schedule"`). |
+| `value`      | TEXT (JSON) | The last known valid state (Canonical JSON).      |
+| `hash`       | TEXT        | SHA256 hash of the value for quick comparison.    |
+| `updated_at` | DATETIME    | When this state was last confirmed.               |
+
 ## 11. InfluxDB Schema
 
 ### 1. Measurement: `heatpump_sensors`
@@ -379,7 +388,35 @@ To prevent data loss, we will implement an automated daily backup of the Docker 
 3. **Retention**:
    - The backup script will delete backups older than 30 days to save space.
 
-## 14. Component Diagram
+## 14. Configuration Change Detection Strategy
+
+To reliably detect configuration changes (e.g., user modifies a schedule via the Viessmann app) without generating false positives from API noise or restarts, we will use a **Shadow State** approach.
+
+### The Problem
+
+- **Restarts**: In-memory state is lost. On restart, the system would think _everything_ is new.
+- **Noise**: Floating point differences (20.0 vs 20.0001) or JSON key ordering can look like changes.
+
+### The Solution: "Shadow State" in SQLite
+
+1. **Persistence**: We maintain a `system_state` table in SQLite that acts as the "last known good" configuration.
+2. **Canonicalization**: Before comparison, all API data is normalized:
+   - Keys sorted alphabetically.
+   - Floats rounded to 1 decimal place.
+   - Lists sorted (where order doesn't matter).
+3. **Hashing**: We compute a SHA256 hash of the normalized JSON.
+4. **Comparison Logic**:
+   - **Fetch** current config from API.
+   - **Normalize & Hash**.
+   - **Select** stored hash from `system_state` where `key = 'feature_name'`.
+   - **If Hash != Stored Hash**:
+     - It's a real change.
+     - Insert entry into `changelog` table.
+     - Update `system_state` with new value and hash.
+   - **If Hash == Stored Hash**:
+     - No change. Update `updated_at` timestamp in `system_state` (heartbeat).
+
+## 15. Component Diagram
 
 ```mermaid
 graph TD
