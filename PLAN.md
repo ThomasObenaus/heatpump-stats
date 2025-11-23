@@ -24,9 +24,12 @@ The solution will be containerized and run on a home server, providing a web das
   - Expose data from InfluxDB to the frontend.
   - Manage the data collection service (background tasks).
 
-### Frontend: **React**
+### Frontend: **React (TypeScript + Tailwind CSS)**
 
-- **Why**: Modern component-based framework with a rich ecosystem for charting (e.g., Recharts, Victory).
+- **Why**:
+  - **React**: Modern component-based framework with a rich ecosystem for charting (e.g., Recharts, Victory).
+  - **TypeScript**: Ensures type safety, reducing bugs when handling API data.
+  - **Tailwind CSS**: Rapid styling with a utility-first approach, ensuring a consistent look.
 - **Role**: Visualize time-series data, status, and efficiency metrics.
 
 ### Infrastructure: **Docker**
