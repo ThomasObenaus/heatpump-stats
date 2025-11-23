@@ -29,7 +29,7 @@
      - It is not clear **where** this aggregation happens: inside the Collector using Shelly 10s samples from InfluxDB vs. InfluxDB tasks feeding pre-aggregated power.
      - If using InfluxDB to aggregate, the **exact Flux query/window alignment** for COP calculation should be defined (e.g., `aggregateWindow(every: 5m, offset: 0m, createEmpty: false)`).
 
-4. **Shelly Pro3EM connectivity & auth**
+4. **Shelly Pro3EM connectivity & auth** (X)
 
    - Plan assumes local `http://<ip>/rpc/EM.GetStatus` without mentioning:
      - Whether **auth** (basic token / password) is required or disabled in your setup.
