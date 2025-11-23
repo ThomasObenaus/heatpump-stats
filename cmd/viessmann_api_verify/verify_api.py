@@ -68,6 +68,10 @@ def verify_batch_fetch(device):
         # Compressor Modulation
         val = get_value_from_dump(data, "heating.compressors.0.sensors.power", "value")
         print(f"Compressor Modulation: {val}")
+
+        # Compressor Runtime (Hours)
+        val = get_value_from_dump(data, "heating.compressors.0.statistics", "hours")
+        print(f"Compressor Runtime (Hours): {val}")
         
         # DHW Storage Temp
         val = get_value_from_dump(data, "heating.dhw.sensors.temperature.hotWaterStorage", "value")
