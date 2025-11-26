@@ -63,18 +63,36 @@ It will also track configuration changes (e.g., temperature settings, schedules)
   - Docker Compose injects these variables into containers at runtime.
   - _Alternative_: For higher security, Docker Secrets (file-based) can be used if needed.
 
-### Project Structure
+### Project Structure (Hexagonal Architecture)
 
 ```text
 .
-├── backend/                    # Python Backend Root
+├── backend/
 │   ├── pyproject.toml          # Backend dependencies
-│   ├── config.py               # Global config
-│   ├── api/                    # API endpoints
-│   ├── collector/              # Data collection logic
-│   ├── database/               # DB wrappers
-│   ├── integrations/           # Hardware clients
-│   └── models/                 # Pydantic models
+│   └── heatpump_stats/
+│       ├── config.py           # Global config
+│       ├── domain/             # THE CORE (Inner Hexagon)
+│       │   ├── entities.py     # Data classes (SystemStatus, PowerReading)
+│       │   └── logic.py        # Pure business logic (COP formulas)
+│       │
+│       ├── ports/              # THE PORTS (Interfaces/Protocols)
+│       │   ├── heat_pump.py    # Interface for fetching heat pump data
+│       │   ├── power_meter.py  # Interface for fetching power data
+│       │   └── repository.py   # Interface for saving metrics/logs
+│       │
+│       ├── services/           # APPLICATION LAYER (Use Cases)
+│       │   ├── collector.py    # Orchestrator: Fetch -> Calculate -> Save
+│       │   └── reporting.py    # Logic for aggregating history for the API
+│       │
+│       ├── adapters/           # THE ADAPTERS (Infrastructure / Driven)
+│       │   ├── viessmann.py    # Implements heat_pump port (PyViCare)
+│       │   ├── shelly.py       # Implements power_meter port (HTTP)
+│       │   ├── influxdb.py     # Implements repository port (InfluxDB)
+│       │   └── sqlite.py       # Implements repository port (SQLAlchemy)
+│       │
+│       └── entrypoints/        # DRIVING ADAPTERS (Inbound)
+│           ├── api/            # FastAPI (REST Controller)
+│           └── daemon.py       # Main entry point for the Collector Service
 │
 ├── frontend/                   # React Frontend Root
 │   ├── package.json
@@ -144,53 +162,54 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 - Create `backend/heatpump_stats/config.py` to load environment variables using Pydantic `BaseSettings`.
 - **Deliverable**: Running InfluxDB container and verified config loading.
 
-#### Step 1.2: Shelly Integration Module
+#### Step 1.2: Domain & Ports (The Core)
 
-- Create `backend/heatpump_stats/integrations/shelly.py`.
-- Define Pydantic models for Shelly API response.
-- Implement `fetch_realtime_power()` using `aiohttp`.
-- Add error handling and retries.
-- **Deliverable**: Python script that prints current Shelly power readings.
+- Create `backend/heatpump_stats/domain/entities.py`: Define `SystemStatus`, `PowerReading`, `HeatPumpData`.
+- Create `backend/heatpump_stats/ports/heat_pump.py`: Define `HeatPumpPort` (Protocol).
+- Create `backend/heatpump_stats/ports/power_meter.py`: Define `PowerMeterPort` (Protocol).
+- Create `backend/heatpump_stats/ports/repository.py`: Define `RepositoryPort` (Protocol).
+- **Deliverable**: Core interfaces defined without external dependencies.
 
-#### Step 1.3: Viessmann Integration Module
+#### Step 1.3: Adapters (Infrastructure)
 
-- Create `backend/heatpump_stats/integrations/viessmann.py`.
-- Define Pydantic models for the specific Viessmann features (`CU401B_G`).
-- Implement `fetch_all_features()` using PyViCare (or direct API if needed for batching).
-- Implement data extraction logic (temps, modulation, runtime).
-- **Deliverable**: Python script that prints structured Viessmann data.
+- Create `backend/heatpump_stats/adapters/shelly.py`: Implement `PowerMeterPort` using `aiohttp`.
+- Create `backend/heatpump_stats/adapters/viessmann.py`: Implement `HeatPumpPort` using `PyViCare`.
+- Create `backend/heatpump_stats/adapters/influxdb.py`: Implement `RepositoryPort` (metrics) using `influxdb-client`.
+- Create `backend/heatpump_stats/adapters/sqlite.py`: Implement `RepositoryPort` (logs) using `SQLAlchemy`.
+- **Deliverable**: Concrete classes that can talk to the outside world.
 
-#### Step 1.4: Database Layer (InfluxDB & SQLite)
+#### Step 1.4: Services (Application Logic)
 
-- Create `backend/heatpump_stats/database/influx.py`: Wrapper for writing points and querying.
-- Create `backend/heatpump_stats/database/sqlite.py`: SQLAlchemy/SQLModel setup for `changelog` and `system_state`.
-- Implement schema initialization (create buckets, create tables).
-- **Deliverable**: Helper classes to write metrics and read/write logs.
+- Create `backend/heatpump_stats/services/collector.py`:
+  - Inject ports via constructor.
+  - Implement the main polling logic (fetch -> calculate -> save).
+  - Implement **In-Memory Buffering** for Shelly data.
+- Create `backend/heatpump_stats/services/reporting.py`: Logic for querying history.
+- **Deliverable**: Testable business logic that runs with mocks or real adapters.
 
-#### Step 1.5: The Collector Service (Main Loop)
+#### Step 1.5: Entrypoints (Wiring it up)
 
-- Create `backend/heatpump_stats/collector/main.py`.
-- Implement the **Scheduler** (10s for Shelly, 5m for Viessmann).
-- Implement **In-Memory Buffering** for Shelly data (to calculate avg power for COP).
-- Implement **Metric Calculation** (COP, Thermal Power).
-- Wire everything together to write to InfluxDB.
-- **Deliverable**: Running service populating InfluxDB with sensor data.
+- Create `backend/heatpump_stats/entrypoints/daemon.py`:
+  - Load config.
+  - Instantiate adapters (Real or Mock based on `COLLECTOR_MODE`).
+  - Instantiate `CollectorService` with adapters.
+  - Run the loop.
+- **Deliverable**: Running service populating InfluxDB.
 
 #### Step 1.6: Configuration Change Detection
 
-- Implement the "Shadow State" logic in `backend/heatpump_stats/collector/change_detector.py`.
+- Implement logic in `backend/heatpump_stats/services/change_detector.py` (or inside Collector).
 - Normalize JSON, compute SHA256 hashes.
-- Compare with SQLite `system_state`.
-- Write detected changes to `changelog` table.
-- **Deliverable**: System automatically logs schedule changes to SQLite.
+- Use `RepositoryPort` to save changes.
+- **Deliverable**: System automatically logs schedule changes.
 
 ### Phase 2: Backend API
 
 #### Step 2.1: API Skeleton & Authentication
 
-- Initialize FastAPI app in `backend/heatpump_stats/api/main.py`.
+- Initialize FastAPI app in `backend/heatpump_stats/entrypoints/api/main.py`.
 - Implement `POST /token` using `OAuth2PasswordBearer`.
-- Secure endpoints with dependency injection.
+- Inject `ReportingService` into API endpoints.
 - **Deliverable**: Secure API responding to health checks.
 
 #### Step 2.2: Data Endpoints (InfluxDB Integration)
