@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 class ViessmannAdapter:
     def __init__(self):
+        self.model_name = None
         self.vicare = PyViCare()
         self.device: Optional[HeatPump] = None
         self._connect()
@@ -23,25 +24,25 @@ class ViessmannAdapter:
                 password=settings.VIESSMANN_PASSWORD,
                 client_id=settings.VIESSMANN_CLIENT_ID,
                 token_file="token.save"
+                model_name="CU401B_G"
             )
             # Auto-select device (logic from verify_api.py)
             target_device = None
+            final_model_name = "Unknown"
+
             for dev in self.vicare.devices:
-                if "Heatbox" not in dev.getModel() and "Vitoconnect" not in dev.getModel():
+                model_name = dev.getModel()
+                if self.model_name in model_name:
                     target_device = dev
+                    final_model_name = model_name
                     break
             
             if target_device:
                 self.device = target_device.asHeatPump()
-                # getModel() is available on the Device object, not necessarily on the HeatPump wrapper
-                # but target_device is a Device object.
-                logger.info(f"Connected to Viessmann device: {target_device.getModel()}")
+                logger.info(f"Connected to Viessmann device: {final_model_name}")
             else:
-                # Fallback
-                self.device = self.vicare.devices[0].asHeatPump()
-                # We should log the model of the underlying device, not the HeatPump wrapper
-                logger.warning(f"Could not identify specific heat pump, using first device: {self.vicare.devices[0].getModel()}")
-
+                logger.error(f"Specific model {self.model_name} not found. Could not connect to Viessmann heat pump.")
+                raise Exception(f"Viessmann heat pump {self.model_name} not found")
         except Exception as e:
             logger.error(f"Failed to connect to Viessmann API: {e}")
             self.device = None
