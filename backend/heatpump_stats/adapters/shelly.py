@@ -8,20 +8,20 @@ from heatpump_stats.domain.metrics import PowerReading
 logger = logging.getLogger(__name__)
 
 class ShellyAdapter:
-    def __init__(self, host: str, password: Optional[str] = None):
+    def __init__(self, host: str, password: str):
         self.host = host
         self.password = password
         self._client: Optional[httpx.AsyncClient] = None
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
-            # Configure Digest Auth if password is provided
-            auth = None
-            if self.password:
-                # Shelly uses "admin" as the default username for Digest Auth
-                auth = httpx.DigestAuth(username="admin", password=self.password)
+            # Configure Digest Auth
+            auth = httpx.DigestAuth("admin", self.password)
             
-            self._client = httpx.AsyncClient(auth=auth, timeout=5.0)
+            self._client = httpx.AsyncClient(
+                auth=auth,
+                timeout=httpx.Timeout(5.0)
+            )
         return self._client
 
     async def close(self):
