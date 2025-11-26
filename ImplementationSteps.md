@@ -16,7 +16,7 @@
 
 ### Step 1.2: Domain & Ports (The Core) (Completed)
 
-- [x] Create `backend/heatpump_stats/domain/entities.py`: Define `SystemStatus`, `PowerReading`, `HeatPumpData`.
+- [x] Create `backend/heatpump_stats/domain/metrics.py`: Define `SystemStatus`, `PowerReading`, `HeatPumpData`.
 - [x] Create `backend/heatpump_stats/ports/heat_pump.py`: Define `HeatPumpPort` (Protocol).
 - [x] Create `backend/heatpump_stats/ports/power_meter.py`: Define `PowerMeterPort` (Protocol).
 - [x] Create `backend/heatpump_stats/ports/repository.py`: Define `RepositoryPort` (Protocol).

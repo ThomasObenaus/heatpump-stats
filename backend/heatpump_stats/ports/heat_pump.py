@@ -1,5 +1,5 @@
 from typing import Protocol
-from heatpump_stats.domain.entities import HeatPumpData
+from heatpump_stats.domain.metrics import HeatPumpData
 
 class HeatPumpPort(Protocol):
     async def get_data(self) -> HeatPumpData:

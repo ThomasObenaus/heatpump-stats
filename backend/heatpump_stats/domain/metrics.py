@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 class CircuitData(BaseModel):
     circuit_id: int
     supply_temperature: Optional[float] = None
-    target_temperature: Optional[float] = None
     pump_status: Optional[str] = None
 
 class HeatPumpData(BaseModel):
