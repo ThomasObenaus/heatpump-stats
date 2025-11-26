@@ -82,27 +82,25 @@ class TestViessmannAdapter:
         wrong_device.getModel.return_value = "DIFFERENT_MODEL"
         mock_vicare.devices = [wrong_device]
         
-        adapter = ViessmannAdapter()
-        
-        # Connection should fail gracefully, device should be None
-        assert adapter.device is None
+        # Should raise exception when device not found
+        with pytest.raises(Exception, match="Viessmann heat pump CU401B_G not found"):
+            ViessmannAdapter()
 
     def test_initialization_no_devices(self, mock_settings, mock_pyvicare_class, mock_vicare):
         """Test initialization when no devices are available."""
         mock_vicare.devices = []
         
-        adapter = ViessmannAdapter()
-        
-        # Connection should fail gracefully, device should be None
-        assert adapter.device is None
+        # Should raise exception when no devices available
+        with pytest.raises(Exception, match="Viessmann heat pump CU401B_G not found"):
+            ViessmannAdapter()
 
     def test_initialization_api_error(self, mock_settings, mock_pyvicare_class, mock_vicare):
         """Test initialization when API connection fails."""
         mock_vicare.initWithCredentials.side_effect = Exception("API connection failed")
         
-        adapter = ViessmannAdapter()
-        
-        assert adapter.device is None
+        # Should raise exception when API connection fails
+        with pytest.raises(Exception, match="API connection failed"):
+            ViessmannAdapter()
 
     @pytest.mark.asyncio
     async def test_get_data_success(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
@@ -223,18 +221,18 @@ class TestViessmannAdapter:
         assert len(data.circuits) == 0
 
     @pytest.mark.asyncio
-    async def test_get_data_device_not_connected(self, mock_settings, mock_pyvicare_class):
-        """Test data retrieval when device is not connected."""
-        with patch.object(ViessmannAdapter, '_connect') as mock_connect:
-            adapter = ViessmannAdapter()
-            adapter.device = None  # Simulate no connection
-            mock_connect.return_value = None  # Connection attempt fails
+    async def test_get_data_device_not_connected(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test data retrieval when device is not connected and reconnection fails."""
+        adapter = ViessmannAdapter()
+        adapter.device = None  # Simulate disconnection
+        
+        with patch.object(adapter, '_connect') as mock_connect:
+            # Connection attempt raises exception, which should propagate
+            mock_connect.side_effect = Exception("Connection failed")
             
-            data = await adapter.get_data()
-            
-            assert isinstance(data, HeatPumpData)
-            assert data.is_connected is False
-            assert data.error_code == "CONNECTION_FAILED"
+            # The exception from _connect should propagate since it's not caught in get_data
+            with pytest.raises(Exception, match="Connection failed"):
+                await adapter.get_data()
 
     @pytest.mark.asyncio
     async def test_get_data_reconnect_on_failure(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
@@ -335,16 +333,14 @@ class TestViessmannAdapter:
         
         assert result is None
 
-    def test_get_feature_property_no_device(self, mock_settings, mock_pyvicare_class):
+    def test_get_feature_property_no_device(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
         """Test _get_feature_property when device is None."""
-        with patch.object(ViessmannAdapter, '_connect') as mock_connect:
-            adapter = ViessmannAdapter()
-            adapter.device = None
-            mock_connect.return_value = None
-            
-            result = adapter._get_feature_property("test.feature", "value")
-            
-            assert result is None
+        adapter = ViessmannAdapter()
+        adapter.device = None  # Manually set to None after initialization
+        
+        result = adapter._get_feature_property("test.feature", "value")
+        
+        assert result is None
 
     def test_get_feature_property_exception(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
         """Test _get_feature_property when an exception occurs."""
