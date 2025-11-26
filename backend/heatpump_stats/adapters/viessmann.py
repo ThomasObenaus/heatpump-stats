@@ -45,6 +45,7 @@ class ViessmannAdapter:
         except Exception as e:
             logger.error(f"Failed to connect to Viessmann API: {e}")
             self.device = None
+            raise e
 
     async def get_data(self) -> HeatPumpData:
         if not self.device:
