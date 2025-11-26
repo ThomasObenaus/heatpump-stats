@@ -22,12 +22,12 @@
 - [x] Create `backend/heatpump_stats/ports/repository.py`: Define `RepositoryPort` (Protocol).
 - **Deliverable**: Core interfaces defined without external dependencies.
 
-### Step 1.3: Adapters (Infrastructure)
+### Step 1.3: Adapters (Infrastructure) (Completed)
 
-- Create `backend/heatpump_stats/adapters/shelly.py`: Implement `PowerMeterPort` using `aiohttp`.
-- Create `backend/heatpump_stats/adapters/viessmann.py`: Implement `HeatPumpPort` using `PyViCare`.
-- Create `backend/heatpump_stats/adapters/influxdb.py`: Implement `RepositoryPort` (metrics) using `influxdb-client`.
-- Create `backend/heatpump_stats/adapters/sqlite.py`: Implement `RepositoryPort` (logs) using `SQLAlchemy`.
+- [x] Create `backend/heatpump_stats/adapters/shelly.py`: Implement `PowerMeterPort` using `aiohttp`.
+- [x] Create `backend/heatpump_stats/adapters/viessmann.py`: Implement `HeatPumpPort` using `PyViCare`.
+- [x] Create `backend/heatpump_stats/adapters/influxdb.py`: Implement `RepositoryPort` (metrics) using `influxdb-client`.
+- [ ] Create `backend/heatpump_stats/adapters/sqlite.py`: Implement `RepositoryPort` (logs) using `SQLAlchemy`. (Deferred: Using InfluxDB for status for now)
 - **Deliverable**: Concrete classes that can talk to the outside world.
 
 ### Step 1.4: Services (Application Logic)
