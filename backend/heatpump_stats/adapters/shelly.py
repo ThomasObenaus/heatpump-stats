@@ -13,7 +13,7 @@ class ShellyAdapter:
         self.password = password
         self._client: Optional[httpx.AsyncClient] = None
 
-    async def _get_client(self) -> httpx.AsyncClient:
+    def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
             # Configure Digest Auth if password is provided
             auth = None
@@ -33,7 +33,7 @@ class ShellyAdapter:
         Fetch power reading from Shelly device.
         Supports Gen 2 (RPC) devices (Switch, PM, Pro 3EM).
         """
-        client = await self._get_client()
+        client = self._get_client()
         
         # Use Shelly.GetStatus to get the full device state
         try:
@@ -57,18 +57,7 @@ class ShellyAdapter:
         raise Exception("Could not fetch data from Shelly")
 
     def _parse_gen2_status(self, data: dict) -> PowerReading:
-        # 1. Try Switch:0 (Plug, Relay)
-        if "switch:0" in data:
-            sw = data["switch:0"]
-            return PowerReading(
-                timestamp=datetime.now(timezone.utc),
-                power_watts=float(sw.get("apower", 0.0)),
-                voltage=float(sw.get("voltage", 0.0)),
-                current=float(sw.get("current", 0.0)),
-                total_energy_wh=float(sw.get("aenergy", {}).get("total", 0.0))
-            )
-        
-        # 2. Try Pro 3EM (em:0)
+        # Try Pro 3EM (em:0)
         # Format: {"em:0": {"total_act_power": 75.651, "total_current": 1.091, "a_voltage": 223.9, ...}, "emdata:0": {"total_act": 166778.15, ...}}
         if "em:0" in data:
             em = data["em:0"]
@@ -98,15 +87,4 @@ class ShellyAdapter:
                 total_energy_wh=total_energy
             )
 
-        # 3. Try PM1:0 (Plus PM Mini)
-        if "pm1:0" in data:
-            pm = data["pm1:0"]
-            return PowerReading(
-                timestamp=datetime.now(timezone.utc),
-                power_watts=float(pm.get("apower", 0.0)),
-                voltage=float(pm.get("voltage", 0.0)),
-                current=float(pm.get("current", 0.0)),
-                total_energy_wh=float(pm.get("aenergy", {}).get("total", 0.0))
-            )
-
-        raise Exception("Unknown Shelly Gen 2 Device Type (could not find switch:0, em:0, or pm1:0)")
+        raise Exception("Unknown Shelly Gen 2 Device Type (could not find em:0)")
