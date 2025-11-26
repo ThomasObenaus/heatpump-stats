@@ -63,6 +63,31 @@ It will also track configuration changes (e.g., temperature settings, schedules)
   - Docker Compose injects these variables into containers at runtime.
   - _Alternative_: For higher security, Docker Secrets (file-based) can be used if needed.
 
+### Project Structure
+
+```text
+.
+├── backend/                    # Python Backend Root
+│   ├── pyproject.toml          # Backend dependencies
+│   ├── config.py               # Global config
+│   ├── api/                    # API endpoints
+│   ├── collector/              # Data collection logic
+│   ├── database/               # DB wrappers
+│   ├── integrations/           # Hardware clients
+│   └── models/                 # Pydantic models
+│
+├── frontend/                   # React Frontend Root
+│   ├── package.json
+│   └── src/
+│
+├── cmd/                        # Scripts (Existing)
+│   └── viessmann_api_verify/
+│
+├── tests/                      # Tests (can mirror backend structure)
+├── docker-compose.yml
+└── .env.example
+```
+
 ## 3. Required Viessmann DataTo ensure the plan is feasible, the following data points must be available via the Viessmann API for your specific device (`CU401B_G`).
 
 ### General System
@@ -116,12 +141,12 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 - Create `.env.example` with all required variables.
 - Create `docker-compose.yml` defining the `influxdb` service.
-- Create `src/config.py` to load environment variables using Pydantic `BaseSettings`.
+- Create `backend/heatpump_stats/config.py` to load environment variables using Pydantic `BaseSettings`.
 - **Deliverable**: Running InfluxDB container and verified config loading.
 
 #### Step 1.2: Shelly Integration Module
 
-- Create `src/integrations/shelly.py`.
+- Create `backend/heatpump_stats/integrations/shelly.py`.
 - Define Pydantic models for Shelly API response.
 - Implement `fetch_realtime_power()` using `aiohttp`.
 - Add error handling and retries.
@@ -129,7 +154,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 #### Step 1.3: Viessmann Integration Module
 
-- Create `src/integrations/viessmann.py`.
+- Create `backend/heatpump_stats/integrations/viessmann.py`.
 - Define Pydantic models for the specific Viessmann features (`CU401B_G`).
 - Implement `fetch_all_features()` using PyViCare (or direct API if needed for batching).
 - Implement data extraction logic (temps, modulation, runtime).
@@ -137,14 +162,14 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 #### Step 1.4: Database Layer (InfluxDB & SQLite)
 
-- Create `src/database/influx.py`: Wrapper for writing points and querying.
-- Create `src/database/sqlite.py`: SQLAlchemy/SQLModel setup for `changelog` and `system_state`.
+- Create `backend/heatpump_stats/database/influx.py`: Wrapper for writing points and querying.
+- Create `backend/heatpump_stats/database/sqlite.py`: SQLAlchemy/SQLModel setup for `changelog` and `system_state`.
 - Implement schema initialization (create buckets, create tables).
 - **Deliverable**: Helper classes to write metrics and read/write logs.
 
 #### Step 1.5: The Collector Service (Main Loop)
 
-- Create `src/collector/main.py`.
+- Create `backend/heatpump_stats/collector/main.py`.
 - Implement the **Scheduler** (10s for Shelly, 5m for Viessmann).
 - Implement **In-Memory Buffering** for Shelly data (to calculate avg power for COP).
 - Implement **Metric Calculation** (COP, Thermal Power).
@@ -153,7 +178,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 #### Step 1.6: Configuration Change Detection
 
-- Implement the "Shadow State" logic in `src/collector/change_detector.py`.
+- Implement the "Shadow State" logic in `backend/heatpump_stats/collector/change_detector.py`.
 - Normalize JSON, compute SHA256 hashes.
 - Compare with SQLite `system_state`.
 - Write detected changes to `changelog` table.
@@ -163,7 +188,7 @@ _Note: Direct "Current Heat Production" is missing. We will estimate it using `R
 
 #### Step 2.1: API Skeleton & Authentication
 
-- Initialize FastAPI app in `src/api/main.py`.
+- Initialize FastAPI app in `backend/heatpump_stats/api/main.py`.
 - Implement `POST /token` using `OAuth2PasswordBearer`.
 - Secure endpoints with dependency injection.
 - **Deliverable**: Secure API responding to health checks.
