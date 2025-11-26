@@ -14,12 +14,12 @@
 - [x] Create `backend/heatpump_stats/config.py` to load environment variables using Pydantic `BaseSettings`.
 - **Deliverable**: Running InfluxDB container and verified config loading.
 
-### Step 1.2: Domain & Ports (The Core)
+### Step 1.2: Domain & Ports (The Core) (Completed)
 
-- Create `backend/heatpump_stats/domain/entities.py`: Define `SystemStatus`, `PowerReading`, `HeatPumpData`.
-- Create `backend/heatpump_stats/ports/heat_pump.py`: Define `HeatPumpPort` (Protocol).
-- Create `backend/heatpump_stats/ports/power_meter.py`: Define `PowerMeterPort` (Protocol).
-- Create `backend/heatpump_stats/ports/repository.py`: Define `RepositoryPort` (Protocol).
+- [x] Create `backend/heatpump_stats/domain/entities.py`: Define `SystemStatus`, `PowerReading`, `HeatPumpData`.
+- [x] Create `backend/heatpump_stats/ports/heat_pump.py`: Define `HeatPumpPort` (Protocol).
+- [x] Create `backend/heatpump_stats/ports/power_meter.py`: Define `PowerMeterPort` (Protocol).
+- [x] Create `backend/heatpump_stats/ports/repository.py`: Define `RepositoryPort` (Protocol).
 - **Deliverable**: Core interfaces defined without external dependencies.
 
 ### Step 1.3: Adapters (Infrastructure)
