@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field
@@ -9,7 +9,7 @@ class CircuitData(BaseModel):
     pump_status: Optional[str] = None
 
 class HeatPumpData(BaseModel):
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Temperatures
     outside_temperature: Optional[float] = None
@@ -35,7 +35,7 @@ class HeatPumpData(BaseModel):
     error_code: Optional[str] = None
 
 class PowerReading(BaseModel):
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     power_watts: float
     voltage: Optional[float] = None
     current: Optional[float] = None
