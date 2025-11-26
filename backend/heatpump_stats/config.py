@@ -8,20 +8,20 @@ class Settings(BaseSettings):
     COLLECTOR_MODE: str = "production"
 
     # Viessmann
-    VIESSMANN_USER: str
-    VIESSMANN_PASSWORD: str
-    VIESSMANN_CLIENT_ID: str
+    VIESSMANN_USER: str = ""
+    VIESSMANN_PASSWORD: str = ""
+    VIESSMANN_CLIENT_ID: str = ""
     VIESSMANN_POLL_INTERVAL: int = 300
     VIESSMANN_CONFIG_INTERVAL: int = 18000
 
     # Shelly
-    SHELLY_HOST: str
+    SHELLY_HOST: str = ""
     SHELLY_PASSWORD: Optional[str] = None
     SHELLY_POLL_INTERVAL: int = 10
 
     # InfluxDB
     INFLUXDB_URL: str = "http://influxdb:8086"
-    INFLUXDB_TOKEN: str
+    INFLUXDB_TOKEN: str = ""
     INFLUXDB_ORG: str = "home"
     INFLUXDB_BUCKET_RAW: str = "heatpump_raw"
     INFLUXDB_BUCKET_DOWNSAMPLED: str = "heatpump_downsampled"
