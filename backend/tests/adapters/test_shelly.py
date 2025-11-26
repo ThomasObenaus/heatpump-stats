@@ -12,12 +12,7 @@ class TestShellyAdapter:
 
     @pytest.fixture
     def adapter(self):
-        """Create a ShellyAdapter instance without password."""
-        return ShellyAdapter(host="192.168.1.100")
-
-    @pytest.fixture
-    def adapter_with_auth(self):
-        """Create a ShellyAdapter instance with password authentication."""
+        """Create a ShellyAdapter instance with password."""
         return ShellyAdapter(host="192.168.1.100", password="test_password")
 
     @pytest.fixture
@@ -68,31 +63,18 @@ class TestShellyAdapter:
         }
 
     @pytest.mark.asyncio
-    async def test_initialization_without_password(self, adapter):
-        """Test adapter initialization without password."""
+    async def test_initialization(self, adapter):
+        """Test adapter initialization."""
         assert adapter.host == "192.168.1.100"
-        assert adapter.password is None
+        assert adapter.password == "test_password"
         assert adapter._client is None
 
     @pytest.mark.asyncio
-    async def test_initialization_with_password(self, adapter_with_auth):
-        """Test adapter initialization with password."""
-        assert adapter_with_auth.host == "192.168.1.100"
-        assert adapter_with_auth.password == "test_password"
-        assert adapter_with_auth._client is None
-
-    @pytest.mark.asyncio
     async def test_get_client_creates_client(self, adapter):
-        """Test that _get_client creates a new httpx.AsyncClient."""
+        """Test that _get_client creates a new httpx.AsyncClient with auth."""
         client = adapter._get_client()
         assert isinstance(client, httpx.AsyncClient)
         assert adapter._client is not None
-
-    @pytest.mark.asyncio
-    async def test_get_client_with_auth(self, adapter_with_auth):
-        """Test that _get_client creates client with Digest Auth."""
-        client = adapter_with_auth._get_client()
-        assert isinstance(client, httpx.AsyncClient)
         assert client.auth is not None
         assert isinstance(client.auth, httpx.DigestAuth)
 
