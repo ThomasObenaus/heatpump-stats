@@ -138,6 +138,7 @@ class TestShellyAdapter:
             
             # Calculate expected average voltage
             expected_voltage = (223.9 + 224.5 + 222.3) / 3.0
+            assert reading.voltage is not None
             assert abs(reading.voltage - expected_voltage) < 0.01
             
             # Verify timestamp is recent
@@ -178,6 +179,7 @@ class TestShellyAdapter:
             assert reading.total_energy_wh == 200000.0
             # Only a_voltage present, others default to 0
             expected_voltage = 230.0 / 3.0
+            assert reading.voltage is not None
             assert abs(reading.voltage - expected_voltage) < 0.01
 
     @pytest.mark.asyncio
@@ -352,6 +354,7 @@ class TestShellyAdapter:
             reading = await adapter.get_reading()
 
             expected_voltage = (220.0 + 225.0 + 230.0) / 3.0
+            assert reading.voltage is not None
             assert abs(reading.voltage - expected_voltage) < 0.01
 
     @pytest.mark.asyncio
