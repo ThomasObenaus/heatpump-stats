@@ -15,7 +15,8 @@ services:
       - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET_RAW}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
     restart: unless-stopped
-
+    security_opt:
+      - apparmor:unconfined
 volumes:
   influxdb_data:
   influxdb_config:
