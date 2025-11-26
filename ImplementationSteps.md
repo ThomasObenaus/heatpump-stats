@@ -7,12 +7,12 @@
 - Verified that `CU401B_G` supports necessary data points.
 - Confirmed JAZ calculation strategy (Modulation \* Rated Power).
 
-### Step 1.1: Environment & Docker Infrastructure
+### Step 1.1: Environment & Docker Infrastructure (Completed)
 
-- Create `.env.example` with all required variables.
-- Create `docker-compose.yml` defining the `influxdb` service.
-- Create `backend/heatpump_stats/config.py` to load environment variables using Pydantic `BaseSettings`.
-- **Deliverable**: Running InfluxDB container and verified config loading.
+- [x] Create `.env.example` with all required variables.
+- [x] Create `docker-compose.yml` defining the `influxdb` service.
+- [x] Create `backend/heatpump_stats/config.py` to load environment variables using Pydantic `BaseSettings`.
+- **Deliverable**: Running InfluxDB container and verified config loading. _Note: Teardown (`make infra.down`) may fail due to environment permissions, but the DB is running._
 
 ### Step 1.2: Domain & Ports (The Core)
 
