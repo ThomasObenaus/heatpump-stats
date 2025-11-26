@@ -12,5 +12,5 @@ infra.down: ## Stop and remove the infrastructure containers
 verify.viessmann-api: ## Run the Viessmann API verification script
 	./.venv/bin/python cmd/viessmann_api_verify/verify_api.py
 
-test.unit: ## Run unit tests
+backend.test.unit: ## Run unit tests
 	cd backend && ../.venv/bin/python -m pytest tests/ -v --cov=heatpump_stats --cov-report=term-missing
