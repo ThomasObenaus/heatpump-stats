@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "heatpump-stats"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "heatpump_stats" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "^2.0"
+pydantic-settings = "^2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
