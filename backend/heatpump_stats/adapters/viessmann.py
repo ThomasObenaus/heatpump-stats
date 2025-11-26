@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class ViessmannAdapter:
     def __init__(self):
-        self.model_name = None
+        self.model_name = "CU401B_G"
         self.vicare = PyViCare()
         self.device: Optional[HeatPump] = None
         self._connect()
@@ -24,7 +24,6 @@ class ViessmannAdapter:
                 password=settings.VIESSMANN_PASSWORD,
                 client_id=settings.VIESSMANN_CLIENT_ID,
                 token_file="token.save"
-                model_name="CU401B_G"
             )
             # Auto-select device (logic from verify_api.py)
             target_device = None
