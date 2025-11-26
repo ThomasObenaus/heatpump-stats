@@ -89,7 +89,8 @@ def main():
     try:
         vicare = PyViCare()
         token_file = os.path.join(script_dir, "token.save")
-        vicare.initWithCredentials(USER, PASSWORD, CLIENT_ID, token_file)
+        assert USER is not None and PASSWORD is not None and CLIENT_ID is not None
+        vicare.initWithCredentials(username=USER, password=PASSWORD, client_id=CLIENT_ID, token_file=token_file)
         
         print(f"Found {len(vicare.devices)} devices/components:")
         target_device = None
