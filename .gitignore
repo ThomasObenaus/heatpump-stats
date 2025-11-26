@@ -4,3 +4,17 @@
 token.save
 
 viessmann_dump.json
+
+backend/.coverage
+
+backend/heatpump_stats/adapters/__pycache__/
+
+backend/heatpump_stats/domain/__pycache__/
+
+backend/tests/__init__.py
+
+backend/tests/__pycache__/
+
+*.pyc
+
+backend/tests/adapters/__init__.py
