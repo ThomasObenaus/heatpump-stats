@@ -8,3 +8,6 @@ infra.up: ## Start the infrastructure (InfluxDB) in detached mode
 
 infra.down: ## Stop and remove the infrastructure containers
 	docker-compose down
+
+verify.viessmann-api: ## Run the Viessmann API verification script
+	./.venv/bin/python cmd/viessmann_api_verify/verify_api.py
