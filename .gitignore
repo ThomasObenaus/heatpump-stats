@@ -18,3 +18,5 @@ backend/tests/__pycache__/
 *.pyc
 
 backend/tests/adapters/__init__.py
+
+.coverage
