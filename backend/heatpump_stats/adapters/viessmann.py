@@ -54,9 +54,8 @@ class ViessmannAdapter:
                 return HeatPumpData(is_connected=False, error_code="CONNECTION_FAILED")
 
         try:
-            # Optimization: Fetch all features once to populate the internal cache.
-            # This ensures we only make 1 API call per collection cycle, avoiding rate limits.
-            self.device.service.fetch_all_features()
+            # Optimization: The PyViCare library automatically caches data on the first property access.
+            # We do NOT call fetch_all_features() manually as it bypasses the cache update mechanism.
             
             # 1. Temperatures
             outside_temp = self._safe_get(self.device.getOutsideTemperature)
