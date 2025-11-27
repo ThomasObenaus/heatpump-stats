@@ -4,6 +4,13 @@ from unittest.mock import MagicMock, Mock, patch, PropertyMock
 
 from heatpump_stats.adapters.viessmann import ViessmannAdapter
 from heatpump_stats.domain.metrics import HeatPumpData, CircuitData
+from heatpump_stats.domain.configuration import (
+    HeatPumpConfig,
+    CircuitConfig,
+    DHWConfig,
+    WeeklySchedule,
+    TimeSlot
+)
 
 
 class TestViessmannAdapter:
@@ -407,3 +414,513 @@ class TestViessmannAdapter:
         # Should handle gracefully with None values
         assert isinstance(data, HeatPumpData)
         assert data.is_connected is True
+
+    # Tests for get_config method
+    @pytest.mark.asyncio
+    async def test_get_config_success(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test successful configuration retrieval."""
+        # Setup circuit mocks
+        circuit0 = MagicMock()
+        circuit0.getName.return_value = "Heating Circuit 1"
+        circuit0.getDesiredTemperatureForProgram.side_effect = lambda prog: {
+            "comfort": 22.0,
+            "normal": 20.0,
+            "reduced": 18.0
+        }.get(prog)
+        circuit0.getHeatingSchedule.return_value = {
+            "active": True,
+            "mon": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}],
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        mock_heat_pump.circuits = [circuit0]
+        
+        # Setup DHW mocks
+        mock_heat_pump.getDomesticHotWaterActive.return_value = True
+        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = 50.0
+        mock_heat_pump.getDomesticHotWaterSchedule.return_value = {
+            "active": True,
+            "mon": [{"start": "05:00", "end": "07:00", "mode": "on", "position": 0}],
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = {
+            "active": False,
+            "mon": [],
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        adapter = ViessmannAdapter()
+        config = await adapter.get_config()
+        
+        assert isinstance(config, HeatPumpConfig)
+        
+        # Check circuits
+        assert len(config.circuits) == 1
+        circuit_config = config.circuits[0]
+        assert circuit_config.circuit_id == 0
+        assert circuit_config.name == "Heating Circuit 1"
+        assert circuit_config.temp_comfort == 22.0
+        assert circuit_config.temp_normal == 20.0
+        assert circuit_config.temp_reduced == 18.0
+        assert circuit_config.schedule is not None
+        assert circuit_config.schedule.active is True
+        assert len(circuit_config.schedule.mon) == 1
+        assert circuit_config.schedule.mon[0].start == "06:00"
+        
+        # Check DHW
+        assert config.dhw is not None
+        assert config.dhw.active is True
+        assert config.dhw.temp_target == 50.0
+        assert config.dhw.schedule is not None
+        assert config.dhw.circulation_schedule is not None
+
+    @pytest.mark.asyncio
+    async def test_get_config_device_not_connected(self, mock_settings, mock_pyvicare_class):
+        """Test get_config when device is not connected and reconnection fails."""
+        adapter = ViessmannAdapter()
+        adapter.device = None
+        
+        with patch.object(adapter, '_connect') as mock_connect:
+            mock_connect.side_effect = Exception("Connection failed")
+            
+            # get_config catches exceptions and returns None
+            config = await adapter.get_config()
+            assert config is None
+
+    @pytest.mark.asyncio
+    async def test_get_config_reconnect_success(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test get_config reconnects when device is None."""
+        mock_heat_pump.circuits = []
+        mock_heat_pump.getDomesticHotWaterActive.return_value = False
+        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = None
+        mock_heat_pump.getDomesticHotWaterSchedule.return_value = None
+        mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = None
+        
+        adapter = ViessmannAdapter()
+        adapter.device = None
+        
+        with patch.object(adapter, '_connect') as mock_connect:
+            def reconnect():
+                adapter.device = mock_heat_pump
+            mock_connect.side_effect = reconnect
+            
+            config = await adapter.get_config()
+            
+            mock_connect.assert_called_once()
+            assert isinstance(config, HeatPumpConfig)
+
+    @pytest.mark.asyncio
+    async def test_get_config_multiple_circuits(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test get_config with multiple circuits."""
+        circuit0 = MagicMock()
+        circuit0.getName.return_value = "Circuit 0"
+        circuit0.getDesiredTemperatureForProgram.return_value = 20.0
+        circuit0.getHeatingSchedule.return_value = None
+        
+        circuit1 = MagicMock()
+        circuit1.getName.return_value = "Circuit 1"
+        circuit1.getDesiredTemperatureForProgram.return_value = 18.0
+        circuit1.getHeatingSchedule.return_value = None
+        
+        mock_heat_pump.circuits = [circuit0, circuit1]
+        mock_heat_pump.getDomesticHotWaterActive.return_value = True
+        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = 48.0
+        mock_heat_pump.getDomesticHotWaterSchedule.return_value = None
+        mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = None
+        
+        adapter = ViessmannAdapter()
+        config = await adapter.get_config()
+        
+        assert len(config.circuits) == 2
+        assert config.circuits[0].name == "Circuit 0"
+        assert config.circuits[1].name == "Circuit 1"
+
+    @pytest.mark.asyncio
+    async def test_get_config_circuit_errors(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test get_config when circuit methods raise exceptions."""
+        circuit0 = MagicMock()
+        circuit0.getName.side_effect = Exception("Name error")
+        circuit0.getDesiredTemperatureForProgram.side_effect = Exception("Temp error")
+        circuit0.getHeatingSchedule.side_effect = Exception("Schedule error")
+        
+        mock_heat_pump.circuits = [circuit0]
+        mock_heat_pump.getDomesticHotWaterActive.return_value = True
+        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = 50.0
+        mock_heat_pump.getDomesticHotWaterSchedule.return_value = None
+        mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = None
+        
+        adapter = ViessmannAdapter()
+        config = await adapter.get_config()
+        
+        assert len(config.circuits) == 1
+        assert config.circuits[0].name is None
+        assert config.circuits[0].temp_comfort is None
+        assert config.circuits[0].schedule is None
+
+    @pytest.mark.asyncio
+    async def test_get_config_dhw_errors(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test get_config when DHW methods raise exceptions."""
+        mock_heat_pump.circuits = []
+        mock_heat_pump.getDomesticHotWaterActive.side_effect = Exception("DHW error")
+        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.side_effect = Exception("Temp error")
+        mock_heat_pump.getDomesticHotWaterSchedule.side_effect = Exception("Schedule error")
+        mock_heat_pump.getDomesticHotWaterCirculationSchedule.side_effect = Exception("Circ error")
+        
+        adapter = ViessmannAdapter()
+        config = await adapter.get_config()
+        
+        assert config.dhw.active is False  # Defaults to False when None
+        assert config.dhw.temp_target is None
+        assert config.dhw.schedule is None
+        assert config.dhw.circulation_schedule is None
+
+    @pytest.mark.asyncio
+    async def test_get_config_general_exception(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test get_config when a general exception occurs."""
+        # Make circuits property raise exception
+        type(mock_heat_pump).circuits = PropertyMock(side_effect=Exception("Critical error"))
+        
+        adapter = ViessmannAdapter()
+        config = await adapter.get_config()
+        
+        assert config is None
+
+    @pytest.mark.asyncio
+    async def test_get_config_partial_temperature_data(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test get_config with partial temperature data."""
+        circuit0 = MagicMock()
+        circuit0.getName.return_value = "Test Circuit"
+        
+        def get_temp(prog):
+            if prog == "comfort":
+                return 22.0
+            elif prog == "normal":
+                raise Exception("Not available")
+            else:
+                return None
+        
+        circuit0.getDesiredTemperatureForProgram.side_effect = get_temp
+        circuit0.getHeatingSchedule.return_value = None
+        
+        mock_heat_pump.circuits = [circuit0]
+        mock_heat_pump.getDomesticHotWaterActive.return_value = False
+        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = None
+        mock_heat_pump.getDomesticHotWaterSchedule.return_value = None
+        mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = None
+        
+        adapter = ViessmannAdapter()
+        config = await adapter.get_config()
+        
+        assert config.circuits[0].temp_comfort == 22.0
+        assert config.circuits[0].temp_normal is None
+        assert config.circuits[0].temp_reduced is None
+
+    @pytest.mark.asyncio
+    async def test_get_config_dhw_inactive(self, mock_settings, mock_pyvicare_class, mock_heat_pump):
+        """Test get_config when DHW is inactive."""
+        mock_heat_pump.circuits = []
+        mock_heat_pump.getDomesticHotWaterActive.return_value = False
+        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = 45.0
+        mock_heat_pump.getDomesticHotWaterSchedule.return_value = None
+        mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = None
+        
+        adapter = ViessmannAdapter()
+        config = await adapter.get_config()
+        
+        assert config.dhw.active is False
+        assert config.dhw.temp_target == 45.0
+
+    # Tests for _map_schedule method
+    def test_map_schedule_full_week(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with a complete weekly schedule."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": [
+                {"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}
+            ],
+            "tue": [
+                {"start": "06:00", "end": "08:00", "mode": "comfort", "position": 0},
+                {"start": "17:00", "end": "22:00", "mode": "comfort", "position": 1}
+            ],
+            "wed": [{"start": "00:00", "end": "24:00", "mode": "reduced", "position": 0}],
+            "thu": [],
+            "fri": [{"start": "18:00", "end": "23:00", "mode": "normal", "position": 0}],
+            "sat": [{"start": "08:00", "end": "20:00", "mode": "comfort", "position": 0}],
+            "sun": [{"start": "08:00", "end": "20:00", "mode": "comfort", "position": 0}]
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert isinstance(schedule, WeeklySchedule)
+        assert schedule.active is True
+        
+        # Monday
+        assert len(schedule.mon) == 1
+        assert schedule.mon[0].start == "06:00"
+        assert schedule.mon[0].end == "22:00"
+        assert schedule.mon[0].mode == "normal"
+        assert schedule.mon[0].position == 0
+        
+        # Tuesday (multiple slots)
+        assert len(schedule.tue) == 2
+        assert schedule.tue[0].start == "06:00"
+        assert schedule.tue[0].mode == "comfort"
+        assert schedule.tue[1].start == "17:00"
+        
+        # Wednesday
+        assert len(schedule.wed) == 1
+        assert schedule.wed[0].mode == "reduced"
+        
+        # Thursday (empty)
+        assert len(schedule.thu) == 0
+        
+        # Friday
+        assert len(schedule.fri) == 1
+        
+        # Weekend
+        assert len(schedule.sat) == 1
+        assert len(schedule.sun) == 1
+
+    def test_map_schedule_none_input(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with None input."""
+        adapter = ViessmannAdapter()
+        
+        schedule = adapter._map_schedule(None)
+        
+        assert schedule is None
+
+    def test_map_schedule_empty_dict(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with empty dictionary."""
+        adapter = ViessmannAdapter()
+        
+        schedule = adapter._map_schedule({})
+        
+        # Empty dict is falsy, so function returns None
+        assert schedule is None
+
+    def test_map_schedule_inactive(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with inactive schedule."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": False,
+            "mon": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}],
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert schedule.active is False
+        assert len(schedule.mon) == 1
+
+    def test_map_schedule_missing_days(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule when some days are missing."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}]
+            # Other days missing
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert isinstance(schedule, WeeklySchedule)
+        assert len(schedule.mon) == 1
+        assert len(schedule.tue) == 0
+        assert len(schedule.wed) == 0
+        assert len(schedule.thu) == 0
+        assert len(schedule.fri) == 0
+        assert len(schedule.sat) == 0
+        assert len(schedule.sun) == 0
+
+    def test_map_schedule_default_values(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule uses default values for missing fields."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": [
+                {"start": "06:00"}  # Missing end, mode, position
+            ],
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert len(schedule.mon) == 1
+        assert schedule.mon[0].start == "06:00"
+        assert schedule.mon[0].end == "24:00"  # Default
+        assert schedule.mon[0].mode == "unknown"  # Default
+        assert schedule.mon[0].position == 0  # Default
+
+    def test_map_schedule_empty_day_lists(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with explicitly empty day lists."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": [],
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert isinstance(schedule, WeeklySchedule)
+        assert schedule.active is True
+        for day in [schedule.mon, schedule.tue, schedule.wed, schedule.thu,
+                    schedule.fri, schedule.sat, schedule.sun]:
+            assert len(day) == 0
+
+    def test_map_schedule_invalid_type(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with invalid input type."""
+        adapter = ViessmannAdapter()
+        
+        schedule = adapter._map_schedule("invalid")
+        
+        assert schedule is None
+
+    def test_map_schedule_exception_handling(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule handles exceptions gracefully."""
+        adapter = ViessmannAdapter()
+        
+        # Malformed structure that might cause exception
+        raw_schedule = {
+            "active": "not_a_bool",  # Invalid type
+            "mon": "not_a_list"  # Invalid type
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        # Should return None due to exception
+        assert schedule is None
+
+    def test_map_schedule_complex_slots(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with multiple complex time slots."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": [
+                {"start": "00:00", "end": "06:00", "mode": "reduced", "position": 0},
+                {"start": "06:00", "end": "08:00", "mode": "comfort", "position": 1},
+                {"start": "08:00", "end": "17:00", "mode": "normal", "position": 2},
+                {"start": "17:00", "end": "22:00", "mode": "comfort", "position": 3},
+                {"start": "22:00", "end": "24:00", "mode": "reduced", "position": 4}
+            ],
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert len(schedule.mon) == 5
+        assert schedule.mon[0].mode == "reduced"
+        assert schedule.mon[0].position == 0
+        assert schedule.mon[1].mode == "comfort"
+        assert schedule.mon[1].position == 1
+        assert schedule.mon[4].position == 4
+
+    def test_map_schedule_dhw_on_off_modes(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with DHW on/off modes."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": [
+                {"start": "05:00", "end": "07:00", "mode": "on", "position": 0},
+                {"start": "17:00", "end": "19:00", "mode": "on", "position": 1}
+            ],
+            "tue": [{"start": "06:00", "end": "08:00", "mode": "off", "position": 0}],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert len(schedule.mon) == 2
+        assert schedule.mon[0].mode == "on"
+        assert schedule.mon[1].mode == "on"
+        assert len(schedule.tue) == 1
+        assert schedule.tue[0].mode == "off"
+
+    def test_map_schedule_all_days_populated(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule with all days having schedules."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}],
+            "tue": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}],
+            "wed": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}],
+            "thu": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}],
+            "fri": [{"start": "06:00", "end": "22:00", "mode": "normal", "position": 0}],
+            "sat": [{"start": "08:00", "end": "20:00", "mode": "comfort", "position": 0}],
+            "sun": [{"start": "08:00", "end": "20:00", "mode": "comfort", "position": 0}]
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        # All days should have at least one slot
+        for day in [schedule.mon, schedule.tue, schedule.wed, schedule.thu,
+                    schedule.fri, schedule.sat, schedule.sun]:
+            assert len(day) >= 1
+
+    def test_map_schedule_none_values_in_entries(self, mock_settings, mock_pyvicare_class):
+        """Test _map_schedule when day entries are None."""
+        adapter = ViessmannAdapter()
+        
+        raw_schedule = {
+            "active": True,
+            "mon": None,  # Explicitly None
+            "tue": [],
+            "wed": [],
+            "thu": [],
+            "fri": [],
+            "sat": [],
+            "sun": []
+        }
+        
+        schedule = adapter._map_schedule(raw_schedule)
+        
+        assert isinstance(schedule, WeeklySchedule)
+        assert len(schedule.mon) == 0  # Should handle None as empty list
