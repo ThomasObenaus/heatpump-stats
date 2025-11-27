@@ -20,3 +20,5 @@ backend/tests/__pycache__/
 backend/tests/adapters/__init__.py
 
 .coverage
+
+backend/heatpump_stats.db
