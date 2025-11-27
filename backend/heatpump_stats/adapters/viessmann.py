@@ -6,6 +6,13 @@ from PyViCare.PyViCareDevice import Device
 from PyViCare.PyViCareHeatPump import HeatPump
 
 from heatpump_stats.domain.metrics import HeatPumpData, CircuitData
+from heatpump_stats.domain.configuration import (
+    HeatPumpConfig, 
+    CircuitConfig, 
+    DHWConfig, 
+    WeeklySchedule, 
+    TimeSlot
+)
 from heatpump_stats.config import settings
 
 logger = logging.getLogger(__name__)
@@ -101,6 +108,110 @@ class ViessmannAdapter:
         except Exception as e:
             logger.error(f"Error fetching Viessmann data: {e}")
             return HeatPumpData(is_connected=False, error_code=str(e))
+
+    async def get_config(self) -> Optional[HeatPumpConfig]:
+        """
+        Fetches the current configuration (schedules, target temps) from the Viessmann API.
+        """
+        try:
+            if not self.device:
+                self._connect()
+            
+            device = self.device
+            if not device:
+                return None
+
+            # Optimization: Ensure cache is populated (though get_data usually runs first)
+            # If this is run independently, we might trigger a fetch.
+            # device.service.fetch_all_features() # Let lazy loading handle it
+
+            # 1. Circuits
+            circuits_config = []
+            for i, circuit in enumerate(device.circuits):
+                # Name
+                name = self._safe_get(circuit.getName)
+                
+                # Target Temps
+                temp_comfort = self._safe_get(lambda: circuit.getDesiredTemperatureForProgram("comfort"))
+                temp_normal = self._safe_get(lambda: circuit.getDesiredTemperatureForProgram("normal"))
+                temp_reduced = self._safe_get(lambda: circuit.getDesiredTemperatureForProgram("reduced"))
+                
+                # Schedule
+                raw_schedule = self._safe_get(circuit.getHeatingSchedule)
+                schedule = self._map_schedule(raw_schedule)
+
+                c_conf = CircuitConfig(
+                    circuit_id=i,
+                    name=name,
+                    temp_comfort=temp_comfort,
+                    temp_normal=temp_normal,
+                    temp_reduced=temp_reduced,
+                    schedule=schedule
+                )
+                circuits_config.append(c_conf)
+
+            # 2. DHW
+            dhw_active = self._safe_get(device.getDomesticHotWaterActive)
+            # Use configured temp (main setting), not current desired (which changes with schedule)
+            dhw_temp_target = self._safe_get(device.getDomesticHotWaterConfiguredTemperature)
+            
+            dhw_schedule_raw = self._safe_get(device.getDomesticHotWaterSchedule)
+            dhw_schedule = self._map_schedule(dhw_schedule_raw)
+            
+            circ_schedule_raw = self._safe_get(device.getDomesticHotWaterCirculationSchedule)
+            circ_schedule = self._map_schedule(circ_schedule_raw)
+
+            dhw_config = DHWConfig(
+                active=dhw_active if dhw_active is not None else False,
+                temp_target=dhw_temp_target,
+                schedule=dhw_schedule,
+                circulation_schedule=circ_schedule
+            )
+
+            return HeatPumpConfig(
+                circuits=circuits_config,
+                dhw=dhw_config
+            )
+
+        except Exception as e:
+            logger.error(f"Error fetching Viessmann config: {e}")
+            return None
+
+    def _map_schedule(self, raw_schedule: dict) -> Optional[WeeklySchedule]:
+        if not raw_schedule or not isinstance(raw_schedule, dict):
+            return None
+        
+        try:
+            # PyViCare returns: {'active': True, 'mon': [...], ...}
+            # We map this to our WeeklySchedule model
+            
+            # Helper to map list of dicts to List[TimeSlot]
+            def map_day(day_entries):
+                if not day_entries:
+                    return []
+                return [
+                    TimeSlot(
+                        start=entry.get("start", "00:00"),
+                        end=entry.get("end", "24:00"),
+                        mode=entry.get("mode", "unknown"),
+                        position=entry.get("position", 0)
+                    )
+                    for entry in day_entries
+                ]
+
+            return WeeklySchedule(
+                active=raw_schedule.get("active", True),
+                mon=map_day(raw_schedule.get("mon")),
+                tue=map_day(raw_schedule.get("tue")),
+                wed=map_day(raw_schedule.get("wed")),
+                thu=map_day(raw_schedule.get("thu")),
+                fri=map_day(raw_schedule.get("fri")),
+                sat=map_day(raw_schedule.get("sat")),
+                sun=map_day(raw_schedule.get("sun"))
+            )
+        except Exception as e:
+            logger.warning(f"Failed to map schedule: {e}")
+            return None
 
     def _safe_get(self, func):
         try:
