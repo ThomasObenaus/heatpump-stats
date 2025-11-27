@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     HEAT_PUMP_RATED_POWER: float = 16.0
     ESTIMATED_FLOW_RATE: float = 1000.0
 
+    # Persistence
+    SQLITE_DB_PATH: str = "heatpump_stats.db"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
