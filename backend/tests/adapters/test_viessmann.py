@@ -467,6 +467,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter()
         config = await adapter.get_config()
         
+        assert config is not None
         assert isinstance(config, HeatPumpConfig)
         
         # Check circuits
@@ -546,6 +547,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter()
         config = await adapter.get_config()
         
+        assert config is not None
         assert len(config.circuits) == 2
         assert config.circuits[0].name == "Circuit 0"
         assert config.circuits[1].name == "Circuit 1"
@@ -567,6 +569,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter()
         config = await adapter.get_config()
         
+        assert config is not None
         assert len(config.circuits) == 1
         assert config.circuits[0].name is None
         assert config.circuits[0].temp_comfort is None
@@ -584,6 +587,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter()
         config = await adapter.get_config()
         
+        assert config is not None
         assert config.dhw.active is False  # Defaults to False when None
         assert config.dhw.temp_target is None
         assert config.dhw.schedule is None
@@ -626,6 +630,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter()
         config = await adapter.get_config()
         
+        assert config is not None
         assert config.circuits[0].temp_comfort == 22.0
         assert config.circuits[0].temp_normal is None
         assert config.circuits[0].temp_reduced is None
@@ -642,6 +647,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter()
         config = await adapter.get_config()
         
+        assert config is not None
         assert config.dhw.active is False
         assert config.dhw.temp_target == 45.0
 
@@ -732,6 +738,7 @@ class TestViessmannAdapter:
         
         schedule = adapter._map_schedule(raw_schedule)
         
+        assert schedule is not None
         assert schedule.active is False
         assert len(schedule.mon) == 1
 
@@ -775,6 +782,7 @@ class TestViessmannAdapter:
         
         schedule = adapter._map_schedule(raw_schedule)
         
+        assert schedule is not None
         assert len(schedule.mon) == 1
         assert schedule.mon[0].start == "06:00"
         assert schedule.mon[0].end == "24:00"  # Default

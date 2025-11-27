@@ -138,7 +138,7 @@ class ViessmannAdapter:
                 
                 # Schedule
                 raw_schedule = self._safe_get(circuit.getHeatingSchedule)
-                schedule = self._map_schedule(raw_schedule)
+                schedule = self._map_schedule(raw_schedule or {})
 
                 c_conf = CircuitConfig(
                     circuit_id=i,
@@ -156,10 +156,10 @@ class ViessmannAdapter:
             dhw_temp_target = self._safe_get(device.getDomesticHotWaterConfiguredTemperature)
             
             dhw_schedule_raw = self._safe_get(device.getDomesticHotWaterSchedule)
-            dhw_schedule = self._map_schedule(dhw_schedule_raw)
+            dhw_schedule = self._map_schedule(dhw_schedule_raw or {})
             
             circ_schedule_raw = self._safe_get(device.getDomesticHotWaterCirculationSchedule)
-            circ_schedule = self._map_schedule(circ_schedule_raw)
+            circ_schedule = self._map_schedule(circ_schedule_raw or {})
 
             dhw_config = DHWConfig(
                 active=dhw_active if dhw_active is not None else False,
