@@ -27,7 +27,7 @@
 - [x] Create `backend/heatpump_stats/adapters/shelly.py`: Implement `PowerMeterPort` using `aiohttp`.
 - [x] Create `backend/heatpump_stats/adapters/viessmann.py`: Implement `HeatPumpPort` using `PyViCare`.
 - [x] Create `backend/heatpump_stats/adapters/influxdb.py`: Implement `RepositoryPort` (metrics) using `influxdb-client`.
-- [ ] Create `backend/heatpump_stats/adapters/sqlite.py`: Implement `RepositoryPort` (logs) using `SQLAlchemy`. (Deferred: Using InfluxDB for status for now)
+- [x] Create `backend/heatpump_stats/adapters/sqlite.py`: Implement `RepositoryPort` (logs) using `SQLAlchemy`. (Deferred: Using InfluxDB for status for now)
 - **Deliverable**: Concrete classes that can talk to the outside world.
 
 ### Step 1.4: Services (Application Logic)
