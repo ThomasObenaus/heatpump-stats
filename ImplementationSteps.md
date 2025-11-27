@@ -30,13 +30,13 @@
 - [x] Create `backend/heatpump_stats/adapters/sqlite.py`: Implement `RepositoryPort` (logs) using `SQLAlchemy`. (Deferred: Using InfluxDB for status for now)
 - **Deliverable**: Concrete classes that can talk to the outside world.
 
-### Step 1.4: Services (Application Logic)
+### Step 1.4: Services (Application Logic) (Completed)
 
-- Create `backend/heatpump_stats/services/collector.py`:
-  - Inject ports via constructor.
-  - Implement the main polling logic (fetch -> calculate -> save).
-  - Implement **In-Memory Buffering** for Shelly data.
-- Create `backend/heatpump_stats/services/reporting.py`: Logic for querying history.
+- [x] Create `backend/heatpump_stats/services/collector.py`:
+  - [x] Inject ports via constructor.
+  - [x] Implement the main polling logic (fetch -> calculate -> save).
+  - [x] Implement **In-Memory Buffering** for Shelly data.
+- [x] Create `backend/heatpump_stats/services/reporting.py`: Logic for querying history.
 - **Deliverable**: Testable business logic that runs with mocks or real adapters.
 
 ### Step 1.5: Entrypoints (Wiring it up)

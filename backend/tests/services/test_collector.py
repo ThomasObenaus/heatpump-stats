@@ -8,6 +8,7 @@ from heatpump_stats.domain.configuration import HeatPumpConfig
 from heatpump_stats.adapters.shelly import ShellyAdapter
 from heatpump_stats.adapters.viessmann import ViessmannAdapter
 from heatpump_stats.adapters.influxdb import InfluxDBAdapter
+from heatpump_stats.adapters.sqlite import SqliteAdapter
 
 
 class TestCollectorService:
@@ -34,13 +35,19 @@ class TestCollectorService:
         return AsyncMock(spec=InfluxDBAdapter)
 
     @pytest.fixture
-    def collector(self, mock_config, mock_shelly, mock_viessmann, mock_influx):
+    def mock_sqlite(self):
+        """Create a mock SqliteAdapter."""
+        return AsyncMock(spec=SqliteAdapter)
+
+    @pytest.fixture
+    def collector(self, mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
         """Create a CollectorService instance."""
         return CollectorService(
             config=mock_config,
             shelly=mock_shelly,
             viessmann=mock_viessmann,
-            influx=mock_influx
+            influx=mock_influx,
+            sqlite=mock_sqlite
         )
 
     @pytest.fixture
@@ -70,12 +77,13 @@ class TestCollectorService:
             is_connected=True
         )
 
-    def test_initialization(self, collector, mock_config, mock_shelly, mock_viessmann, mock_influx):
+    def test_initialization(self, collector, mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
         """Test CollectorService initialization."""
         assert collector.config == mock_config
         assert collector.shelly == mock_shelly
         assert collector.viessmann == mock_viessmann
         assert collector.influx == mock_influx
+        assert collector.sqlite == mock_sqlite
         assert collector._power_buffer == []
 
     @pytest.mark.asyncio
@@ -416,9 +424,9 @@ class TestCollectorService:
             call_args = mock_influx.save_heat_pump_data.call_args[0][0]
             assert call_args.timestamp == new_timestamp
 
-    def test_power_buffer_initialization(self, mock_config, mock_shelly, mock_viessmann, mock_influx):
+    def test_power_buffer_initialization(self, mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
         """Test that power buffer is initialized as empty list."""
-        collector = CollectorService(mock_config, mock_shelly, mock_viessmann, mock_influx)
+        collector = CollectorService(mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite)
         assert isinstance(collector._power_buffer, list)
         assert len(collector._power_buffer) == 0
 
@@ -456,3 +464,37 @@ class TestCollectorService:
         result = collector._calculate_average_power()
         expected = (1234.567 + 2345.678 + 3456.789) / 3
         assert abs(result - expected) < 0.001
+
+    @pytest.mark.asyncio
+    async def test_check_config_changes_saved(self, collector, mock_viessmann, mock_sqlite):
+        """Test that config changes are saved when detected."""
+        mock_config = MagicMock()
+        mock_viessmann.get_config.return_value = mock_config
+        mock_sqlite.save_config.return_value = True
+
+        await collector.check_config_changes()
+
+        mock_viessmann.get_config.assert_called_once()
+        mock_sqlite.save_config.assert_called_once_with(mock_config)
+
+    @pytest.mark.asyncio
+    async def test_check_config_changes_no_change(self, collector, mock_viessmann, mock_sqlite):
+        """Test that config changes are not saved when not detected."""
+        mock_config = MagicMock()
+        mock_viessmann.get_config.return_value = mock_config
+        mock_sqlite.save_config.return_value = False
+
+        await collector.check_config_changes()
+
+        mock_viessmann.get_config.assert_called_once()
+        mock_sqlite.save_config.assert_called_once_with(mock_config)
+
+    @pytest.mark.asyncio
+    async def test_check_config_changes_fetch_error(self, collector, mock_viessmann, mock_sqlite):
+        """Test error handling when fetching config fails."""
+        mock_viessmann.get_config.side_effect = Exception("Fetch error")
+
+        await collector.check_config_changes()
+
+        mock_viessmann.get_config.assert_called_once()
+        mock_sqlite.save_config.assert_not_called()
