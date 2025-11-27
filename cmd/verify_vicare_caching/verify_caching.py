@@ -75,7 +75,9 @@ class MockOAuthManager(AbstractViCareOAuthManager):
     def post(self, url, data):
         pass
 
-    def renewToken(self):
+
+    @classmethod
+    def renewToken(cls):
         pass
 
 def main():
