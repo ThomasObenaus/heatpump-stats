@@ -1,9 +1,10 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import List
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from influxdb_client.client.write.point import Point
 
-from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus
+from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus, CircuitData
 from heatpump_stats.config import settings
 
 logger = logging.getLogger(__name__)
@@ -82,3 +83,59 @@ class InfluxDBAdapter:
             await write_api.write(bucket=self.bucket, record=points)
         except Exception as e:
             logger.error(f"Failed to write to InfluxDB: {e}")
+
+    async def get_heat_pump_history(self, start: datetime, end: datetime) -> List[HeatPumpData]:
+        query = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: time(v: "{start.isoformat()}"), stop: time(v: "{end.isoformat()}"))
+            |> filter(fn: (r) => r["_measurement"] == "heat_pump")
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        """
+        records = await self._query(query)
+        return [
+            HeatPumpData(
+                timestamp=record["_time"],
+                outside_temperature=record.get("outside_temp"),
+                return_temperature=record.get("return_temp"),
+                dhw_storage_temperature=record.get("dhw_storage_temp"),
+                compressor_modulation=record.get("compressor_modulation"),
+                compressor_power_rated=record.get("compressor_power_rated"),
+                compressor_runtime_hours=record.get("compressor_runtime"),
+                estimated_thermal_power=record.get("thermal_power"),
+                circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
+                circuits=[] # Circuits are stored in a separate measurement, skipping for summary
+            )
+            for record in records
+        ]
+
+    async def get_power_history(self, start: datetime, end: datetime) -> List[PowerReading]:
+        query = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: time(v: "{start.isoformat()}"), stop: time(v: "{end.isoformat()}"))
+            |> filter(fn: (r) => r["_measurement"] == "power_meter")
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        """
+        records = await self._query(query)
+        return [
+            PowerReading(
+                timestamp=record["_time"],
+                power_watts=record.get("power_watts", 0.0),
+                voltage=record.get("voltage"),
+                current=record.get("current"),
+                total_energy_wh=record.get("total_energy_wh")
+            )
+            for record in records
+        ]
+
+    async def _query(self, query: str) -> List[dict]:
+        try:
+            query_api = self.client.query_api()
+            result = await query_api.query(query=query)
+            output = []
+            for table in result:
+                for record in table.records:
+                    output.append(record.values)
+            return output
+        except Exception as e:
+            logger.error(f"Failed to query InfluxDB: {e}")
+            return []

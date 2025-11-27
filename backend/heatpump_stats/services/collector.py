@@ -8,6 +8,7 @@ from heatpump_stats.domain.configuration import HeatPumpConfig
 from heatpump_stats.adapters.shelly import ShellyAdapter
 from heatpump_stats.adapters.viessmann import ViessmannAdapter
 from heatpump_stats.adapters.influxdb import InfluxDBAdapter
+from heatpump_stats.adapters.sqlite import SqliteAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +18,14 @@ class CollectorService:
         config: HeatPumpConfig,
         shelly: ShellyAdapter,
         viessmann: ViessmannAdapter,
-        influx: InfluxDBAdapter
+        influx: InfluxDBAdapter,
+        sqlite: SqliteAdapter
     ):
         self.config = config
         self.shelly = shelly
         self.viessmann = viessmann
         self.influx = influx
+        self.sqlite = sqlite
         self._power_buffer = []
 
     async def collect_power(self) -> Optional[PowerReading]:
@@ -108,3 +111,23 @@ class CollectorService:
             
         total_watts = sum(r.power_watts for r in valid_readings)
         return total_watts / len(valid_readings)
+
+    async def check_config_changes(self):
+        """
+        Fetches the current configuration and saves it if it has changed.
+        """
+        try:
+            logger.info("Checking for configuration changes...")
+            current_config = await self.viessmann.get_config()
+            
+            if current_config:
+                saved = await self.sqlite.save_config(current_config)
+                if saved:
+                    logger.info("Configuration changed and saved.")
+                else:
+                    logger.debug("No configuration changes detected.")
+            else:
+                logger.warning("Failed to fetch configuration.")
+                
+        except Exception as e:
+            logger.error(f"Error checking config changes: {e}")
