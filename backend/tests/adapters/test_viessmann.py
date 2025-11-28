@@ -550,7 +550,7 @@ class TestViessmannAdapter:
     @pytest.mark.asyncio
     async def test_get_config_connection_failure(self, mock_heat_pump):
         """Test get_config when the connectivity check fails."""
-        mock_heat_pump.getControllerSerial.side_effect = Exception("Connection lost")
+        mock_heat_pump.getSerial.side_effect = Exception("Connection lost")
         
         adapter = ViessmannAdapter(mock_heat_pump)
         config = await adapter.get_config()
