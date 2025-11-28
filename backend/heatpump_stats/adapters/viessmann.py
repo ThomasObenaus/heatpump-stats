@@ -115,7 +115,8 @@ class ViessmannAdapter:
             device = self.device
 
             # Connectivity Check
-            _ = device.getModel()
+            # We use getControllerSerial() as a lightweight check
+            _ = device.getControllerSerial()
 
             # Optimization: Ensure cache is populated (though get_data usually runs first)
             # If this is run independently, we might trigger a fetch.
