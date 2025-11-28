@@ -528,7 +528,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter(mock_heat_pump)
         config = await adapter.get_config()
         
-        assert config is not None
+        assert config.dhw is not None
         assert config.dhw.active is False  # Defaults to False when None
         assert config.dhw.temp_target is None
         assert config.dhw.schedule is None
@@ -602,7 +602,7 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter(mock_heat_pump)
         config = await adapter.get_config()
         
-        assert config is not None
+        assert config.dhw is not None
         assert config.dhw.active is False
         assert config.dhw.temp_target == 45.0
 
@@ -813,6 +813,7 @@ class TestViessmannAdapter:
         
         schedule = adapter._map_schedule(raw_schedule)
         
+        assert schedule is not None
         assert len(schedule.mon) == 5
         assert schedule.mon[0].mode == "reduced"
         assert schedule.mon[0].position == 0
@@ -840,6 +841,7 @@ class TestViessmannAdapter:
         
         schedule = adapter._map_schedule(raw_schedule)
         
+        assert schedule is not None
         assert len(schedule.mon) == 2
         assert schedule.mon[0].mode == "on"
         assert schedule.mon[1].mode == "on"
@@ -864,6 +866,7 @@ class TestViessmannAdapter:
         schedule = adapter._map_schedule(raw_schedule)
         
         # All days should have at least one slot
+        assert schedule is not None
         for day in [schedule.mon, schedule.tue, schedule.wed, schedule.thu,
                     schedule.fri, schedule.sat, schedule.sun]:
             assert len(day) >= 1
