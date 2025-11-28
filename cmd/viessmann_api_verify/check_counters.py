@@ -9,25 +9,20 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(script_dir, '.env')
 load_dotenv(env_path)
 
-USER = os.getenv("VIESSMANN_USER")
-PASSWORD = os.getenv("VIESSMANN_PASSWORD")
-CLIENT_ID = os.getenv("VIESSMANN_CLIENT_ID")
+USER = os.getenv("VIESSMANN_USER", "")
+PASSWORD = os.getenv("VIESSMANN_PASSWORD", "")
+CLIENT_ID = os.getenv("VIESSMANN_CLIENT_ID", "")
 
 if not all([USER, PASSWORD, CLIENT_ID]):
     print("Error: Missing credentials in .env file.")
     sys.exit(1)
-
-# Type assertion for mypy/linters
-assert USER is not None
-assert PASSWORD is not None
-assert CLIENT_ID is not None
 
 def main():
     print("Connecting to Viessmann API...")
     try:
         vicare = PyViCare()
         token_file = os.path.join(script_dir, "token.save")
-        vicare.initWithCredentials(USER, PASSWORD, CLIENT_ID, token_file)
+        vicare.initWithCredentials(username=USER, password=PASSWORD, client_id=CLIENT_ID, token_file=token_file)
         
         target_device = None
         for dev in vicare.devices:

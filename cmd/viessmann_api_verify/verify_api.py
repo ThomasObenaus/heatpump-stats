@@ -8,9 +8,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(script_dir, '.env')
 load_dotenv(env_path)
 
-USER = os.getenv("VIESSMANN_USER")
-PASSWORD = os.getenv("VIESSMANN_PASSWORD")
-CLIENT_ID = os.getenv("VIESSMANN_CLIENT_ID")
+USER = os.getenv("VIESSMANN_USER","")
+PASSWORD = os.getenv("VIESSMANN_PASSWORD","")
+CLIENT_ID = os.getenv("VIESSMANN_CLIENT_ID","")
 
 if not all([USER, PASSWORD, CLIENT_ID]):
     print("Error: Missing credentials in .env file.")
@@ -89,7 +89,6 @@ def main():
     try:
         vicare = PyViCare()
         token_file = os.path.join(script_dir, "token.save")
-        assert USER is not None and PASSWORD is not None and CLIENT_ID is not None
         vicare.initWithCredentials(username=USER, password=PASSWORD, client_id=CLIENT_ID, token_file=token_file)
         
         print(f"Found {len(vicare.devices)} devices/components:")
