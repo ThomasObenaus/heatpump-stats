@@ -110,6 +110,9 @@ class TestDaemonMain:
         """Test that production mode initializes all adapters correctly."""
         # Cancel the gather after a short time to exit the loop
         async def cancel_after_short_time(*args, **kwargs):
+            for arg in args:
+                if asyncio.iscoroutine(arg):
+                    arg.close()
             await asyncio.sleep(0.1)
             raise asyncio.CancelledError()
 
@@ -160,6 +163,9 @@ class TestDaemonMain:
         """Test that mock mode initializes all mock adapters correctly."""
         # Cancel the gather after a short time to exit the loop
         async def cancel_after_short_time(*args, **kwargs):
+            for arg in args:
+                if asyncio.iscoroutine(arg):
+                    arg.close()
             await asyncio.sleep(0.1)
             raise asyncio.CancelledError()
 
@@ -404,6 +410,9 @@ class TestDaemonMain:
             mock_settings.SQLITE_DB_PATH = "test.db"
 
             async def cancel_immediately(*args, **kwargs):
+                for arg in args:
+                    if asyncio.iscoroutine(arg):
+                        arg.close()
                 raise asyncio.CancelledError()
 
             with patch('heatpump_stats.entrypoints.daemon.asyncio.gather', side_effect=cancel_immediately):
@@ -427,6 +436,9 @@ class TestDaemonMain:
             mock_settings.VIESSMANN_CONFIG_INTERVAL = 18000
 
             async def cancel_immediately(*args, **kwargs):
+                for arg in args:
+                    if asyncio.iscoroutine(arg):
+                        arg.close()
                 raise asyncio.CancelledError()
 
             with patch('heatpump_stats.entrypoints.daemon.asyncio.gather', side_effect=cancel_immediately):
@@ -489,6 +501,9 @@ class TestDaemonMain:
     ):
         """Test that CollectorService is initialized with correct adapter instances."""
         async def cancel_immediately(*args, **kwargs):
+            for arg in args:
+                if asyncio.iscoroutine(arg):
+                    arg.close()
             raise asyncio.CancelledError()
 
         with patch('heatpump_stats.entrypoints.daemon.asyncio.gather', side_effect=cancel_immediately):
@@ -513,6 +528,9 @@ class TestDaemonMain:
     ):
         """Test that daemon logs startup information."""
         async def cancel_immediately(*args, **kwargs):
+            for arg in args:
+                if asyncio.iscoroutine(arg):
+                    arg.close()
             raise asyncio.CancelledError()
 
         with patch('heatpump_stats.entrypoints.daemon.asyncio.gather', side_effect=cancel_immediately):
