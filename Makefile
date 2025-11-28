@@ -14,3 +14,6 @@ verify.viessmann-api: ## Run the Viessmann API verification script
 
 backend.test.unit: ## Run unit tests
 	cd backend && ../.venv/bin/python -m pytest tests/ -v --cov=heatpump_stats --cov-report=term-missing
+
+backend.run.mock: ## Start the daemon in mock mode
+	cd backend && export COLLECTOR_MODE=mock && ../.venv/bin/python -m heatpump_stats.entrypoints.daemon
