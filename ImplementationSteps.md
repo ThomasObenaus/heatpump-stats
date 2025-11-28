@@ -39,20 +39,20 @@
 - [x] Create `backend/heatpump_stats/services/reporting.py`: Logic for querying history.
 - **Deliverable**: Testable business logic that runs with mocks or real adapters.
 
-### Step 1.5: Entrypoints (Wiring it up)
+### Step 1.5: Entrypoints (Wiring it up) (Completed)
 
-- Create `backend/heatpump_stats/entrypoints/daemon.py`:
-  - Load config.
-  - Instantiate adapters (Real or Mock based on `COLLECTOR_MODE`).
-  - Instantiate `CollectorService` with adapters.
-  - Run the loop.
+- [x] Create `backend/heatpump_stats/entrypoints/daemon.py`:
+  - [x] Load config.
+  - [x] Instantiate adapters (Real or Mock based on `COLLECTOR_MODE`).
+  - [x] Instantiate `CollectorService` with adapters.
+  - [x] Run the loop.
 - **Deliverable**: Running service populating InfluxDB.
 
-### Step 1.6: Configuration Change Detection
+### Step 1.6: Configuration Change Detection (Completed)
 
-- Implement logic in `backend/heatpump_stats/services/change_detector.py` (or inside Collector).
-- Normalize JSON, compute SHA256 hashes.
-- Use `RepositoryPort` to save changes.
+- [x] Implement logic in `backend/heatpump_stats/services/change_detector.py` (or inside Collector/Adapter).
+- [x] Normalize JSON, compute SHA256 hashes (Implemented via Dict comparison in SqliteAdapter).
+- [x] Use `RepositoryPort` to save changes.
 - **Deliverable**: System automatically logs schedule changes.
 
 ## Phase 2: Backend API
