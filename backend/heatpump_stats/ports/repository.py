@@ -1,6 +1,7 @@
 from typing import Protocol
 from datetime import datetime
 from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus
+from heatpump_stats.domain.configuration import HeatPumpConfig
 
 class RepositoryPort(Protocol):
     async def save_heat_pump_data(self, data: HeatPumpData) -> None:
@@ -30,5 +31,12 @@ class RepositoryPort(Protocol):
     async def get_power_history(self, start: datetime, end: datetime) -> list[PowerReading]:
         """
         Retrieve power meter readings for a given time range.
+        """
+        ...
+
+class ConfigRepositoryPort(Protocol):
+    async def save_config(self, config: HeatPumpConfig) -> None:
+        """
+        Save heat pump configuration if it has changed.
         """
         ...

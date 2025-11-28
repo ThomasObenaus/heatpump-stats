@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, CircuitData
+from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, CircuitData, SystemStatus
 from heatpump_stats.domain.configuration import HeatPumpConfig, CircuitConfig, DHWConfig
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,17 @@ class MockInfluxDBAdapter:
 
     async def save_heat_pump_data(self, data: HeatPumpData):
         logger.debug(f"Mock: Saving heat pump data. Outside Temp: {data.outside_temperature}")
+
+    async def save_system_status(self, status: SystemStatus) -> None:
+        logger.debug(f"Mock: Saving system status {status.status}")
+
+    async def get_heat_pump_history(self, start: datetime, end: datetime) -> List[HeatPumpData]:
+        logger.debug("Mock: Fetching heat pump history")
+        return []
+
+    async def get_power_history(self, start: datetime, end: datetime) -> List[PowerReading]:
+        logger.debug("Mock: Fetching power history")
+        return []
 
 class MockSqliteAdapter:
     async def save_config(self, config: HeatPumpConfig) -> bool:

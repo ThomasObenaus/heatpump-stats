@@ -4,20 +4,19 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from heatpump_stats.domain.metrics import HeatPumpData, PowerReading
-from heatpump_stats.adapters.shelly import ShellyAdapter
-from heatpump_stats.adapters.viessmann import ViessmannAdapter
-from heatpump_stats.adapters.influxdb import InfluxDBAdapter
-from heatpump_stats.adapters.sqlite import SqliteAdapter
+from heatpump_stats.ports.power_meter import PowerMeterPort
+from heatpump_stats.ports.heat_pump import HeatPumpPort
+from heatpump_stats.ports.repository import RepositoryPort, ConfigRepositoryPort
 
 logger = logging.getLogger(__name__)
 
 class CollectorService:
     def __init__(
         self,
-        shelly: ShellyAdapter,
-        viessmann: ViessmannAdapter,
-        influx: InfluxDBAdapter,
-        sqlite: SqliteAdapter
+        shelly: PowerMeterPort,
+        viessmann: HeatPumpPort,
+        influx: RepositoryPort,
+        sqlite: ConfigRepositoryPort
     ):
         self.shelly = shelly
         self.viessmann = viessmann
