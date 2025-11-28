@@ -482,8 +482,18 @@ class TestSqliteAdapter:
 
     def test_database_autoincrement(self, adapter, sample_config):
         """Test that database ID autoincrement works correctly."""
+        # We need to modify the config slightly to ensure it's saved
+        # because the adapter now checks for changes before saving
+        
+        # Save 1
         adapter._save_config_sync(sample_config)
+        
+        # Save 2 (modified)
+        sample_config.circuits[0].temp_comfort = 23.0
         adapter._save_config_sync(sample_config)
+        
+        # Save 3 (modified again)
+        sample_config.circuits[0].temp_comfort = 24.0
         adapter._save_config_sync(sample_config)
         
         with sqlite3.connect(adapter.db_path) as conn:
