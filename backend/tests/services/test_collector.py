@@ -40,10 +40,9 @@ class TestCollectorService:
         return AsyncMock(spec=SqliteAdapter)
 
     @pytest.fixture
-    def collector(self, mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
+    def collector(self, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
         """Create a CollectorService instance."""
         return CollectorService(
-            config=mock_config,
             shelly=mock_shelly,
             viessmann=mock_viessmann,
             influx=mock_influx,
@@ -77,9 +76,8 @@ class TestCollectorService:
             is_connected=True
         )
 
-    def test_initialization(self, collector, mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
+    def test_initialization(self, collector, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
         """Test CollectorService initialization."""
-        assert collector.config == mock_config
         assert collector.shelly == mock_shelly
         assert collector.viessmann == mock_viessmann
         assert collector.influx == mock_influx
@@ -424,9 +422,9 @@ class TestCollectorService:
             call_args = mock_influx.save_heat_pump_data.call_args[0][0]
             assert call_args.timestamp == new_timestamp
 
-    def test_power_buffer_initialization(self, mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
+    def test_power_buffer_initialization(self, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
         """Test that power buffer is initialized as empty list."""
-        collector = CollectorService(mock_config, mock_shelly, mock_viessmann, mock_influx, mock_sqlite)
+        collector = CollectorService(mock_shelly, mock_viessmann, mock_influx, mock_sqlite)
         assert isinstance(collector._power_buffer, list)
         assert len(collector._power_buffer) == 0
 
