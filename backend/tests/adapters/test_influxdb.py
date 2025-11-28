@@ -10,16 +10,6 @@ class TestInfluxDBAdapter:
     """Test suite for the InfluxDBAdapter class."""
 
     @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for InfluxDB configuration."""
-        with patch('heatpump_stats.adapters.influxdb.settings') as mock:
-            mock.INFLUXDB_URL = "http://localhost:8086"
-            mock.INFLUXDB_TOKEN = "test_token"
-            mock.INFLUXDB_ORG = "test_org"
-            mock.INFLUXDB_BUCKET_RAW = "test_bucket"
-            yield mock
-
-    @pytest.fixture
     def mock_influxdb_client(self):
         """Create a mock InfluxDBClientAsync."""
         with patch('heatpump_stats.adapters.influxdb.InfluxDBClientAsync') as MockClient:
@@ -33,9 +23,15 @@ class TestInfluxDBAdapter:
             yield mock_client, mock_write_api
 
     @pytest.fixture
-    def adapter(self, mock_settings, mock_influxdb_client):
+    def adapter(self, mock_influxdb_client):
         """Create an InfluxDBAdapter instance."""
-        return InfluxDBAdapter()
+        return InfluxDBAdapter(
+            url="http://localhost:8086",
+            token="test_token",
+            org="test_org",
+            bucket_raw="test_bucket",
+            bucket_downsampled="test_bucket_downsampled"
+        )
 
     @pytest.fixture
     def sample_heat_pump_data(self):
@@ -79,9 +75,15 @@ class TestInfluxDBAdapter:
             message="OK"
         )
 
-    def test_initialization(self, mock_settings, mock_influxdb_client):
+    def test_initialization(self, mock_influxdb_client):
         """Test InfluxDBAdapter initialization."""
-        adapter = InfluxDBAdapter()
+        adapter = InfluxDBAdapter(
+            url="http://localhost:8086",
+            token="test_token",
+            org="test_org",
+            bucket_raw="test_bucket",
+            bucket_downsampled="test_bucket_downsampled"
+        )
         
         assert adapter.bucket == "test_bucket"
         assert adapter.client is not None
@@ -360,10 +362,16 @@ class TestInfluxDBAdapter:
         assert call_args.kwargs['bucket'] == 'test_bucket'
 
     @pytest.mark.asyncio
-    async def test_client_initialization_parameters(self, mock_settings):
+    async def test_client_initialization_parameters(self):
         """Test that InfluxDB client is initialized with correct parameters."""
         with patch('heatpump_stats.adapters.influxdb.InfluxDBClientAsync') as MockClient:
-            adapter = InfluxDBAdapter()
+            adapter = InfluxDBAdapter(
+                url="http://localhost:8086",
+                token="test_token",
+                org="test_org",
+                bucket_raw="test_bucket",
+                bucket_downsampled="test_bucket_downsampled"
+            )
             
             MockClient.assert_called_once_with(
                 url="http://localhost:8086",

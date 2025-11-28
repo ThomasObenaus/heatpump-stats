@@ -10,13 +10,21 @@ from heatpump_stats.config import settings
 logger = logging.getLogger(__name__)
 
 class InfluxDBAdapter:
-    def __init__(self):
+    def __init__(
+        self,
+        url: str,
+        token: str,
+        org: str,
+        bucket_raw: str,
+        bucket_downsampled: str
+    ):
         self.client = InfluxDBClientAsync(
-            url=settings.INFLUXDB_URL,
-            token=settings.INFLUXDB_TOKEN,
-            org=settings.INFLUXDB_ORG
+            url=url,
+            token=token,
+            org=org
         )
-        self.bucket = settings.INFLUXDB_BUCKET_RAW
+        self.bucket = bucket_raw
+        self.bucket_downsampled = bucket_downsampled
 
     async def close(self):
         await self.client.close()
