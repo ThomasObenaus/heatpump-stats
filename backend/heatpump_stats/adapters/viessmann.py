@@ -61,7 +61,9 @@ class ViessmannAdapter:
             # We do NOT call fetch_all_features() manually as it bypasses the cache update mechanism.
             
             # 1. Temperatures
-            outside_temp = self._safe_get(self.device.getOutsideTemperature)
+            # Connectivity Check: We unwrap the first property access.
+            # If this fails, the API/Device is unreachable, and we catch the error below.
+            outside_temp = self.device.getOutsideTemperature()
             return_temp = self._safe_get(self.device.getReturnTemperature)
             dhw_temp = self._safe_get(self.device.getDomesticHotWaterStorageTemperature)
 
