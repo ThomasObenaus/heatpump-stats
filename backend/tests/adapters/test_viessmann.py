@@ -543,7 +543,21 @@ class TestViessmannAdapter:
         adapter = ViessmannAdapter(mock_heat_pump)
         config = await adapter.get_config()
         
-        assert config is None
+        assert config is not None
+        assert config.is_connected is False
+        assert "Critical error" in str(config.error_code)
+
+    @pytest.mark.asyncio
+    async def test_get_config_connection_failure(self, mock_heat_pump):
+        """Test get_config when the connectivity check fails."""
+        mock_heat_pump.getModel.side_effect = Exception("Connection lost")
+        
+        adapter = ViessmannAdapter(mock_heat_pump)
+        config = await adapter.get_config()
+        
+        assert config is not None
+        assert config.is_connected is False
+        assert "Connection lost" in str(config.error_code)
 
     @pytest.mark.asyncio
     async def test_get_config_partial_temperature_data(self, mock_heat_pump):

@@ -40,3 +40,7 @@ class DHWConfig(BaseModel):
 class HeatPumpConfig(BaseModel):
     circuits: List[CircuitConfig] = Field(default_factory=list)
     dhw: Optional[DHWConfig] = None
+    
+    # Status
+    is_connected: bool = True
+    error_code: Optional[str] = None
