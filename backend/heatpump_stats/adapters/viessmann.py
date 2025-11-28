@@ -112,11 +112,9 @@ class ViessmannAdapter:
         Fetches the current configuration (schedules, target temps) from the Viessmann API.
         """
         try:
-            device = self.device
-
             # Connectivity Check
             # We use getSerial() as a lightweight check
-            _ = device.getSerial()
+            _ = self.device.getSerial()
 
             # Optimization: Ensure cache is populated (though get_data usually runs first)
             # If this is run independently, we might trigger a fetch.
@@ -124,7 +122,7 @@ class ViessmannAdapter:
 
             # 1. Circuits
             circuits_config = []
-            for i, circuit in enumerate(device.circuits):
+            for i, circuit in enumerate(self.device.circuits):
                 # Name
                 name = self._safe_get(circuit.getName)
                 
@@ -148,14 +146,14 @@ class ViessmannAdapter:
                 circuits_config.append(c_conf)
 
             # 2. DHW
-            dhw_active = self._safe_get(device.getDomesticHotWaterActive)
+            dhw_active = self._safe_get(self.device.getDomesticHotWaterActive)
             # Use configured temp (main setting), not current desired (which changes with schedule)
-            dhw_temp_target = self._safe_get(device.getDomesticHotWaterConfiguredTemperature)
+            dhw_temp_target = self._safe_get(self.device.getDomesticHotWaterConfiguredTemperature)
             
-            dhw_schedule_raw = self._safe_get(device.getDomesticHotWaterSchedule)
+            dhw_schedule_raw = self._safe_get(self.device.getDomesticHotWaterSchedule)
             dhw_schedule = self._map_schedule(dhw_schedule_raw or {})
             
-            circ_schedule_raw = self._safe_get(device.getDomesticHotWaterCirculationSchedule)
+            circ_schedule_raw = self._safe_get(self.device.getDomesticHotWaterCirculationSchedule)
             circ_schedule = self._map_schedule(circ_schedule_raw or {})
 
             dhw_config = DHWConfig(
