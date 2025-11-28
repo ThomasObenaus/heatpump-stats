@@ -103,8 +103,10 @@ class TestDaemonMain:
     def _close_coroutines(self, *args):
         """Helper to close coroutines in args."""
         for arg in args:
-            if asyncio.iscoroutine(arg):
+            try:
                 arg.close()
+            except AttributeError:
+                pass
 
     @pytest.mark.asyncio
     async def test_main_production_mode_initialization(
@@ -552,22 +554,6 @@ class TestDaemonMain:
 
         # Check for stopping log message
         assert any("Daemon stopping" in record.message for record in caplog.records)
-
-    def test_main_function_keyboard_interrupt_handling(
-        self,
-        mock_settings_production,
-        mock_adapters,
-        mock_collector_service
-    ):
-        """Test that KeyboardInterrupt is handled at the top level."""
-        with patch('heatpump_stats.entrypoints.daemon.asyncio.run', side_effect=KeyboardInterrupt):
-            # This should not raise an exception
-            try:
-                from heatpump_stats.entrypoints.daemon import __name__ as module_name
-                if module_name == "__main__":
-                    pass  # Would be handled by the if __name__ == "__main__" block
-            except KeyboardInterrupt:
-                pytest.fail("KeyboardInterrupt should be caught")
 
 
 # class TestDaemonIntegration:
