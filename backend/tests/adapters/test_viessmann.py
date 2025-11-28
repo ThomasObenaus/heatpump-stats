@@ -192,8 +192,9 @@ class TestViessmannAdapter:
 
     @pytest.mark.asyncio
     async def test_get_data_temperature_errors(self, mock_heat_pump):
-        """Test data retrieval when temperature methods raise exceptions."""
-        mock_heat_pump.getOutsideTemperature.side_effect = Exception("Sensor error")
+        """Test data retrieval when non-critical temperature methods raise exceptions."""
+        # Outside temperature is now critical for connectivity check, so we don't fail it here
+        # We fail other sensors to test partial failure
         mock_heat_pump.getReturnTemperature.side_effect = Exception("Sensor error")
         mock_heat_pump.getDomesticHotWaterStorageTemperature.side_effect = Exception("Sensor error")
         
@@ -202,9 +203,21 @@ class TestViessmannAdapter:
         
         assert isinstance(data, HeatPumpData)
         assert data.is_connected is True
-        assert data.outside_temperature is None
+        assert data.outside_temperature == 5.2  # Should succeed
         assert data.return_temperature is None
         assert data.dhw_storage_temperature is None
+
+    @pytest.mark.asyncio
+    async def test_get_data_connection_failure(self, mock_heat_pump):
+        """Test data retrieval when the connectivity check (outside temp) fails."""
+        mock_heat_pump.getOutsideTemperature.side_effect = Exception("Connection lost")
+        
+        adapter = ViessmannAdapter(mock_heat_pump)
+        data = await adapter.get_data()
+        
+        assert isinstance(data, HeatPumpData)
+        assert data.is_connected is False
+        assert "Connection lost" in str(data.error_code)
 
     @pytest.mark.asyncio
     async def test_get_data_circuit_errors(self, mock_heat_pump):
