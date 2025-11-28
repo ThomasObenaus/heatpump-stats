@@ -663,7 +663,7 @@ class TestViessmannAdapter:
         """Test _map_schedule with None input."""
         adapter = ViessmannAdapter(mock_heat_pump)
         
-        schedule = adapter._map_schedule(None)
+        schedule = adapter._map_schedule(None) # type: ignore
         
         assert schedule is None
 
@@ -771,7 +771,7 @@ class TestViessmannAdapter:
         """Test _map_schedule with invalid input type."""
         adapter = ViessmannAdapter(mock_heat_pump)
         
-        schedule = adapter._map_schedule("invalid")
+        schedule = adapter._map_schedule("invalid") # type: ignore
         
         assert schedule is None
 
