@@ -16,7 +16,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def main():
+async def main() -> None:
     logger.info(f"Starting Heat Pump Stats Daemon (Mode: {settings.COLLECTOR_MODE})")
 
     # 1. Instantiate Adapters
