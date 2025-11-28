@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from heatpump_stats.domain.metrics import HeatPumpData, PowerReading
-from heatpump_stats.domain.configuration import HeatPumpConfig
 from heatpump_stats.adapters.shelly import ShellyAdapter
 from heatpump_stats.adapters.viessmann import ViessmannAdapter
 from heatpump_stats.adapters.influxdb import InfluxDBAdapter
@@ -15,13 +14,11 @@ logger = logging.getLogger(__name__)
 class CollectorService:
     def __init__(
         self,
-        config: HeatPumpConfig,
         shelly: ShellyAdapter,
         viessmann: ViessmannAdapter,
         influx: InfluxDBAdapter,
         sqlite: SqliteAdapter
     ):
-        self.config = config
         self.shelly = shelly
         self.viessmann = viessmann
         self.influx = influx
