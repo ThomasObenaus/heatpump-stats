@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Shelly
     SHELLY_HOST: str = ""
-    SHELLY_PASSWORD: Optional[str] = None
+    SHELLY_PASSWORD: str = ""
     SHELLY_POLL_INTERVAL: int = 10
 
     # InfluxDB
