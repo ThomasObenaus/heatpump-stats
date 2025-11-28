@@ -54,7 +54,7 @@ class MockInfluxDBAdapter:
         logger.debug(f"Mock: Saving heat pump data. Outside Temp: {data.outside_temperature}")
 
     async def save_system_status(self, status: SystemStatus) -> None:
-        logger.debug(f"Mock: Saving system status {status.status}")
+        logger.debug(f"Mock: Saving system status {status.message}")
 
     async def get_heat_pump_history(self, start: datetime, end: datetime) -> List[HeatPumpData]:
         logger.debug("Mock: Fetching heat pump history")

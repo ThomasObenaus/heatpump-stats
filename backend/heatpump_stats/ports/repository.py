@@ -35,7 +35,7 @@ class RepositoryPort(Protocol):
         ...
 
 class ConfigRepositoryPort(Protocol):
-    async def save_config(self, config: HeatPumpConfig) -> None:
+    async def save_config(self, config: HeatPumpConfig) -> bool:
         """
         Save heat pump configuration if it has changed.
         """
