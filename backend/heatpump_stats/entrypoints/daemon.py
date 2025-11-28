@@ -66,39 +66,39 @@ async def main():
     )
 
     # 3. Define Tasks
-    async def run_power_collection():
-        logger.info(f"Starting power collection loop (Interval: {settings.SHELLY_POLL_INTERVAL}s)")
+    async def run_power_collection(poll_interval: int):
+        logger.info(f"Starting power collection loop (Interval: {poll_interval}s)")
         while True:
             try:
                 await service.collect_power()
             except Exception as e:
                 logger.error(f"Error in power collection loop: {e}")
-            await asyncio.sleep(settings.SHELLY_POLL_INTERVAL)
+            await asyncio.sleep(poll_interval)
 
-    async def run_metrics_collection():
-        logger.info(f"Starting metrics collection loop (Interval: {settings.VIESSMANN_POLL_INTERVAL}s)")
+    async def run_metrics_collection(poll_interval: int):
+        logger.info(f"Starting metrics collection loop (Interval: {poll_interval}s)")
         while True:
             try:
                 await service.collect_metrics()
             except Exception as e:
                 logger.error(f"Error in metrics collection loop: {e}")
-            await asyncio.sleep(settings.VIESSMANN_POLL_INTERVAL)
+            await asyncio.sleep(poll_interval)
 
-    async def run_config_check():
-        logger.info(f"Starting config check loop (Interval: {settings.VIESSMANN_CONFIG_INTERVAL}s)")
+    async def run_config_check(check_interval: int):
+        logger.info(f"Starting config check loop (Interval: {check_interval}s)")
         while True:
             try:
                 await service.check_config_changes()
             except Exception as e:
                 logger.error(f"Error in config check loop: {e}")
-            await asyncio.sleep(settings.VIESSMANN_CONFIG_INTERVAL)
+            await asyncio.sleep(check_interval)
 
     # 4. Run Loop
     try:
         await asyncio.gather(
-            run_power_collection(),
-            run_metrics_collection(),
-            run_config_check()
+            run_power_collection(settings.SHELLY_POLL_INTERVAL),
+            run_metrics_collection(settings.VIESSMANN_POLL_INTERVAL),
+            run_config_check(settings.VIESSMANN_CONFIG_INTERVAL)
         )
     except asyncio.CancelledError:
         logger.info("Daemon stopping...")
