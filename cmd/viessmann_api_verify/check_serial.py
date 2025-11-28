@@ -8,9 +8,9 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(script_dir, '.env')
 load_dotenv(env_path)
 
-USER = os.getenv("VIESSMANN_USER")
-PASSWORD = os.getenv("VIESSMANN_PASSWORD")
-CLIENT_ID = os.getenv("VIESSMANN_CLIENT_ID")
+USER = os.getenv("VIESSMANN_USER", "")
+PASSWORD = os.getenv("VIESSMANN_PASSWORD","")
+CLIENT_ID = os.getenv("VIESSMANN_CLIENT_ID","")
 
 def main():
     print("Connecting to Viessmann API...")
