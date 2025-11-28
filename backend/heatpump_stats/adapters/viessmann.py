@@ -17,49 +17,45 @@ from heatpump_stats.config import settings
 
 logger = logging.getLogger(__name__)
 
+def connect_viessmann(model_name: str = "CU401B_G") -> HeatPump:
+    """
+    Connects to the Viessmann API and returns a HeatPump device object.
+    """
+    try:
+        vicare = PyViCare()
+        vicare.initWithCredentials(
+            username=settings.VIESSMANN_USER,
+            password=settings.VIESSMANN_PASSWORD,
+            client_id=settings.VIESSMANN_CLIENT_ID,
+            token_file="token.save"
+        )
+        
+        target_device = None
+        final_model_name = "Unknown"
+
+        for dev in vicare.devices:
+            found_model = dev.getModel()
+            if model_name in found_model:
+                target_device = dev
+                final_model_name = found_model
+                break
+        
+        if target_device:
+            logger.info(f"Connected to Viessmann device: {final_model_name}")
+            return target_device.asHeatPump()
+        
+        logger.error(f"Specific model {model_name} not found. Could not connect to Viessmann heat pump.")
+        raise Exception(f"Viessmann heat pump {model_name} not found")
+        
+    except Exception as e:
+        logger.error(f"Failed to connect to Viessmann API: {e}")
+        raise e
+
 class ViessmannAdapter:
-    def __init__(self):
-        self.model_name = "CU401B_G"
-        self.vicare = PyViCare()
-        self.device: Optional[HeatPump] = None
-        self._connect()
-
-    def _connect(self):
-        try:
-            self.vicare.initWithCredentials(
-                username=settings.VIESSMANN_USER,
-                password=settings.VIESSMANN_PASSWORD,
-                client_id=settings.VIESSMANN_CLIENT_ID,
-                token_file="token.save"
-            )
-            # Auto-select device (logic from verify_api.py)
-            target_device = None
-            final_model_name = "Unknown"
-
-            for dev in self.vicare.devices:
-                model_name = dev.getModel()
-                if self.model_name in model_name:
-                    target_device = dev
-                    final_model_name = model_name
-                    break
-            
-            if target_device:
-                self.device = target_device.asHeatPump()
-                logger.info(f"Connected to Viessmann device: {final_model_name}")
-            else:
-                logger.error(f"Specific model {self.model_name} not found. Could not connect to Viessmann heat pump.")
-                raise Exception(f"Viessmann heat pump {self.model_name} not found")
-        except Exception as e:
-            logger.error(f"Failed to connect to Viessmann API: {e}")
-            self.device = None
-            raise e
+    def __init__(self, device: HeatPump):
+        self.device = device
 
     async def get_data(self) -> HeatPumpData:
-        if not self.device:
-            self._connect()
-            if not self.device:
-                return HeatPumpData(is_connected=False, error_code="CONNECTION_FAILED")
-
         try:
             # Optimization: The PyViCare library automatically caches data on the first property access.
             # We do NOT call fetch_all_features() manually as it bypasses the cache update mechanism.
@@ -114,12 +110,7 @@ class ViessmannAdapter:
         Fetches the current configuration (schedules, target temps) from the Viessmann API.
         """
         try:
-            if not self.device:
-                self._connect()
-            
             device = self.device
-            if not device:
-                return None
 
             # Optimization: Ensure cache is populated (though get_data usually runs first)
             # If this is run independently, we might trigger a fetch.
