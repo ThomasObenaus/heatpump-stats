@@ -107,12 +107,15 @@ class ViessmannAdapter:
             logger.error(f"Error fetching Viessmann data: {e}")
             return HeatPumpData(is_connected=False, error_code=str(e))
 
-    async def get_config(self) -> Optional[HeatPumpConfig]:
+    async def get_config(self) -> HeatPumpConfig:
         """
         Fetches the current configuration (schedules, target temps) from the Viessmann API.
         """
         try:
             device = self.device
+
+            # Connectivity Check
+            _ = device.getModel()
 
             # Optimization: Ensure cache is populated (though get_data usually runs first)
             # If this is run independently, we might trigger a fetch.
@@ -163,12 +166,13 @@ class ViessmannAdapter:
 
             return HeatPumpConfig(
                 circuits=circuits_config,
-                dhw=dhw_config
+                dhw=dhw_config,
+                is_connected=True
             )
 
         except Exception as e:
             logger.error(f"Error fetching Viessmann config: {e}")
-            return None
+            return HeatPumpConfig(is_connected=False, error_code=str(e))
 
     def _map_schedule(self, raw_schedule: dict) -> Optional[WeeklySchedule]:
         if not raw_schedule or not isinstance(raw_schedule, dict):

@@ -120,14 +120,14 @@ class CollectorService:
             logger.info("Checking for configuration changes...")
             current_config = await self.viessmann.get_config()
             
-            if current_config:
+            if current_config.is_connected:
                 saved = await self.sqlite.save_config(current_config)
                 if saved:
                     logger.info("Configuration changed and saved.")
                 else:
                     logger.debug("No configuration changes detected.")
             else:
-                logger.warning("Failed to fetch configuration.")
+                logger.warning(f"Failed to fetch configuration: {current_config.error_code}")
                 
         except Exception as e:
             logger.error(f"Error checking config changes: {e}")
