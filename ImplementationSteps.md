@@ -76,6 +76,13 @@
 - Implement `POST /api/changelog`: Add manual user notes.
 - **Deliverable**: Full CRUD for system logs.
 
+### Step 2.4: Graceful Shutdown & Resource Management
+
+- Implement FastAPI `lifespan` context manager in `main.py`.
+- Manage `InfluxDBAdapter` and `SqliteAdapter` lifecycle (open/close).
+- Ensure dependencies in `dependencies.py` use the shared/managed instances or close their own.
+- **Deliverable**: No resource leaks (unclosed connections) on application shutdown.
+
 ## Phase 3: Frontend Dashboard
 
 ### Step 3.1: Project Scaffold & Authentication
