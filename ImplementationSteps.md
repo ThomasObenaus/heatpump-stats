@@ -57,11 +57,11 @@
 
 ## Phase 2: Backend API
 
-### Step 2.1: API Skeleton & Authentication
+### Step 2.1: API Skeleton & Authentication (Completed)
 
-- Initialize FastAPI app in `backend/heatpump_stats/entrypoints/api/main.py`.
-- Implement `POST /token` using `OAuth2PasswordBearer`.
-- Inject `ReportingService` into API endpoints.
+- [x] Initialize FastAPI app in `backend/heatpump_stats/entrypoints/api/main.py`.
+- [x] Implement `POST /token` using `OAuth2PasswordBearer`.
+- [x] Inject `ReportingService` into API endpoints.
 - **Deliverable**: Secure API responding to health checks.
 
 ### Step 2.2: Data Endpoints (InfluxDB Integration)

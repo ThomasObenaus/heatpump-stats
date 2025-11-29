@@ -1,0 +1,49 @@
+from typing import Annotated
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+
+from heatpump_stats.config import settings
+from heatpump_stats.entrypoints.api import schemas, security
+from heatpump_stats.services.reporting import ReportingService
+from heatpump_stats.adapters.influxdb import InfluxDBAdapter
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub","")
+        if username is None:
+            raise credentials_exception
+        token_data = schemas.TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    
+    # In a real app, we would fetch the user from DB here.
+    # For now, we just check against the config.
+    if token_data.username != settings.API_USERNAME:
+        raise credentials_exception
+    
+    user = schemas.User(username=token_data.username)
+    return user
+
+def get_reporting_service() -> ReportingService:
+    # We create a new adapter instance for each request (or reuse if we want to be smarter)
+    # InfluxDBAdapter uses a client that might need closing, but for now let's just instantiate it.
+    # Ideally we should use a singleton or a lifespan context manager.
+    # For simplicity in this step, we'll instantiate it.
+    # Note: InfluxDBAdapter might need to be closed.
+    adapter = InfluxDBAdapter(
+        url=settings.INFLUXDB_URL,
+        token=settings.INFLUXDB_TOKEN,
+        org=settings.INFLUXDB_ORG,
+        bucket_raw=settings.INFLUXDB_BUCKET_RAW,
+        bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED
+    )
+    return ReportingService(repository=adapter)
