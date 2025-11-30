@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Activity } from "lucide-react";
 import Layout from "../components/Layout";
 import StatusWidget from "../components/StatusWidget";
 import type { SystemStatus } from "../types";
@@ -87,7 +88,9 @@ const Dashboard: React.FC = () => {
             value={circuit.supply_temperature?.toFixed(1)}
             unit="°C"
             color="yellow"
-            subtext={circuit.pump_status ? `Pump: ${circuit.pump_status}` : undefined}
+            icon={<Activity className="h-6 w-6" />}
+            subtext={circuit.pump_status ? `Pump: ${circuit.pump_status}` : "Pump: Unknown"}
+            className={circuit.pump_status === "on" ? "bg-green-50" : "bg-gray-50"}
           />
         ))}
       </div>
