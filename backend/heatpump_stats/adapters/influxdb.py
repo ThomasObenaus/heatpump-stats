@@ -50,6 +50,9 @@ class InfluxDBAdapter:
         if data.estimated_thermal_power is not None:
             p.field("thermal_power", data.estimated_thermal_power)
 
+        if data.estimated_thermal_power_delta_t is not None:
+            p.field("thermal_power_delta_t", data.estimated_thermal_power_delta_t)
+
         points.append(p)
 
         # Circuits
@@ -115,6 +118,7 @@ class InfluxDBAdapter:
                 compressor_power_rated=record.get("compressor_power_rated"),
                 compressor_runtime_hours=record.get("compressor_runtime"),
                 estimated_thermal_power=record.get("thermal_power"),
+                estimated_thermal_power_delta_t=record.get("thermal_power_delta_t"),
                 circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
                 circuits=[],  # Circuits are stored in a separate measurement, skipping for summary
             )
@@ -244,6 +248,7 @@ class InfluxDBAdapter:
             compressor_power_rated=record.get("compressor_power_rated"),
             compressor_runtime_hours=record.get("compressor_runtime"),
             estimated_thermal_power=record.get("thermal_power"),
+            estimated_thermal_power_delta_t=record.get("thermal_power_delta_t"),
             circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
             circuits=circuits,
         )

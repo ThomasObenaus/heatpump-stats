@@ -100,12 +100,22 @@ class MockInfluxDBAdapter:
 
     async def get_latest_system_status(self) -> SystemStatus:
         logger.debug("Mock: Fetching latest system status")
+        
+        # Generate fresh mock data to return
+        viessmann = MockViessmannAdapter()
+        hp_data = await viessmann.get_data()
+        
+        shelly = MockShellyAdapter()
+        power_data = await shelly.get_reading()
+
         return SystemStatus(
             heat_pump_online=True,
             power_meter_online=True,
             database_connected=True,
             message="Mock System OK",
             last_update=datetime.now(timezone.utc),
+            latest_heat_pump_data=hp_data,
+            latest_power_reading=power_data,
         )
 
 
