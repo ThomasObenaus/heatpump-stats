@@ -104,7 +104,11 @@ const Dashboard: React.FC = () => {
           value={hp?.estimated_thermal_power?.toFixed(2)}
           unit="kW"
           color="blue"
-          subtext={hp?.estimated_thermal_power_delta_t ? `Delta T: ${hp.estimated_thermal_power_delta_t.toFixed(2)} kW` : undefined}
+          subtext={
+            typeof hp?.estimated_thermal_power_delta_t === "number"
+              ? `Delta T: ${hp.estimated_thermal_power_delta_t.toFixed(2)} kW`
+              : undefined
+          }
         />
 
         {/* COP */}
