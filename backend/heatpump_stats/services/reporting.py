@@ -1,15 +1,19 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from heatpump_stats.ports.repository import RepositoryPort
-from heatpump_stats.domain.metrics import SystemStatus
+from typing import List
+from datetime import datetime, timedelta, timezone
+
+from heatpump_stats.ports.repository import RepositoryPort, ConfigRepositoryPort
+from heatpump_stats.domain.metrics import SystemStatus, ChangelogEntry
 
 logger = logging.getLogger(__name__)
 
 
 class ReportingService:
-    def __init__(self, repository: RepositoryPort):
+    def __init__(self, repository: RepositoryPort, config_repository: ConfigRepositoryPort):
         self.repository = repository
+        self.config_repository = config_repository
 
     async def get_system_status(self) -> SystemStatus:
         """
@@ -31,3 +35,17 @@ class ReportingService:
         power_data = await self.repository.get_power_history(start, end)
 
         return {"heat_pump": hp_data, "power": power_data}
+
+    async def get_changelog(self, limit: int = 50, offset: int = 0) -> List[ChangelogEntry]:
+        """
+        Fetches the changelog.
+        """
+        return await self.config_repository.get_changelog(limit, offset)
+
+    async def add_note(self, message: str, author: str) -> ChangelogEntry:
+        """
+        Adds a manual note to the changelog.
+        """
+        entry = ChangelogEntry(category="note", author=author, message=message)
+        await self.config_repository.save_changelog_entry(entry)
+        return entry

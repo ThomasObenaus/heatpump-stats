@@ -50,3 +50,12 @@ class SystemStatus(BaseModel):
     database_connected: bool
     last_update: datetime
     message: str = "OK"
+
+
+class ChangelogEntry(BaseModel):
+    id: Optional[int] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    category: str  # "config", "note", "system"
+    author: str  # "system", "user"
+    message: str
+    details: Optional[str] = None  # JSON string or simple text details

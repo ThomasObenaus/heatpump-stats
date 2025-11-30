@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, List
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -54,3 +54,22 @@ async def get_history(
     hours: int = 24,
 ):
     return await reporting_service.get_recent_history(duration=timedelta(hours=hours))
+
+
+@app.get("/api/changelog", response_model=List[schemas.ChangelogEntryResponse])
+async def get_changelog(
+    current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
+    reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
+    limit: int = 50,
+    offset: int = 0,
+):
+    return await reporting_service.get_changelog(limit=limit, offset=offset)
+
+
+@app.post("/api/changelog", response_model=schemas.ChangelogEntryResponse)
+async def add_note(
+    note: schemas.CreateNoteRequest,
+    current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
+    reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
+):
+    return await reporting_service.add_note(message=note.message, author=current_user.username)

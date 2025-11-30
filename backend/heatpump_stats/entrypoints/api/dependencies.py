@@ -7,6 +7,7 @@ from heatpump_stats.config import settings
 from heatpump_stats.entrypoints.api import schemas
 from heatpump_stats.services.reporting import ReportingService
 from heatpump_stats.adapters.influxdb import InfluxDBAdapter
+from heatpump_stats.adapters.sqlite import SqliteAdapter
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -41,11 +42,12 @@ def get_reporting_service() -> ReportingService:
     # Ideally we should use a singleton or a lifespan context manager.
     # For simplicity in this step, we'll instantiate it.
     # Note: InfluxDBAdapter might need to be closed.
-    adapter = InfluxDBAdapter(
+    influx_adapter = InfluxDBAdapter(
         url=settings.INFLUXDB_URL,
         token=settings.INFLUXDB_TOKEN,
         org=settings.INFLUXDB_ORG,
         bucket_raw=settings.INFLUXDB_BUCKET_RAW,
         bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
     )
-    return ReportingService(repository=adapter)
+    sqlite_adapter = SqliteAdapter(db_path=settings.SQLITE_DB_PATH)
+    return ReportingService(repository=influx_adapter, config_repository=sqlite_adapter)
