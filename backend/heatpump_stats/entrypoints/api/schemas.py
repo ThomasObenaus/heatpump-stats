@@ -16,6 +16,12 @@ class User(BaseModel):
     username: str
 
 
+class CircuitDataResponse(BaseModel):
+    circuit_id: int
+    supply_temperature: Optional[float] = None
+    pump_status: Optional[str] = None
+
+
 class HeatPumpDataResponse(BaseModel):
     timestamp: datetime
     outside_temperature: Optional[float] = None
@@ -26,6 +32,7 @@ class HeatPumpDataResponse(BaseModel):
     compressor_runtime_hours: Optional[float] = None
     estimated_thermal_power: Optional[float] = None
     circulation_pump_active: bool
+    circuits: List[CircuitDataResponse] = []
 
 
 class PowerReadingResponse(BaseModel):

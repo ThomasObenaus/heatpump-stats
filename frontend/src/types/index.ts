@@ -1,3 +1,9 @@
+export interface CircuitData {
+  circuit_id: number;
+  supply_temperature?: number;
+  pump_status?: string;
+}
+
 export interface HeatPumpData {
   timestamp: string;
   outside_temperature?: number;
@@ -8,6 +14,7 @@ export interface HeatPumpData {
   compressor_runtime_hours?: number;
   estimated_thermal_power?: number;
   circulation_pump_active: boolean;
+  circuits: CircuitData[];
 }
 
 export interface PowerReading {

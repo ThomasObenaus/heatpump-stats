@@ -4,7 +4,7 @@ from typing import List, Optional
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from influxdb_client.client.write.point import Point
 
-from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus
+from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus, CircuitData
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +190,27 @@ class InfluxDBAdapter:
             return None
 
         record = records[0]
+
+        # Fetch circuits
+        query_circuits = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: -1h)
+            |> filter(fn: (r) => r["_measurement"] == "heating_circuit")
+            |> last()
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        """
+        circuit_records = await self._query(query_circuits)
+        circuits = []
+        for r in circuit_records:
+            try:
+                circuits.append(
+                    CircuitData(
+                        circuit_id=int(r.get("circuit_id", 0)), supply_temperature=r.get("supply_temp"), pump_status=r.get("pump_status")
+                    )
+                )
+            except (ValueError, TypeError):
+                continue
+
         return HeatPumpData(
             timestamp=record["_time"],
             outside_temperature=record.get("outside_temp"),
@@ -200,7 +221,7 @@ class InfluxDBAdapter:
             compressor_runtime_hours=record.get("compressor_runtime"),
             estimated_thermal_power=record.get("thermal_power"),
             circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
-            circuits=[],
+            circuits=circuits,
         )
 
     async def get_latest_power_reading(self) -> Optional[PowerReading]:
