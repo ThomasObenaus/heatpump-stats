@@ -223,7 +223,20 @@ Higher ΔT = more heat being delivered to the heating system.`}
 
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Compressor</h3>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatusWidget title="Modulation" value={hp?.compressor_modulation?.toFixed(0)} unit="%" color="blue" />
+        <StatusWidget
+          title="Modulation"
+          value={hp?.compressor_modulation?.toFixed(0)}
+          unit="%"
+          color="blue"
+          tooltip={`Current compressor speed as percentage of maximum capacity.
+
+• 0% = Compressor off
+• 20-40% = Low load (mild weather)
+• 40-70% = Normal operation
+• 70-100% = High load (cold weather or DHW heating)
+
+Variable-speed compressors adjust their output to match heating demand, improving efficiency compared to on/off cycling.`}
+        />
         <StatusWidget title="Runtime" value={hp?.compressor_runtime_hours?.toFixed(0)} unit="h" color="gray" />
       </div>
     </Layout>
