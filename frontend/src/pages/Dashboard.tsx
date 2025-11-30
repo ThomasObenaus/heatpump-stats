@@ -181,6 +181,14 @@ const Dashboard: React.FC = () => {
           unit="K"
           color="red"
           subtext="Heat delivered"
+          tooltip={`Temperature difference between the hot water leaving the condenser and the return water.
+
+Formula: ΔT = T_supply - T_return
+
+This value is used to calculate thermal power output:
+P (kW) = Flow (m³/h) × 1.16 × ΔT
+
+Higher ΔT = more heat being delivered to the heating system.`}
         />
       </div>
 
