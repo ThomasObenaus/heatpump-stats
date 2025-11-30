@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
+
 
 class Settings(BaseSettings):
     # General
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     INFLUXDB_ORG: str = "home"
     INFLUXDB_BUCKET_RAW: str = "heatpump_raw"
     INFLUXDB_BUCKET_DOWNSAMPLED: str = "heatpump_downsampled"
-    
+
     # InfluxDB Admin (for setup)
     INFLUXDB_ADMIN_USER: str = "admin"
     INFLUXDB_ADMIN_PASSWORD: str = "change_me_please_min_8_chars"
@@ -44,10 +44,7 @@ class Settings(BaseSettings):
     API_USERNAME: str = "admin"
     API_PASSWORD: str = "admin"
 
-    model_config = SettingsConfigDict(
-        env_file="../.env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
+
 
 settings = Settings()

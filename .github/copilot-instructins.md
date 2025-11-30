@@ -5,6 +5,7 @@
 - Follow the plan in [PLAN.md](../PLAN.md) and the implementation details in [IMPLEMENTATION.md](../IMPLEMENTATION.md) closely.
 - When a implementation step is ambiguous, ask for clarification before proceeding.
 - When a implementation step is complete, verify it against the requirements in the PLAN.md and IMPLEMENTATION.md files.
+- Run make targets always from the root directory.
 
 ## Style and Architecture
 

@@ -2,6 +2,7 @@ from typing import Protocol
 from heatpump_stats.domain.metrics import HeatPumpData
 from heatpump_stats.domain.configuration import HeatPumpConfig
 
+
 class HeatPumpPort(Protocol):
     async def get_data(self) -> HeatPumpData:
         """
