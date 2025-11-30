@@ -64,10 +64,10 @@
 - [x] Inject `ReportingService` into API endpoints.
 - **Deliverable**: Secure API responding to health checks.
 
-### Step 2.2: Data Endpoints (InfluxDB Integration)
+### Step 2.2: Data Endpoints (InfluxDB Integration) (Completed)
 
-- Implement `GET /api/status`: Fetch latest system state.
-- Implement `GET /api/history`: Flux queries for historical data (resampled).
+- [x] Implement `GET /api/status`: Fetch latest system state.
+- [x] Implement `GET /api/history`: Flux queries for historical data (resampled).
 - **Deliverable**: API serving JSON data for charts.
 
 ### Step 2.3: Changelog Endpoints (SQLite Integration)
