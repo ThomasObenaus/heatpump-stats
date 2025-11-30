@@ -18,6 +18,9 @@ backend.test.unit: ## Run unit tests
 backend.daemon.mock: ## Start the daemon in mock mode
 	cd backend && export COLLECTOR_MODE=mock && ../.venv/bin/python -m heatpump_stats.entrypoints.daemon
 
+backend.daemon.sim: ## Start the daemon in simulation mode (Mock Sensors, Real DB)
+	cd backend && export COLLECTOR_MODE=simulation && ../.venv/bin/python -m heatpump_stats.entrypoints.daemon
+
 backend.daemon.prod: ## Start the daemon in production mode
 	cd backend && export COLLECTOR_MODE=production && uv run python -m heatpump_stats.entrypoints.daemon
 
