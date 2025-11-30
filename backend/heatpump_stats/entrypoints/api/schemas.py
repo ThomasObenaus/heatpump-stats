@@ -32,6 +32,12 @@ class HeatPumpDataResponse(BaseModel):
     compressor_runtime_hours: Optional[float] = None
     estimated_thermal_power: Optional[float] = None
     estimated_thermal_power_delta_t: Optional[float] = None
+    # Primary Circuit (Ground Source / Evaporator Side)
+    primary_supply_temp: Optional[float] = None
+    primary_return_temp: Optional[float] = None
+    primary_pump_rotation: Optional[float] = None
+    # Secondary Circuit (Condenser Side)
+    secondary_supply_temp: Optional[float] = None
     circulation_pump_active: bool
     circuits: List[CircuitDataResponse] = []
 

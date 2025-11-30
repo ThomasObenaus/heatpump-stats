@@ -44,6 +44,13 @@ class MockViessmannAdapter:
         supply_temp_2 = ret_temp + random.uniform(8.0, 13.0)
         modulation = random.uniform(0.0, 100.0)
 
+        # Primary circuit (ground source) - brine temps
+        primary_supply = random.uniform(5.0, 12.0)
+        primary_return = primary_supply - random.uniform(2.0, 5.0)
+
+        # Secondary circuit (condenser output)
+        secondary_supply = ret_temp + random.uniform(8.0, 15.0)
+
         return HeatPumpData(
             timestamp=datetime.now(timezone.utc),
             is_connected=True,
@@ -66,8 +73,12 @@ class MockViessmannAdapter:
             compressor_power_rated=16.0,
             compressor_runtime_hours=1000.0,
             estimated_thermal_power=round((modulation / 100.0) * 16.0, 2),
-            # Mock uses Circuit 1 (supply_temp_2) as it is preferred when active
-            estimated_thermal_power_delta_t=round(1.0 * 1.16 * (supply_temp_2 - ret_temp), 2),
+            # Mock uses secondary circuit supply for Delta-T
+            estimated_thermal_power_delta_t=round(1.0 * 1.16 * (secondary_supply - ret_temp), 2),
+            primary_supply_temp=round(primary_supply, 1),
+            primary_return_temp=round(primary_return, 1),
+            primary_pump_rotation=round(random.uniform(50.0, 100.0), 0),
+            secondary_supply_temp=round(secondary_supply, 1),
             circulation_pump_active=False,
         )
 
