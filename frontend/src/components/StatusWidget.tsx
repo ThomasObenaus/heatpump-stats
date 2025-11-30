@@ -23,30 +23,30 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
       const buttonRect = buttonRef.current.getBoundingClientRect();
       const tooltipWidth = 256; // w-64 = 16rem = 256px
       const tooltipHeight = tooltipRef.current?.offsetHeight || 200;
-      
+
       const spaceBelow = window.innerHeight - buttonRect.bottom;
       const spaceAbove = buttonRect.top;
       const showAbove = spaceBelow < tooltipHeight + 20 && spaceAbove > tooltipHeight + 20;
-      
+
       // Calculate left position, keeping tooltip on screen
       let left = buttonRect.right - tooltipWidth;
       if (left < 10) left = 10;
       if (left + tooltipWidth > window.innerWidth - 10) {
         left = window.innerWidth - tooltipWidth - 10;
       }
-      
+
       const style: React.CSSProperties = {
-        position: 'fixed',
+        position: "fixed",
         left,
         zIndex: 99999,
       };
-      
+
       if (showAbove) {
         style.bottom = window.innerHeight - buttonRect.top + 8;
       } else {
         style.top = buttonRect.bottom + 8;
       }
-      
+
       setTooltipStyle(style);
     }
   }, [showTooltip]);
@@ -90,18 +90,19 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
                         />
                       </svg>
                     </button>
-                    {showTooltip && createPortal(
-                      <div
-                        ref={tooltipRef}
-                        className="w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg whitespace-pre-line"
-                        style={tooltipStyle}
-                        onMouseEnter={() => setShowTooltip(true)}
-                        onMouseLeave={() => setShowTooltip(false)}
-                      >
-                        {tooltip}
-                      </div>,
-                      document.body
-                    )}
+                    {showTooltip &&
+                      createPortal(
+                        <div
+                          ref={tooltipRef}
+                          className="w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg whitespace-pre-line"
+                          style={tooltipStyle}
+                          onMouseEnter={() => setShowTooltip(true)}
+                          onMouseLeave={() => setShowTooltip(false)}
+                        >
+                          {tooltip}
+                        </div>,
+                        document.body
+                      )}
                   </div>
                 )}
               </dt>
