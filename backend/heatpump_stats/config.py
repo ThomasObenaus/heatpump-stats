@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # General
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     TZ: str = "UTC"
     COLLECTOR_MODE: str = "production"
 

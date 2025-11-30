@@ -54,12 +54,10 @@ class InfluxDBAdapter:
 
         # Circuits
         for circuit in data.circuits:
-            cp = (
-                Point("heating_circuit")
-                .time(data.timestamp)
-                .tag("circuit_id", str(circuit.circuit_id))
-                .field("supply_temp", circuit.supply_temperature)
-            )
+            cp = Point("heating_circuit").time(data.timestamp).tag("circuit_id", str(circuit.circuit_id)).field("active", 1)
+
+            if circuit.supply_temperature is not None:
+                cp.field("supply_temp", circuit.supply_temperature)
 
             if circuit.pump_status:
                 cp.field("pump_status", circuit.pump_status)
@@ -192,24 +190,50 @@ class InfluxDBAdapter:
         record = records[0]
 
         # Fetch circuits
+        # We fetch raw data (fields separate) and aggregate in Python to avoid Flux pivot issues
         query_circuits = f"""
         from(bucket: "{self.bucket}")
             |> range(start: -1h)
             |> filter(fn: (r) => r["_measurement"] == "heating_circuit")
             |> last()
-            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
         """
-        circuit_records = await self._query(query_circuits)
-        circuits = []
-        for r in circuit_records:
-            try:
-                circuits.append(
-                    CircuitData(
-                        circuit_id=int(r.get("circuit_id", 0)), supply_temperature=r.get("supply_temp"), pump_status=r.get("pump_status")
-                    )
-                )
-            except (ValueError, TypeError):
+        raw_records = await self._query(query_circuits)
+
+        circuits_map = {}
+        for r in raw_records:
+            # InfluxDB returns fields as separate records/tables by default
+            cid_str = r.get("circuit_id")
+            if cid_str is None:
+                logger.debug(f"Skipping record without circuit_id: {r}")
                 continue
+
+            try:
+                cid = int(cid_str)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid circuit_id: {cid_str}")
+                continue
+
+            if cid not in circuits_map:
+                circuits_map[cid] = {"circuit_id": cid}
+
+            field = r.get("_field")
+            value = r.get("_value")
+
+            if field == "supply_temp":
+                circuits_map[cid]["supply_temperature"] = value
+            elif field == "pump_status":
+                circuits_map[cid]["pump_status"] = value
+
+        circuits = []
+        for cid in sorted(circuits_map.keys()):
+            data = circuits_map[cid]
+            circuits.append(
+                CircuitData(
+                    circuit_id=cid,
+                    supply_temperature=data.get("supply_temperature"),
+                    pump_status=data.get("pump_status"),
+                )
+            )
 
         return HeatPumpData(
             timestamp=record["_time"],
