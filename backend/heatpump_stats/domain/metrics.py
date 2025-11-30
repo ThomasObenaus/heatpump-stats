@@ -27,6 +27,7 @@ class HeatPumpData(BaseModel):
 
     # Calculated/Derived
     estimated_thermal_power: Optional[float] = None  # kW (Modulation * Rated)
+    estimated_thermal_power_delta_t: Optional[float] = None  # kW (Flow * DeltaT * 1.16)
 
     # DHW
     circulation_pump_active: bool = False

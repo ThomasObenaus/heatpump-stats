@@ -65,6 +65,9 @@ class MockViessmannAdapter:
             compressor_modulation=round(modulation, 1),
             compressor_power_rated=16.0,
             compressor_runtime_hours=1000.0,
+            estimated_thermal_power=round((modulation / 100.0) * 16.0, 2),
+            # Mock uses Circuit 1 (supply_temp_2) as it is preferred when active
+            estimated_thermal_power_delta_t=round(1.0 * 1.16 * (supply_temp_2 - ret_temp), 2),
             circulation_pump_active=False,
         )
 
