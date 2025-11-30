@@ -40,6 +40,7 @@ class MockViessmannAdapter:
         ret_temp = random.uniform(25.0, 45.0)
         dhw_temp = random.uniform(40.0, 60.0)
         supply_temp = ret_temp + random.uniform(2.0, 5.0)
+        supply_temp_2 = ret_temp + random.uniform(8.0, 13.0)
         modulation = random.uniform(0.0, 100.0)
 
         return HeatPumpData(
@@ -53,7 +54,12 @@ class MockViessmannAdapter:
                     circuit_id=0,
                     supply_temperature=round(supply_temp, 1),
                     pump_status="on",
-                )
+                ),
+                CircuitData(
+                    circuit_id=1,
+                    supply_temperature=round(supply_temp_2, 1),
+                    pump_status="on",
+                ),
             ],
             compressor_modulation=round(modulation, 1),
             compressor_power_rated=16.0,
