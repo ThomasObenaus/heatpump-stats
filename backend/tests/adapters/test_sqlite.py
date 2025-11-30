@@ -8,8 +8,8 @@ from pathlib import Path
 
 from heatpump_stats.adapters.sqlite import SqliteAdapter
 from heatpump_stats.domain.configuration import (
-    HeatPumpConfig, 
-    CircuitConfig, 
+    HeatPumpConfig,
+    CircuitConfig,
     DHWConfig,
     WeeklySchedule,
     TimeSlot
@@ -75,14 +75,17 @@ class TestSqliteAdapter:
         schedule = WeeklySchedule(
             active=True,
             mon=[
-                TimeSlot(start="06:00", end="08:00", mode="comfort", position=0),
-                TimeSlot(start="17:00", end="22:00", mode="comfort", position=1)
+                TimeSlot(start="06:00", end="08:00",
+                         mode="comfort", position=0),
+                TimeSlot(start="17:00", end="22:00",
+                         mode="comfort", position=1)
             ],
             tue=[
-                TimeSlot(start="06:00", end="08:00", mode="comfort", position=0)
+                TimeSlot(start="06:00", end="08:00",
+                         mode="comfort", position=0)
             ]
         )
-        
+
         return HeatPumpConfig(
             circuits=[
                 CircuitConfig(
@@ -104,14 +107,14 @@ class TestSqliteAdapter:
     def test_initialization(self, temp_db_path):
         """Test SqliteAdapter initialization."""
         adapter = SqliteAdapter(db_path=temp_db_path)
-        
+
         assert adapter.db_path == temp_db_path
         assert os.path.exists(temp_db_path)
 
     def test_database_schema_creation(self, temp_db_path):
         """Test that database schema is created correctly."""
         SqliteAdapter(db_path=temp_db_path)
-        
+
         # Verify table exists
         with sqlite3.connect(temp_db_path) as conn:
             cursor = conn.execute(
@@ -122,11 +125,11 @@ class TestSqliteAdapter:
     def test_database_schema_columns(self, temp_db_path):
         """Test that database table has correct columns."""
         SqliteAdapter(db_path=temp_db_path)
-        
+
         with sqlite3.connect(temp_db_path) as conn:
             cursor = conn.execute("PRAGMA table_info(configs)")
             columns = {row[1]: row[2] for row in cursor.fetchall()}
-            
+
             assert 'id' in columns
             assert 'timestamp' in columns
             assert 'config_json' in columns
@@ -138,7 +141,7 @@ class TestSqliteAdapter:
         # Create a path with non-existent parent directory
         parent_dir = os.path.join(os.path.dirname(temp_db_path), 'test_subdir')
         db_path = os.path.join(parent_dir, 'test.db')
-        
+
         try:
             os.makedirs(parent_dir, exist_ok=True)
             adapter = SqliteAdapter(db_path=db_path)
@@ -154,7 +157,7 @@ class TestSqliteAdapter:
     def test_init_db_error_handling(self):
         """Test initialization error handling with invalid path."""
         invalid_path = "/invalid/path/that/does/not/exist/test.db"
-        
+
         with pytest.raises(Exception):
             SqliteAdapter(db_path=invalid_path)
 
@@ -162,7 +165,7 @@ class TestSqliteAdapter:
     async def test_save_config_success(self, adapter, sample_config):
         """Test successful configuration save."""
         await adapter.save_config(sample_config)
-        
+
         # Verify data was saved
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM configs")
@@ -173,11 +176,11 @@ class TestSqliteAdapter:
     async def test_save_config_data_integrity(self, adapter, sample_config):
         """Test that saved configuration data is intact."""
         await adapter.save_config(sample_config)
-        
+
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT config_json FROM configs")
             row = cursor.fetchone()
-            
+
             # Verify JSON can be parsed back
             loaded_config = HeatPumpConfig.model_validate_json(row[0])
             assert loaded_config.circuits[0].name == "Living Room"
@@ -191,11 +194,11 @@ class TestSqliteAdapter:
         before = datetime.now(timezone.utc)
         await adapter.save_config(sample_config)
         after = datetime.now(timezone.utc)
-        
+
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT timestamp FROM configs")
             row = cursor.fetchone()
-            
+
             timestamp = datetime.fromisoformat(row[0])
             assert before <= timestamp <= after
 
@@ -203,11 +206,11 @@ class TestSqliteAdapter:
     async def test_save_multiple_configs(self, adapter, sample_config):
         """Test saving multiple configurations."""
         await adapter.save_config(sample_config)
-        
+
         # Modify config
         sample_config.circuits[0].temp_comfort = 23.0
         await adapter.save_config(sample_config)
-        
+
         # Verify both saved
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM configs")
@@ -218,12 +221,12 @@ class TestSqliteAdapter:
     async def test_save_complex_config(self, adapter, complex_config):
         """Test saving complex configuration with schedules."""
         await adapter.save_config(complex_config)
-        
+
         # Verify data was saved
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT config_json FROM configs")
             row = cursor.fetchone()
-            
+
             loaded_config = HeatPumpConfig.model_validate_json(row[0])
             assert loaded_config.circuits[0].schedule is not None
             assert loaded_config.circuits[0].schedule.active is True
@@ -234,7 +237,7 @@ class TestSqliteAdapter:
         """Test error handling when save fails."""
         # Close the database connection and remove file to cause error
         os.chmod(adapter.db_path, 0o444)  # Read-only
-        
+
         try:
             with pytest.raises(Exception):
                 await adapter.save_config(HeatPumpConfig())
@@ -245,9 +248,9 @@ class TestSqliteAdapter:
     async def test_load_latest_config_success(self, adapter, sample_config):
         """Test successfully loading latest configuration."""
         await adapter.save_config(sample_config)
-        
+
         loaded_config = await adapter.load_latest_config()
-        
+
         assert loaded_config is not None
         assert len(loaded_config.circuits) == 2
         assert loaded_config.circuits[0].name == "Living Room"
@@ -258,7 +261,7 @@ class TestSqliteAdapter:
     async def test_load_latest_config_empty_database(self, adapter):
         """Test loading from empty database returns None."""
         loaded_config = await adapter.load_latest_config()
-        
+
         assert loaded_config is None
 
     @pytest.mark.asyncio
@@ -266,23 +269,23 @@ class TestSqliteAdapter:
         """Test that load_latest_config returns the most recent configuration."""
         # Save first config
         await adapter.save_config(sample_config)
-        
+
         # Modify and save second config
         sample_config.circuits[0].temp_comfort = 25.0
         await adapter.save_config(sample_config)
-        
+
         # Load latest
         loaded_config = await adapter.load_latest_config()
-        
+
         assert loaded_config.circuits[0].temp_comfort == 25.0
 
     @pytest.mark.asyncio
     async def test_load_latest_config_complex(self, adapter, complex_config):
         """Test loading complex configuration with schedules."""
         await adapter.save_config(complex_config)
-        
+
         loaded_config = await adapter.load_latest_config()
-        
+
         assert loaded_config is not None
         assert loaded_config.circuits[0].schedule is not None
         assert len(loaded_config.circuits[0].schedule.mon) == 2
@@ -298,9 +301,9 @@ class TestSqliteAdapter:
                 (datetime.now(timezone.utc).isoformat(), "invalid json {{{")
             )
             conn.commit()
-        
+
         loaded_config = await adapter.load_latest_config()
-        
+
         # Should return None when JSON is invalid
         assert loaded_config is None
 
@@ -309,9 +312,9 @@ class TestSqliteAdapter:
         """Test saving and loading an empty configuration."""
         empty_config = HeatPumpConfig()
         await adapter.save_config(empty_config)
-        
+
         loaded_config = await adapter.load_latest_config()
-        
+
         assert loaded_config is not None
         assert len(loaded_config.circuits) == 0
         assert loaded_config.dhw is None
@@ -331,9 +334,9 @@ class TestSqliteAdapter:
             ]
         )
         await adapter.save_config(config)
-        
+
         loaded_config = await adapter.load_latest_config()
-        
+
         assert loaded_config is not None
         assert loaded_config.circuits[0].name is None
         assert loaded_config.circuits[0].temp_comfort is None
@@ -342,7 +345,7 @@ class TestSqliteAdapter:
     async def test_concurrent_saves(self, adapter, sample_config):
         """Test concurrent save operations."""
         import asyncio
-        
+
         # Create multiple configs with different values
         configs = []
         for i in range(5):
@@ -355,10 +358,10 @@ class TestSqliteAdapter:
                 ]
             )
             configs.append(config)
-        
+
         # Save concurrently
         await asyncio.gather(*[adapter.save_config(config) for config in configs])
-        
+
         # Verify all were saved
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM configs")
@@ -375,7 +378,7 @@ class TestSqliteAdapter:
             )
             await adapter.save_config(config)
             configs.append(config)
-        
+
         # Verify latest is the last one saved
         loaded_config = await adapter.load_latest_config()
         assert loaded_config.circuits[0].temp_comfort == 22.0
@@ -383,7 +386,7 @@ class TestSqliteAdapter:
     def test_sync_save_method(self, adapter, sample_config):
         """Test the synchronous _save_config_sync method directly."""
         adapter._save_config_sync(sample_config)
-        
+
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM configs")
             count = cursor.fetchone()[0]
@@ -392,9 +395,9 @@ class TestSqliteAdapter:
     def test_sync_load_method(self, adapter, sample_config):
         """Test the synchronous _load_latest_config_sync method directly."""
         adapter._save_config_sync(sample_config)
-        
+
         loaded_config = adapter._load_latest_config_sync()
-        
+
         assert loaded_config is not None
         assert loaded_config.circuits[0].name == "Living Room"
 
@@ -409,11 +412,11 @@ class TestSqliteAdapter:
         adapter1 = SqliteAdapter(db_path=temp_db_path)
         await adapter1.save_config(sample_config)
         del adapter1
-        
+
         # Create new adapter with same path
         adapter2 = SqliteAdapter(db_path=temp_db_path)
         loaded_config = await adapter2.load_latest_config()
-        
+
         assert loaded_config is not None
         assert loaded_config.circuits[0].name == "Living Room"
 
@@ -430,7 +433,7 @@ class TestSqliteAdapter:
                 os.unlink(custom_path)
             except:
                 pass
-        
+
         # Test that it uses some default path when not specified
         # (we can't easily test the exact default due to import-time binding)
         adapter = SqliteAdapter()
@@ -442,7 +445,7 @@ class TestSqliteAdapter:
         """Test load_config handles database errors gracefully."""
         # Close and delete the database
         os.unlink(adapter.db_path)
-        
+
         # Should return None on error
         loaded_config = await adapter.load_latest_config()
         assert loaded_config is None
@@ -452,7 +455,7 @@ class TestSqliteAdapter:
         """Test complete save and load roundtrip preserves all data."""
         await adapter.save_config(sample_config)
         loaded_config = await adapter.load_latest_config()
-        
+
         # Compare all fields
         assert len(loaded_config.circuits) == len(sample_config.circuits)
         for i, circuit in enumerate(sample_config.circuits):
@@ -462,7 +465,7 @@ class TestSqliteAdapter:
             assert loaded_circuit.temp_comfort == circuit.temp_comfort
             assert loaded_circuit.temp_normal == circuit.temp_normal
             assert loaded_circuit.temp_reduced == circuit.temp_reduced
-        
+
         assert loaded_config.dhw is not None
         assert sample_config.dhw is not None
         assert loaded_config.dhw.active == sample_config.dhw.active
@@ -473,10 +476,10 @@ class TestSqliteAdapter:
         """Test multiple adapter instances can work with the same database."""
         adapter1 = SqliteAdapter(db_path=temp_db_path)
         adapter2 = SqliteAdapter(db_path=temp_db_path)
-        
+
         await adapter1.save_config(sample_config)
         loaded_config = await adapter2.load_latest_config()
-        
+
         assert loaded_config is not None
         assert loaded_config.circuits[0].name == "Living Room"
 
@@ -484,22 +487,22 @@ class TestSqliteAdapter:
         """Test that database ID autoincrement works correctly."""
         # We need to modify the config slightly to ensure it's saved
         # because the adapter now checks for changes before saving
-        
+
         # Save 1
         adapter._save_config_sync(sample_config)
-        
+
         # Save 2 (modified)
         sample_config.circuits[0].temp_comfort = 23.0
         adapter._save_config_sync(sample_config)
-        
+
         # Save 3 (modified again)
         sample_config.circuits[0].temp_comfort = 24.0
         adapter._save_config_sync(sample_config)
-        
+
         with sqlite3.connect(adapter.db_path) as conn:
             cursor = conn.execute("SELECT id FROM configs ORDER BY id")
             ids = [row[0] for row in cursor.fetchall()]
-            
+
             assert ids == [1, 2, 3]
 
     @pytest.mark.asyncio
@@ -514,8 +517,8 @@ class TestSqliteAdapter:
             ]
         )
         await adapter.save_config(config)
-        
+
         loaded_config = await adapter.load_latest_config()
-        
+
         assert loaded_config is not None
         assert loaded_config.circuits[0].name == "Room with \"quotes\" and 'apostrophes' & symbols"
