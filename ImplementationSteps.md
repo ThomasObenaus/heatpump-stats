@@ -91,10 +91,10 @@
 
 ## Phase 3: Frontend Dashboard
 
-### Step 3.1: Project Scaffold & Authentication
+### Step 3.1: Project Scaffold & Authentication (Completed)
 
-- Initialize Vite + React + TypeScript + Tailwind.
-- Implement Login Page and `AuthProvider`.
+- [x] Initialize Vite + React + TypeScript + Tailwind.
+- [x] Implement Login Page and `AuthProvider`.
 - **Deliverable**: Frontend app with protected routes.
 
 ### Step 3.2: Dashboard Layout & Real-time Status
