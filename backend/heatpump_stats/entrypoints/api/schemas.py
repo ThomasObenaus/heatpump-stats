@@ -31,6 +31,7 @@ class HeatPumpDataResponse(BaseModel):
     compressor_power_rated: Optional[float] = None
     compressor_runtime_hours: Optional[float] = None
     estimated_thermal_power: Optional[float] = None
+    estimated_thermal_power_delta_t: Optional[float] = None
     circulation_pump_active: bool
     circuits: List[CircuitDataResponse] = []
 

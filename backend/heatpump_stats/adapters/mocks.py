@@ -100,11 +100,11 @@ class MockInfluxDBAdapter:
 
     async def get_latest_system_status(self) -> SystemStatus:
         logger.debug("Mock: Fetching latest system status")
-        
+
         # Generate fresh mock data to return
         viessmann = MockViessmannAdapter()
         hp_data = await viessmann.get_data()
-        
+
         shelly = MockShellyAdapter()
         power_data = await shelly.get_reading()
 
