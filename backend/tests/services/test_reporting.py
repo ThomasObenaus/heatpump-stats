@@ -2,7 +2,36 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime, timedelta, timezone
 from heatpump_stats.services.reporting import ReportingService
-from heatpump_stats.domain.metrics import HeatPumpData, PowerReading
+from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus
+
+
+@pytest.mark.asyncio
+async def test_get_system_status():
+    """Test that get_system_status delegates to the repository."""
+    # Arrange
+    mock_repo = MagicMock()
+    mock_config_repo = MagicMock()
+    mock_status = SystemStatus(
+        heat_pump_online=True,
+        power_meter_online=True,
+        database_connected=True,
+        last_update=datetime.now(timezone.utc),
+        message="All systems operational",
+    )
+    mock_repo.get_latest_system_status = AsyncMock(return_value=mock_status)
+
+    service = ReportingService(repository=mock_repo, config_repository=mock_config_repo)
+
+    # Act
+    result = await service.get_system_status()
+
+    # Assert
+    assert result == mock_status
+    assert result.heat_pump_online is True
+    assert result.power_meter_online is True
+    assert result.database_connected is True
+    assert result.message == "All systems operational"
+    mock_repo.get_latest_system_status.assert_called_once()
 
 
 @pytest.mark.asyncio

@@ -83,6 +83,12 @@
 - [x] Ensure dependencies in `dependencies.py` use the shared/managed instances or close their own.
 - **Deliverable**: No resource leaks (unclosed connections) on application shutdown.
 
+### Step 2.5: To be implemented (Completed)
+
+- [x] Add unit tests for `POST /token` endpoint (success and failure cases).
+- [x] Add unit test for `ReportingService.get_system_status()`.
+- [x] Add unit tests for `/health` endpoint.
+
 ## Phase 3: Frontend Dashboard
 
 ### Step 3.1: Project Scaffold & Authentication
