@@ -109,6 +109,16 @@ const Dashboard: React.FC = () => {
               ? `Delta T: ${hp.estimated_thermal_power_delta_t.toFixed(2)} kW`
               : undefined
           }
+          tooltip={`Estimated heat energy delivered by the heat pump.
+
+Calculation: P = Flow × 1.16 × ΔT
+
+Where:
+• Flow = water flow rate (m³/h)
+• 1.16 = specific heat capacity of water (kWh/m³·K)
+• ΔT = Secondary circuit temperature difference (K)
+
+This is the useful heat output for heating/DHW.`}
         />
 
         {/* COP */}
@@ -152,6 +162,14 @@ const Dashboard: React.FC = () => {
           unit="K"
           color="gray"
           subtext="Heat extracted"
+          tooltip={`Temperature difference in the brine loop (ground source).
+
+Formula: ΔT = T_supply - T_return
+
+The brine extracts heat from the ground and delivers it to the evaporator. A positive ΔT means the ground is warmer than the returning brine.
+
+Typical values: 2-5 K
+Higher ΔT = more heat extracted from ground per cycle.`}
         />
         <StatusWidget
           title="Brine Pump"
@@ -170,6 +188,17 @@ const Dashboard: React.FC = () => {
           unit="°C"
           color="red"
           subtext="Hot water output"
+          tooltip={`Temperature of hot water leaving the condenser.
+
+This is the output side of the heat pump where heat is transferred from the refrigerant to the heating water.
+
+Higher temperatures indicate:
+• DHW heating mode (typically 45-55°C)
+• High heating demand
+
+Lower temperatures indicate:
+• Space heating mode (typically 30-45°C)
+• Mild outdoor conditions`}
         />
         <StatusWidget
           title="Secondary ΔT"
