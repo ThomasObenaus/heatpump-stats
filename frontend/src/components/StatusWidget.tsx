@@ -2,7 +2,7 @@ import React from "react";
 
 interface StatusWidgetProps {
   title: string;
-  value: string | number | undefined;
+  value: string | number | React.ReactNode | undefined;
   unit?: string;
   icon?: React.ReactNode;
   color?: "blue" | "green" | "red" | "yellow" | "gray";

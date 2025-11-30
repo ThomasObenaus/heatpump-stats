@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from heatpump_stats.domain.metrics import HeatPumpData, PowerReading
+from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus
 from heatpump_stats.ports.power_meter import PowerMeterPort
 from heatpump_stats.ports.heat_pump import HeatPumpPort
 from heatpump_stats.ports.repository import RepositoryPort, ConfigRepositoryPort
@@ -85,12 +85,36 @@ class CollectorService:
 
             # 4. Persist
             await self.influx.save_heat_pump_data(data)
+
+            # 5. Update System Status
+            pm_online = self._is_power_meter_online()
+            status = SystemStatus(
+                heat_pump_online=data.is_connected,
+                power_meter_online=pm_online,
+                database_connected=True,  # If we reached here, InfluxDB write likely succeeded (or we'd be in except block)
+                last_update=datetime.now(timezone.utc),
+                message="System Operational" if data.is_connected and pm_online else "Partial Outage",
+            )
+            await self.influx.save_system_status(status)
+
             logger.info("Metrics collected and stored successfully.")
 
             return data
 
         except Exception as e:
             logger.error(f"Error during metrics collection: {e}", exc_info=True)
+            # Try to save error status
+            try:
+                status = SystemStatus(
+                    heat_pump_online=False,
+                    power_meter_online=False,
+                    database_connected=False,
+                    last_update=datetime.now(timezone.utc),
+                    message=f"Error: {str(e)}",
+                )
+                await self.influx.save_system_status(status)
+            except Exception:
+                pass  # Ignore secondary errors
             raise e
 
     def _calculate_average_power(self) -> Optional[float]:
@@ -107,6 +131,13 @@ class CollectorService:
 
         total_watts = sum(r.power_watts for r in valid_readings)
         return total_watts / len(valid_readings)
+
+    def _is_power_meter_online(self) -> bool:
+        if not self._power_buffer:
+            return False
+        last_reading = self._power_buffer[-1]
+        # Check if last reading is recent (e.g. < 60 seconds)
+        return (datetime.now(timezone.utc) - last_reading.timestamp).total_seconds() < 60
 
     async def check_config_changes(self):
         """

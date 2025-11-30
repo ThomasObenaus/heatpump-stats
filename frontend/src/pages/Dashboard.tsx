@@ -60,7 +60,28 @@ const Dashboard: React.FC = () => {
         {/* System Health */}
         <StatusWidget
           title="System Status"
-          value={status?.message || "Unknown"}
+          value={
+            <div className="flex flex-col space-y-1 mt-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Heat Pump:</span>
+                <span className={status?.heat_pump_online ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                  {status?.heat_pump_online ? "Online" : "Offline"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Power Meter:</span>
+                <span className={status?.power_meter_online ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                  {status?.power_meter_online ? "Online" : "Offline"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Database:</span>
+                <span className={status?.database_connected ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                  {status?.database_connected ? "OK" : "Error"}
+                </span>
+              </div>
+            </div>
+          }
           color={status?.heat_pump_online && status?.power_meter_online ? "green" : "red"}
           subtext={`Last update: ${status?.last_update ? new Date(status.last_update).toLocaleTimeString() : "-"}`}
         />
