@@ -89,7 +89,7 @@ class CollectorService:
             await self.influx.save_heat_pump_data(data)
 
             # 5. Update System Status
-            pm_online = self._is_power_meter_online()
+            pm_online = await self._is_power_meter_online()
             status = SystemStatus(
                 heat_pump_online=data.is_connected,
                 power_meter_online=pm_online,
@@ -134,22 +134,13 @@ class CollectorService:
         total_watts = sum(r.power_watts for r in valid_readings)
         return total_watts / len(valid_readings)
 
-    def _is_power_meter_online(self) -> bool:
-        if not self._power_buffer:
-            # If we just started (e.g. < 60 seconds ago), assume online/initializing to avoid false alarms at startup
-            uptime = (datetime.now(timezone.utc) - self._start_time).total_seconds()
-            if uptime < 60:
-                return True
-
-            logger.warning("Power meter offline: Buffer empty")
+    async def _is_power_meter_online(self) -> bool:
+        try:
+            # Direct API check
+            await self.shelly.get_reading()
+            return True
+        except Exception:
             return False
-        last_reading = self._power_buffer[-1]
-        # Check if last reading is recent (e.g. < 120 seconds)
-        age = (datetime.now(timezone.utc) - last_reading.timestamp).total_seconds()
-        is_online = age < 120
-        if not is_online:
-            logger.warning(f"Power meter offline: Last reading age {age:.1f}s > 120s")
-        return is_online
 
     async def check_config_changes(self):
         """
