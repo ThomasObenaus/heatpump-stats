@@ -19,8 +19,11 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
     gray: "bg-gray-50 text-gray-700",
   };
 
+  const hasData = value !== undefined && value !== null;
+  const backgroundClass = className || (hasData ? "bg-white" : "bg-gray-200");
+
   return (
-    <div className={`overflow-hidden shadow rounded-lg ${className || "bg-white"}`}>
+    <div className={`overflow-hidden shadow rounded-lg ${backgroundClass}`}>
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">{icon && <div className={`rounded-md p-3 ${colorClasses[color]}`}>{icon}</div>}</div>
