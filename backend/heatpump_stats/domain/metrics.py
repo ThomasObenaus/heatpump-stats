@@ -25,6 +25,14 @@ class HeatPumpData(BaseModel):
     compressor_power_rated: Optional[float] = None  # kW
     compressor_runtime_hours: Optional[float] = None
 
+    # Primary Circuit (Ground Source / Evaporator Side)
+    primary_supply_temp: Optional[float] = None  # Brine temp going TO heat pump
+    primary_return_temp: Optional[float] = None  # Brine temp coming FROM heat pump
+    primary_pump_rotation: Optional[float] = None  # Pump speed in %
+
+    # Secondary Circuit (Condenser Side)
+    secondary_supply_temp: Optional[float] = None  # Heated water leaving condenser
+
     # Calculated/Derived
     estimated_thermal_power: Optional[float] = None  # kW (Modulation * Rated)
     estimated_thermal_power_delta_t: Optional[float] = None  # kW (Flow * DeltaT * 1.16)

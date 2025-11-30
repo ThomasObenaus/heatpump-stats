@@ -14,6 +14,12 @@ export interface HeatPumpData {
   compressor_runtime_hours?: number;
   estimated_thermal_power?: number;
   estimated_thermal_power_delta_t?: number;
+  // Primary Circuit (Ground Source / Evaporator Side)
+  primary_supply_temp?: number;
+  primary_return_temp?: number;
+  primary_pump_rotation?: number;
+  // Secondary Circuit (Condenser Side)
+  secondary_supply_temp?: number;
   circulation_pump_active: boolean;
   circuits: CircuitData[];
 }

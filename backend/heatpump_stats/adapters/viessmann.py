@@ -130,7 +130,15 @@ class ViessmannAdapter:
             else:
                 logger.debug(f"Delta T calc: Skipped - return_temp is None")
 
-            # 4. DHW Pump
+            # 4. Primary Circuit (Ground Source / Evaporator Side)
+            primary_supply_temp = self._get_feature_property("heating.primaryCircuit.sensors.temperature.supply", "value")
+            primary_return_temp = self._get_feature_property("heating.primaryCircuit.sensors.temperature.return", "value")
+            primary_pump_rotation = self._get_feature_property("heating.primaryCircuit.sensors.rotation", "value")
+
+            # 5. Secondary Circuit Supply (for reference, already used in Delta T calc)
+            secondary_supply_temp = self._get_feature_property("heating.secondaryCircuit.sensors.temperature.supply", "value")
+
+            # 6. DHW Pump
             dhw_pump_status = self._get_feature_property("heating.dhw.pumps.circulation", "status")
             dhw_pump_active = dhw_pump_status == "on"
 
@@ -145,6 +153,10 @@ class ViessmannAdapter:
                 compressor_runtime_hours=runtime,
                 estimated_thermal_power=estimated_thermal_power,
                 estimated_thermal_power_delta_t=estimated_thermal_power_delta_t,
+                primary_supply_temp=primary_supply_temp,
+                primary_return_temp=primary_return_temp,
+                primary_pump_rotation=primary_pump_rotation,
+                secondary_supply_temp=secondary_supply_temp,
                 circulation_pump_active=dhw_pump_active,
                 is_connected=True,
             )

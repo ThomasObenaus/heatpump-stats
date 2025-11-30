@@ -53,6 +53,18 @@ class InfluxDBAdapter:
         if data.estimated_thermal_power_delta_t is not None:
             p.field("thermal_power_delta_t", data.estimated_thermal_power_delta_t)
 
+        # Primary Circuit (Ground Source / Evaporator Side)
+        if data.primary_supply_temp is not None:
+            p.field("primary_supply_temp", data.primary_supply_temp)
+        if data.primary_return_temp is not None:
+            p.field("primary_return_temp", data.primary_return_temp)
+        if data.primary_pump_rotation is not None:
+            p.field("primary_pump_rotation", data.primary_pump_rotation)
+
+        # Secondary Circuit (Condenser Side)
+        if data.secondary_supply_temp is not None:
+            p.field("secondary_supply_temp", data.secondary_supply_temp)
+
         points.append(p)
 
         # Circuits
@@ -249,6 +261,10 @@ class InfluxDBAdapter:
             compressor_runtime_hours=record.get("compressor_runtime"),
             estimated_thermal_power=record.get("thermal_power"),
             estimated_thermal_power_delta_t=record.get("thermal_power_delta_t"),
+            primary_supply_temp=record.get("primary_supply_temp"),
+            primary_return_temp=record.get("primary_return_temp"),
+            primary_pump_rotation=record.get("primary_pump_rotation"),
+            secondary_supply_temp=record.get("secondary_supply_temp"),
             circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
             circuits=circuits,
         )

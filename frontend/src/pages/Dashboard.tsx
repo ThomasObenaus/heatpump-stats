@@ -138,6 +138,52 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
+      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Primary Circuit (Ground Source)</h3>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <StatusWidget title="Brine Supply" value={hp?.primary_supply_temp?.toFixed(1)} unit="°C" color="blue" subtext="To heat pump" />
+        <StatusWidget title="Brine Return" value={hp?.primary_return_temp?.toFixed(1)} unit="°C" color="blue" subtext="From heat pump" />
+        <StatusWidget
+          title="Brine ΔT"
+          value={
+            hp?.primary_supply_temp !== undefined && hp?.primary_return_temp !== undefined
+              ? (hp.primary_supply_temp - hp.primary_return_temp).toFixed(1)
+              : undefined
+          }
+          unit="K"
+          color="gray"
+          subtext="Heat extracted"
+        />
+        <StatusWidget
+          title="Brine Pump"
+          value={hp?.primary_pump_rotation !== undefined ? hp.primary_pump_rotation.toFixed(0) : undefined}
+          unit="%"
+          color="green"
+          subtext="Rotation speed"
+        />
+      </div>
+
+      <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Secondary Circuit (Condenser)</h3>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <StatusWidget
+          title="Condenser Supply"
+          value={hp?.secondary_supply_temp?.toFixed(1)}
+          unit="°C"
+          color="red"
+          subtext="Hot water output"
+        />
+        <StatusWidget
+          title="Secondary ΔT"
+          value={
+            hp?.secondary_supply_temp !== undefined && hp?.return_temperature !== undefined
+              ? (hp.secondary_supply_temp - hp.return_temperature).toFixed(1)
+              : undefined
+          }
+          unit="K"
+          color="red"
+          subtext="Heat delivered"
+        />
+      </div>
+
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Compressor</h3>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatusWidget title="Modulation" value={hp?.compressor_modulation?.toFixed(0)} unit="%" color="blue" />
