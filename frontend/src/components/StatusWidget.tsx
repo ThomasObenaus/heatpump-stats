@@ -7,9 +7,10 @@ interface StatusWidgetProps {
   icon?: React.ReactNode;
   color?: "blue" | "green" | "red" | "yellow" | "gray";
   subtext?: string;
+  className?: string;
 }
 
-const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, color = "blue", subtext }) => {
+const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, color = "blue", subtext, className }) => {
   const colorClasses = {
     blue: "bg-blue-50 text-blue-700",
     green: "bg-green-50 text-green-700",
@@ -19,7 +20,7 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
   };
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
+    <div className={`overflow-hidden shadow rounded-lg ${className || "bg-white"}`}>
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">{icon && <div className={`rounded-md p-3 ${colorClasses[color]}`}>{icon}</div>}</div>

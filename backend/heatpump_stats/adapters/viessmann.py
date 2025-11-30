@@ -72,9 +72,9 @@ class ViessmannAdapter:
             circuits_data = []
             for i, circuit in enumerate(self.device.circuits):
                 supply = self._safe_get(circuit.getSupplyTemperature)
-                # Pump status is tricky, might not be directly on circuit object in all versions
-                # We'll skip pump status for now or try to find a feature
-                c_data = CircuitData(circuit_id=i, supply_temperature=supply, pump_status=None)
+                # Fetch pump status using the feature name verified on the device
+                pump_status = self._get_feature_property(f"heating.circuits.{i}.circulation.pump", "status")
+                c_data = CircuitData(circuit_id=i, supply_temperature=supply, pump_status=pump_status)
                 circuits_data.append(c_data)
 
             # 3. Compressor
