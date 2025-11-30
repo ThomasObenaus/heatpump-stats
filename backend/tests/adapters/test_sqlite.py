@@ -536,6 +536,36 @@ class TestSqliteAdapter:
         assert entries[1].message == "Note 1"
 
     @pytest.mark.asyncio
+    async def test_get_changelog_filtering(self, adapter):
+        """Test filtering changelog entries by category."""
+        from heatpump_stats.domain.metrics import ChangelogEntry
+
+        entry1 = ChangelogEntry(category="note", author="user", message="Note 1")
+        entry2 = ChangelogEntry(category="system", author="system", message="Event 2")
+        entry3 = ChangelogEntry(category="note", author="user", message="Note 3")
+
+        await adapter.save_changelog_entry(entry1)
+        await adapter.save_changelog_entry(entry2)
+        await adapter.save_changelog_entry(entry3)
+
+        # Filter by 'note'
+        notes = await adapter.get_changelog(category="note")
+        assert len(notes) == 2
+        assert all(e.category == "note" for e in notes)
+        assert notes[0].message == "Note 3"
+        assert notes[1].message == "Note 1"
+
+        # Filter by 'system'
+        system_events = await adapter.get_changelog(category="system")
+        assert len(system_events) == 1
+        assert system_events[0].category == "system"
+        assert system_events[0].message == "Event 2"
+
+        # Filter by non-existent category
+        empty = await adapter.get_changelog(category="nonexistent")
+        assert len(empty) == 0
+
+    @pytest.mark.asyncio
     async def test_save_config_creates_changelog(self, adapter, sample_config):
         """Test that saving a config creates a changelog entry."""
         await adapter.save_config(sample_config)

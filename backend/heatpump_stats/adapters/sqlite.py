@@ -155,17 +155,24 @@ class SqliteAdapter:
             logger.error(f"Failed to save changelog entry: {e}")
             raise e
 
-    async def get_changelog(self, limit: int = 50, offset: int = 0) -> List[ChangelogEntry]:
+    async def get_changelog(self, limit: int = 50, offset: int = 0, category: Optional[str] = None) -> List[ChangelogEntry]:
         """Retrieve changelog entries asynchronously."""
-        return await asyncio.to_thread(self._get_changelog_sync, limit, offset)
+        return await asyncio.to_thread(self._get_changelog_sync, limit, offset, category)
 
-    def _get_changelog_sync(self, limit: int, offset: int) -> List[ChangelogEntry]:
+    def _get_changelog_sync(self, limit: int, offset: int, category: Optional[str] = None) -> List[ChangelogEntry]:
         try:
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute(
-                    "SELECT id, timestamp, category, author, message, details FROM changelog ORDER BY timestamp DESC LIMIT ? OFFSET ?",
-                    (limit, offset),
-                )
+                query = "SELECT id, timestamp, category, author, message, details FROM changelog"
+                params = []
+
+                if category:
+                    query += " WHERE category = ?"
+                    params.append(category)
+
+                query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
+                params.extend([limit, offset])
+
+                cursor = conn.execute(query, tuple(params))
                 rows = cursor.fetchall()
                 return [
                     ChangelogEntry(

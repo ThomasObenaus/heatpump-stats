@@ -38,7 +38,7 @@ async def test_get_changelog():
     await service.get_changelog(limit=10, offset=5)
 
     # Assert
-    mock_config_repo.get_changelog.assert_called_once_with(10, 5)
+    mock_config_repo.get_changelog.assert_called_once_with(10, 5, None)
 
 
 @pytest.mark.asyncio
