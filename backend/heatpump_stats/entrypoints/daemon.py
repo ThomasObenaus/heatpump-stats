@@ -21,18 +21,18 @@ async def main() -> None:
     logger.info(f"Starting Heat Pump Stats Daemon (Mode: {settings.COLLECTOR_MODE})")
 
     # 1. Instantiate Adapters
-    if settings.COLLECTOR_MODE.lower() == "production":
+    mode = settings.COLLECTOR_MODE.lower()
+
+    if mode == "production":
         # Shelly
         shelly = ShellyAdapter(host=settings.SHELLY_HOST, password=settings.SHELLY_PASSWORD)
 
         # Viessmann
-        # connect_viessmann returns a PyViCare device, which we wrap in our adapter
         try:
             viessmann_device = connect_viessmann()
             viessmann = ViessmannAdapter(viessmann_device)
         except Exception as e:
             logger.error(f"Failed to initialize Viessmann adapter: {e}")
-            # In production, we might want to retry or exit. Exiting lets Docker restart us.
             sys.exit(1)
 
         # InfluxDB
@@ -45,6 +45,27 @@ async def main() -> None:
         )
 
         # SQLite
+        sqlite = SqliteAdapter(db_path=settings.SQLITE_DB_PATH)
+
+    elif mode == "simulation":
+        logger.info("Running in SIMULATION mode. Using mock sensors but REAL databases.")
+        from heatpump_stats.adapters.mocks import (
+            MockShellyAdapter,
+            MockViessmannAdapter,
+        )
+
+        # Mock Sensors
+        shelly = MockShellyAdapter()
+        viessmann = MockViessmannAdapter()
+
+        # Real Databases
+        influx = InfluxDBAdapter(
+            url=settings.INFLUXDB_URL,
+            token=settings.INFLUXDB_TOKEN,
+            org=settings.INFLUXDB_ORG,
+            bucket_raw=settings.INFLUXDB_BUCKET_RAW,
+            bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
+        )
         sqlite = SqliteAdapter(db_path=settings.SQLITE_DB_PATH)
 
     else:
