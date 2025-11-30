@@ -580,7 +580,7 @@ class TestSqliteAdapter:
         """Test that saving a config creates a changelog entry with details."""
         # Initial save
         await adapter.save_config(sample_config)
-        
+
         # Modify config
         sample_config.circuits[0].temp_comfort = 25.0
         await adapter.save_config(sample_config)
@@ -588,14 +588,14 @@ class TestSqliteAdapter:
         entries = await adapter.get_changelog()
         # Should have 2 entries: Initial and Update
         assert len(entries) == 2
-        
+
         # Check latest entry (Update)
         latest = entries[0]
         assert latest.category == "config"
         assert latest.details is not None
         assert "circuits" in latest.details
         assert "25.0" in latest.details
-        
+
         # Check initial entry
         initial = entries[1]
         assert initial.details == "Initial configuration"
