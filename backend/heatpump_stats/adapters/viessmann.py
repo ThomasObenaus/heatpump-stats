@@ -83,6 +83,39 @@ class ViessmannAdapter:
             power_rated = self._get_feature_property("heating.compressors.0.power", "value")
             runtime = self._get_feature_property("heating.compressors.0.statistics", "hours")
 
+            estimated_thermal_power = None
+            if modulation is not None and power_rated is not None:
+                try:
+                    estimated_thermal_power = (float(modulation) / 100.0) * float(power_rated)
+                except ValueError:
+                    pass
+
+            # Calculate Thermal Power (Delta T Method)
+            # Formula: P (kW) = Flow (m3/h) * 1.16 * (T_supply - T_return)
+            estimated_thermal_power_delta_t = None
+            if return_temp is not None and circuits_data:
+                # Strategy: Use the circuit that is currently active (pump on).
+                # If multiple are active or none are active, prefer Circuit 1 over Circuit 0.
+                selected_circuit = None
+                
+                # 1. Try to find active circuits
+                active_circuits = [c for c in circuits_data if c.pump_status == "on"]
+                
+                if active_circuits:
+                    # If multiple active, try to find Circuit 1, else take the first active one
+                    selected_circuit = next((c for c in active_circuits if c.circuit_id == 1), active_circuits[0])
+                else:
+                    # No active circuits, fallback to Circuit 1 if exists, else Circuit 0
+                    selected_circuit = next((c for c in circuits_data if c.circuit_id == 1), circuits_data[0])
+
+                if selected_circuit and selected_circuit.supply_temperature is not None:
+                    supply_temp = selected_circuit.supply_temperature
+                    delta_t = supply_temp - return_temp
+                    # Only calculate if we are heating (Delta T > 0)
+                    if delta_t > 0:
+                        flow_rate_m3h = settings.ESTIMATED_FLOW_RATE / 1000.0
+                        estimated_thermal_power_delta_t = flow_rate_m3h * 1.16 * delta_t
+
             # 4. DHW Pump
             dhw_pump_status = self._get_feature_property("heating.dhw.pumps.circulation", "status")
             dhw_pump_active = dhw_pump_status == "on"
@@ -96,6 +129,8 @@ class ViessmannAdapter:
                 compressor_modulation=modulation,
                 compressor_power_rated=power_rated,
                 compressor_runtime_hours=runtime,
+                estimated_thermal_power=estimated_thermal_power,
+                estimated_thermal_power_delta_t=estimated_thermal_power_delta_t,
                 circulation_pump_active=dhw_pump_active,
                 is_connected=True,
             )

@@ -99,7 +99,13 @@ const Dashboard: React.FC = () => {
         <StatusWidget title="Power Consumption" value={power?.power_watts?.toFixed(0)} unit="W" color="yellow" />
 
         {/* Thermal Output */}
-        <StatusWidget title="Thermal Output" value={hp?.estimated_thermal_power?.toFixed(2)} unit="kW" color="blue" />
+        <StatusWidget
+          title="Thermal Output"
+          value={hp?.estimated_thermal_power?.toFixed(2)}
+          unit="kW"
+          color="blue"
+          subtext={hp?.estimated_thermal_power_delta_t ? `Delta T: ${hp.estimated_thermal_power_delta_t.toFixed(2)} kW` : undefined}
+        />
 
         {/* COP */}
         <StatusWidget title="Estimated COP" value={cop?.toFixed(2)} color="green" subtext={cop ? "Instantaneous" : "Compressor off"} />

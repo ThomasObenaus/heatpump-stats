@@ -13,6 +13,7 @@ export interface HeatPumpData {
   compressor_power_rated?: number;
   compressor_runtime_hours?: number;
   estimated_thermal_power?: number;
+  estimated_thermal_power_delta_t?: number;
   circulation_pump_active: boolean;
   circuits: CircuitData[];
 }
