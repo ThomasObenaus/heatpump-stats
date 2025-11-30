@@ -1,6 +1,7 @@
 import sqlite3
 import logging
 import asyncio
+import json
 from datetime import datetime, timezone
 from typing import Optional, List
 from heatpump_stats.domain.configuration import HeatPumpConfig
@@ -67,14 +68,22 @@ class SqliteAdapter:
             # So we should compare the 'circuits' and 'dhw' fields.
 
             should_save = False
+            diff_details = None
+
             if latest_config is None:
                 should_save = True
+                diff_details = "Initial configuration"
             else:
                 # Compare relevant fields
                 new_data = config.model_dump(include={"circuits", "dhw"})
                 old_data = latest_config.model_dump(include={"circuits", "dhw"})
                 if new_data != old_data:
                     should_save = True
+                    changes = {}
+                    for key in new_data:
+                        if new_data[key] != old_data.get(key):
+                            changes[key] = {"old": old_data.get(key), "new": new_data[key]}
+                    diff_details = json.dumps(changes, default=str)
 
             if should_save:
                 json_data = config.model_dump_json()
@@ -94,7 +103,7 @@ class SqliteAdapter:
                         category="config",
                         author="system",
                         message="Configuration change detected",
-                        details=None,  # We could store diff here later
+                        details=diff_details,
                     )
                 )
 
