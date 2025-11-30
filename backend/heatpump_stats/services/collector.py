@@ -23,6 +23,7 @@ class CollectorService:
         self.influx = influx
         self.sqlite = sqlite
         self._power_buffer = []
+        self._start_time = datetime.now(timezone.utc)
 
     async def collect_power(self) -> Optional[PowerReading]:
         """
@@ -30,6 +31,7 @@ class CollectorService:
         Stores raw data to InfluxDB and buffers it for averaging.
         """
         try:
+            logger.debug("Collecting power data...")
             reading = await self.shelly.get_reading()
             logger.debug(f"Power reading: {reading.power_watts}W")
 
@@ -134,10 +136,20 @@ class CollectorService:
 
     def _is_power_meter_online(self) -> bool:
         if not self._power_buffer:
+            # If we just started (e.g. < 60 seconds ago), assume online/initializing to avoid false alarms at startup
+            uptime = (datetime.now(timezone.utc) - self._start_time).total_seconds()
+            if uptime < 60:
+                return True
+
+            logger.warning("Power meter offline: Buffer empty")
             return False
         last_reading = self._power_buffer[-1]
-        # Check if last reading is recent (e.g. < 60 seconds)
-        return (datetime.now(timezone.utc) - last_reading.timestamp).total_seconds() < 60
+        # Check if last reading is recent (e.g. < 120 seconds)
+        age = (datetime.now(timezone.utc) - last_reading.timestamp).total_seconds()
+        is_online = age < 120
+        if not is_online:
+            logger.warning(f"Power meter offline: Last reading age {age:.1f}s > 120s")
+        return is_online
 
     async def check_config_changes(self):
         """

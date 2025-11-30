@@ -85,4 +85,43 @@ class ShellyAdapter:
                 total_energy_wh=total_energy,
             )
 
-        raise Exception("Unknown Shelly Gen 2 Device Type (could not find em:0)")
+        # Try Switch (switch:0) - e.g. Shelly Plus 1PM
+        if "switch:0" in data:
+            sw = data["switch:0"]
+            power = float(sw.get("apower", 0.0))
+            voltage = float(sw.get("voltage", 0.0))
+            current = float(sw.get("current", 0.0))
+
+            total_energy = 0.0
+            if "aenergy" in sw:
+                total_energy = float(sw["aenergy"].get("total", 0.0))
+
+            return PowerReading(
+                timestamp=datetime.now(timezone.utc),
+                power_watts=power,
+                voltage=voltage,
+                current=current,
+                total_energy_wh=total_energy,
+            )
+
+        # Try PM1 (pm1:0) - e.g. Shelly Plus PM Mini
+        if "pm1:0" in data:
+            pm = data["pm1:0"]
+            power = float(pm.get("apower", 0.0))
+            voltage = float(pm.get("voltage", 0.0))
+            current = float(pm.get("current", 0.0))
+
+            total_energy = 0.0
+            if "aenergy" in pm:
+                total_energy = float(pm["aenergy"].get("total", 0.0))
+
+            return PowerReading(
+                timestamp=datetime.now(timezone.utc),
+                power_watts=power,
+                voltage=voltage,
+                current=current,
+                total_energy_wh=total_energy,
+            )
+
+        logger.error(f"Unknown Shelly Gen 2 Device Type. Keys found: {list(data.keys())}")
+        raise Exception(f"Unknown Shelly Gen 2 Device Type (Keys: {list(data.keys())})")
