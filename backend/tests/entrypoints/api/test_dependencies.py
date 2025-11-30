@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from fastapi import HTTPException
 from jose import jwt
 
@@ -144,4 +144,3 @@ def test_get_reporting_service():
 
     # Assert
     assert service == mock_service
-
