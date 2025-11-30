@@ -14,21 +14,40 @@ interface StatusWidgetProps {
 
 const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, color = "blue", subtext, className, tooltip }) => {
   const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number; showAbove: boolean }>({ top: 0, left: 0, showAbove: false });
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (showTooltip && buttonRef.current) {
       const buttonRect = buttonRef.current.getBoundingClientRect();
-      const tooltipHeight = 200; // Approximate max height
-      const spaceBelow = window.innerHeight - buttonRect.bottom;
-      const showAbove = spaceBelow < tooltipHeight && buttonRect.top > tooltipHeight;
+      const tooltipWidth = 256; // w-64 = 16rem = 256px
+      const tooltipHeight = tooltipRef.current?.offsetHeight || 200;
       
-      setTooltipPosition({
-        top: showAbove ? buttonRect.top - 8 : buttonRect.bottom + 8,
-        left: Math.min(buttonRect.left, window.innerWidth - 270), // Keep tooltip on screen
-        showAbove,
-      });
+      const spaceBelow = window.innerHeight - buttonRect.bottom;
+      const spaceAbove = buttonRect.top;
+      const showAbove = spaceBelow < tooltipHeight + 20 && spaceAbove > tooltipHeight + 20;
+      
+      // Calculate left position, keeping tooltip on screen
+      let left = buttonRect.right - tooltipWidth;
+      if (left < 10) left = 10;
+      if (left + tooltipWidth > window.innerWidth - 10) {
+        left = window.innerWidth - tooltipWidth - 10;
+      }
+      
+      const style: React.CSSProperties = {
+        position: 'fixed',
+        left,
+        zIndex: 99999,
+      };
+      
+      if (showAbove) {
+        style.bottom = window.innerHeight - buttonRect.top + 8;
+      } else {
+        style.top = buttonRect.bottom + 8;
+      }
+      
+      setTooltipStyle(style);
     }
   }, [showTooltip]);
 
@@ -73,12 +92,9 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
                     </button>
                     {showTooltip && createPortal(
                       <div
-                        className="fixed z-[9999] w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg whitespace-pre-line"
-                        style={{
-                          top: tooltipPosition.showAbove ? 'auto' : tooltipPosition.top,
-                          bottom: tooltipPosition.showAbove ? window.innerHeight - tooltipPosition.top : 'auto',
-                          left: tooltipPosition.left,
-                        }}
+                        ref={tooltipRef}
+                        className="w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg whitespace-pre-line"
+                        style={tooltipStyle}
                         onMouseEnter={() => setShowTooltip(true)}
                         onMouseLeave={() => setShowTooltip(false)}
                       >
