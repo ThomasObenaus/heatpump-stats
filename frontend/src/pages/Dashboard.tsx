@@ -122,19 +122,34 @@ This is the useful heat output for heating/DHW.`}
         />
 
         {/* COP */}
-        <StatusWidget title="Estimated COP" value={cop?.toFixed(2)} color="green" subtext={cop ? "Instantaneous" : "Compressor off"} />
+        <StatusWidget
+          title="Estimated COP"
+          value={cop?.toFixed(2)}
+          color="green"
+          subtext={cop ? "Instantaneous" : "Compressor off"}
+          tooltip={`Coefficient of Performance - ratio of heat output to electrical input.
+
+Current calculation:
+COP = (Modulation% × Rated Power) / Electrical Power
+
+Where:
+• Modulation% = compressor speed (0-100%)
+• Rated Power = heat pump's max thermal output
+• Electrical Power = measured from power meter (Shelly)
+
+Note: This does NOT use Delta-T calculation. The "Thermal Output" card shows both methods for comparison.
+
+Typical values:
+• 3.0-4.0 = Good efficiency
+• 4.0-5.0 = Very good
+• 5.0+ = Excellent`}
+        />
       </div>
 
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Temperatures</h3>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatusWidget title="Outside Temp" value={hp?.outside_temperature?.toFixed(1)} unit="°C" color="gray" />
-        <StatusWidget title="Return Temp" value={hp?.return_temperature?.toFixed(1)} unit="°C" color="blue" />
         <StatusWidget title="DHW Temp" value={hp?.dhw_storage_temperature?.toFixed(1)} unit="°C" color="red" />
-        <StatusWidget
-          title="Circulation Pump"
-          value={hp?.circulation_pump_active === undefined ? undefined : hp.circulation_pump_active ? "On" : "Off"}
-          className={hp?.circulation_pump_active ? "bg-green-100" : "bg-gray-200"}
-        />
         {hp?.circuits?.map((circuit) => (
           <StatusWidget
             key={circuit.circuit_id}
@@ -146,6 +161,11 @@ This is the useful heat output for heating/DHW.`}
             className={circuit.pump_status === "on" ? "bg-green-100" : "bg-gray-200"}
           />
         ))}
+        <StatusWidget
+          title="Circulation Pump"
+          value={hp?.circulation_pump_active === undefined ? undefined : hp.circulation_pump_active ? "On" : "Off"}
+          className={hp?.circulation_pump_active ? "bg-green-100" : "bg-gray-200"}
+        />
       </div>
 
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Primary Circuit (Ground Source)</h3>
@@ -233,6 +253,22 @@ Higher temperatures indicate:
 Lower temperatures indicate:
 • Space heating mode (typically 30-45°C)
 • Mild outdoor conditions`}
+        />
+        <StatusWidget
+          title="Condenser Return"
+          value={hp?.return_temperature?.toFixed(1)}
+          unit="°C"
+          color="red"
+          subtext="From heating system"
+          tooltip={`Temperature of water returning from the heating system to the heat pump condenser.
+
+This is the "cold" side of the secondary circuit - water that has released its heat to radiators or underfloor heating.
+
+Used with supply temperature to calculate:
+• Heat delivered (ΔT × flow)
+• System efficiency
+
+Lower return temps generally indicate efficient heat transfer in the building.`}
         />
         <StatusWidget
           title="Secondary ΔT"
