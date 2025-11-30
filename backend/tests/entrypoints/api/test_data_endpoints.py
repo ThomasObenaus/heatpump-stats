@@ -96,8 +96,6 @@ def test_get_history_success(mock_reporting_service, auth_headers):
 
 
 def test_get_changelog_success(mock_reporting_service, auth_headers):
-    from heatpump_stats.domain.metrics import ChangelogEntry
-
     mock_entry = ChangelogEntry(
         id=1,
         timestamp=datetime.now(timezone.utc),
@@ -118,8 +116,6 @@ def test_get_changelog_success(mock_reporting_service, auth_headers):
 
 
 def test_add_note_success(mock_reporting_service, auth_headers):
-    from heatpump_stats.domain.metrics import ChangelogEntry
-
     mock_entry = ChangelogEntry(
         id=1,
         timestamp=datetime.now(timezone.utc),
