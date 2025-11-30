@@ -110,13 +110,17 @@ It will also track configuration changes (e.g., temperature settings, schedules)
 
 ### General System
 
-| Data Point                | Purpose            | API Feature / Method (PyViCare)                       |
-| :------------------------ | :----------------- | :---------------------------------------------------- |
-| **Outside Temperature**   | Dashboard & Charts | `getOutsideTemperature()`                             |
-| **Return Temperature**    | COP Calc (DeltaT)  | `getReturnTemperature()`                              |
-| **Compressor Modulation** | JAZ Calculation    | `heating.compressors.0.sensors.power` (Property)      |
-| **Rated Power**           | JAZ Calculation    | `heating.compressors.0.power` (Property)              |
-| **Compressor Runtime**    | JAZ Calculation    | `heating.compressors.0.statistics` (Property `hours`) |
+| Data Point                   | Purpose            | API Feature / Method (PyViCare)                       |
+| :--------------------------- | :----------------- | :---------------------------------------------------- |
+| **Outside Temperature**      | Dashboard & Charts | `getOutsideTemperature()`                             |
+| **Return Temperature**       | COP Calc (DeltaT)  | `getReturnTemperature()`                              |
+| **Secondary Circuit Supply** | Delta T Calc       | `heating.secondaryCircuit.sensors.temperature.supply` |
+| **Compressor Modulation**    | JAZ Calculation    | `heating.compressors.0.sensors.power` (Property)      |
+| **Rated Power**              | JAZ Calculation    | `heating.compressors.0.power` (Property)              |
+| **Compressor Runtime**       | JAZ Calculation    | `heating.compressors.0.statistics` (Property `hours`) |
+| **Primary Circuit Supply**   | Monitoring         | `heating.primaryCircuit.sensors.temperature.supply`   |
+| **Primary Circuit Return**   | Monitoring         | `heating.primaryCircuit.sensors.temperature.return`   |
+| **Buffer Cylinder Temp**     | Monitoring         | `heating.bufferCylinder.sensors.temperature.main`     |
 
 ### Heating Circuits (Iterate over all available circuits)
 
@@ -213,7 +217,19 @@ The detailed implementation steps have been moved to [ImplementationSteps.md](./
    - **Metric B (Delta T Based)**:
      - Formula: $P (kW) = \dot{V} (m^3/h) \times 1.16 (kWh/m^3K) \times (T_{supply} - T_{return})$.
      - Measurement Name: `thermal_power_delta_t`.
-     - Note: Relies on `ESTIMATED_FLOW_RATE` (user setting). And relies on the assumption that the flow rate is constant.
+     - **Temperature Sources**:
+       - **Supply Temperature**: `heating.secondaryCircuit.sensors.temperature.supply` (Primary choice).
+       - **Return Temperature**: `heating.sensors.temperature.return`.
+       - **Fallback**: If secondary circuit sensor is unavailable, use active heating circuit supply temp (`heating.circuits.X.sensors.temperature.supply`).
+     - **What is the Secondary Circuit?**
+       - The heat pump has two hydraulic circuits:
+         - **Primary Circuit (Evaporator Side)**: The cold side that extracts heat from the ground source (brine loop). Sensors show brine temps (e.g., 7°C supply, 4°C return).
+         - **Secondary Circuit (Condenser Side)**: The hot side that delivers heat to the heating system. This is the water leaving the heat pump's condenser.
+       - The secondary circuit supply temperature measures the **actual heated water output** from the heat pump, regardless of operating mode (floor heating or DHW charging).
+       - This is more accurate than using individual heating circuit temps because:
+         1. During **DHW charging**, the heating circuit temps don't reflect the heat pump's output.
+         2. It captures the **true condenser output** before any mixing or buffering.
+     - Note: Relies on `ESTIMATED_FLOW_RATE` (user setting, default 1000 L/h). Assumes constant flow rate.
 
 ## 6. Key Considerations
 

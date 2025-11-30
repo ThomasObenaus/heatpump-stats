@@ -93,6 +93,34 @@ def verify_batch_fetch(device):
         val = get_value_from_dump(data, "heating.dhw.pumps.circulation", "status")
         print(f"Circulation Pump: {val}")
 
+        # Secondary Circuit (Condenser Side)
+        print("\n[Secondary Circuit - Condenser Side]")
+        val = get_value_from_dump(data, "heating.secondaryCircuit.sensors.temperature.supply", "value")
+        print(f"Secondary Circuit Supply Temp: {val}")
+        val = get_value_from_dump(data, "heating.secondaryCircuit.sensors.temperature.return", "value")
+        print(f"Secondary Circuit Return Temp: {val}")
+
+        # Primary Circuit (Evaporator Side - Brine/Air source)
+        print("\n[Primary Circuit - Evaporator Side]")
+        val = get_value_from_dump(data, "heating.primaryCircuit.sensors.temperature.supply", "value")
+        print(f"Primary Circuit Supply Temp: {val}")
+        val = get_value_from_dump(data, "heating.primaryCircuit.sensors.temperature.return", "value")
+        print(f"Primary Circuit Return Temp: {val}")
+        val = get_value_from_dump(data, "heating.primaryCircuit.sensors.rotation", "value")
+        print(f"Primary Circuit Pump Rotation: {val}")
+
+        # Buffer Cylinder
+        print("\n[Buffer Cylinder]")
+        val = get_value_from_dump(data, "heating.bufferCylinder.sensors.temperature.main", "value")
+        print(f"Buffer Cylinder Main Temp: {val}")
+        val = get_value_from_dump(data, "heating.bufferCylinder.sensors.temperature.top", "value")
+        print(f"Buffer Cylinder Top Temp: {val}")
+
+        # DHW Charging Status
+        print("\n[DHW Status]")
+        val = get_value_from_dump(data, "heating.dhw.charging", "active")
+        print(f"DHW Charging Active: {val}")
+
     except Exception as e:
         print(f"Batch fetch failed: {e}")
 
