@@ -12,9 +12,10 @@ from heatpump_stats.adapters.sqlite import SqliteAdapter
 # Setup logging
 logging.basicConfig(
     level=settings.LOG_LEVEL,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
 
 async def main() -> None:
     logger.info(f"Starting Heat Pump Stats Daemon (Mode: {settings.COLLECTOR_MODE})")
@@ -22,11 +23,8 @@ async def main() -> None:
     # 1. Instantiate Adapters
     if settings.COLLECTOR_MODE.lower() == "production":
         # Shelly
-        shelly = ShellyAdapter(
-            host=settings.SHELLY_HOST,
-            password=settings.SHELLY_PASSWORD
-        )
-        
+        shelly = ShellyAdapter(host=settings.SHELLY_HOST, password=settings.SHELLY_PASSWORD)
+
         # Viessmann
         # connect_viessmann returns a PyViCare device, which we wrap in our adapter
         try:
@@ -43,27 +41,28 @@ async def main() -> None:
             token=settings.INFLUXDB_TOKEN,
             org=settings.INFLUXDB_ORG,
             bucket_raw=settings.INFLUXDB_BUCKET_RAW,
-            bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED
+            bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
         )
-        
+
         # SQLite
         sqlite = SqliteAdapter(db_path=settings.SQLITE_DB_PATH)
-        
+
     else:
         logger.info("Running in MOCK mode. Using mock adapters.")
-        from heatpump_stats.adapters.mocks import MockShellyAdapter, MockViessmannAdapter, MockInfluxDBAdapter, MockSqliteAdapter
+        from heatpump_stats.adapters.mocks import (
+            MockShellyAdapter,
+            MockViessmannAdapter,
+            MockInfluxDBAdapter,
+            MockSqliteAdapter,
+        )
+
         shelly = MockShellyAdapter()
         viessmann = MockViessmannAdapter()
         influx = MockInfluxDBAdapter()
         sqlite = MockSqliteAdapter()
 
     # 2. Instantiate Service
-    service = CollectorService(
-        shelly=shelly,
-        viessmann=viessmann,
-        influx=influx,
-        sqlite=sqlite
-    )
+    service = CollectorService(shelly=shelly, viessmann=viessmann, influx=influx, sqlite=sqlite)
 
     # 3. Define Tasks
     async def run_power_collection(poll_interval: int):
@@ -98,13 +97,14 @@ async def main() -> None:
         await asyncio.gather(
             run_power_collection(settings.SHELLY_POLL_INTERVAL),
             run_metrics_collection(settings.VIESSMANN_POLL_INTERVAL),
-            run_config_check(settings.VIESSMANN_CONFIG_INTERVAL)
+            run_config_check(settings.VIESSMANN_CONFIG_INTERVAL),
         )
     except asyncio.CancelledError:
         logger.info("Daemon stopping...")
     finally:
         # Cleanup if needed
         pass
+
 
 if __name__ == "__main__":
     try:

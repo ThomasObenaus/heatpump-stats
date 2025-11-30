@@ -1,6 +1,7 @@
 from typing import Protocol, Optional
 from heatpump_stats.domain.configuration import HeatPumpConfig
 
+
 class ConfigStorePort(Protocol):
     async def save_config(self, config: HeatPumpConfig) -> None:
         """

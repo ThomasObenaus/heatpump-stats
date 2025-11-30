@@ -46,7 +46,7 @@ class TestCollectorService:
             shelly=mock_shelly,
             viessmann=mock_viessmann,
             influx=mock_influx,
-            sqlite=mock_sqlite
+            sqlite=mock_sqlite,
         )
 
     @pytest.fixture
@@ -57,7 +57,7 @@ class TestCollectorService:
             power_watts=1500.0,
             voltage=230.0,
             current=6.5,
-            total_energy_wh=50000.0
+            total_energy_wh=50000.0,
         )
 
     @pytest.fixture
@@ -68,12 +68,10 @@ class TestCollectorService:
             outside_temperature=5.2,
             return_temperature=32.5,
             dhw_storage_temperature=48.0,
-            circuits=[
-                CircuitData(circuit_id=0, supply_temperature=35.0)
-            ],
+            circuits=[CircuitData(circuit_id=0, supply_temperature=35.0)],
             compressor_modulation=65.5,
             compressor_power_rated=16.0,
-            is_connected=True
+            is_connected=True,
         )
 
     def test_initialization(self, collector, mock_shelly, mock_viessmann, mock_influx, mock_sqlite):
@@ -107,10 +105,7 @@ class TestCollectorService:
     @pytest.mark.asyncio
     async def test_collect_power_multiple_readings(self, collector, mock_shelly, mock_influx):
         """Test collecting multiple power readings."""
-        readings = [
-            PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0 + i)
-            for i in range(5)
-        ]
+        readings = [PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0 + i) for i in range(5)]
 
         for reading in readings:
             mock_shelly.get_reading.return_value = reading
@@ -126,10 +121,7 @@ class TestCollectorService:
         """Test that power buffer is pruned when exceeding 100 readings."""
         # Add 101 readings
         for i in range(101):
-            reading = PowerReading(
-                timestamp=datetime.now(timezone.utc),
-                power_watts=1500.0 + i
-            )
+            reading = PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0 + i)
             mock_shelly.get_reading.return_value = reading
             await collector.collect_power()
 
@@ -182,10 +174,7 @@ class TestCollectorService:
         """Test metrics collection with power data in buffer."""
         # Add some power readings to buffer
         for i in range(5):
-            reading = PowerReading(
-                timestamp=datetime.now(timezone.utc),
-                power_watts=1500.0 + i * 10
-            )
+            reading = PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0 + i * 10)
             mock_shelly.get_reading.return_value = reading
             await collector.collect_power()
 
@@ -236,10 +225,7 @@ class TestCollectorService:
 
     def test_calculate_average_power_single_reading(self, collector):
         """Test average power calculation with single reading."""
-        reading = PowerReading(
-            timestamp=datetime.now(timezone.utc),
-            power_watts=1500.0
-        )
+        reading = PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0)
         collector._power_buffer.append(reading)
 
         result = collector._calculate_average_power()
@@ -251,7 +237,7 @@ class TestCollectorService:
         readings = [
             PowerReading(timestamp=now - timedelta(seconds=60), power_watts=1400.0),
             PowerReading(timestamp=now - timedelta(seconds=30), power_watts=1500.0),
-            PowerReading(timestamp=now, power_watts=1600.0)
+            PowerReading(timestamp=now, power_watts=1600.0),
         ]
         collector._power_buffer.extend(readings)
 
@@ -269,7 +255,7 @@ class TestCollectorService:
             # Recent readings (within 5 minutes) - should be included
             PowerReading(timestamp=now - timedelta(minutes=2), power_watts=1500.0),
             PowerReading(timestamp=now - timedelta(seconds=30), power_watts=1600.0),
-            PowerReading(timestamp=now, power_watts=1700.0)
+            PowerReading(timestamp=now, power_watts=1700.0),
         ]
         collector._power_buffer.extend(readings)
 
@@ -283,7 +269,7 @@ class TestCollectorService:
         now = datetime.now(timezone.utc)
         readings = [
             PowerReading(timestamp=now - timedelta(minutes=6), power_watts=1000.0),
-            PowerReading(timestamp=now - timedelta(minutes=10), power_watts=1100.0)
+            PowerReading(timestamp=now - timedelta(minutes=10), power_watts=1100.0),
         ]
         collector._power_buffer.extend(readings)
 
@@ -296,7 +282,7 @@ class TestCollectorService:
         readings = [
             PowerReading(timestamp=now - timedelta(minutes=5, seconds=1), power_watts=1000.0),  # Too old
             PowerReading(timestamp=now - timedelta(minutes=4, seconds=59), power_watts=1500.0),  # Valid
-            PowerReading(timestamp=now, power_watts=1600.0)
+            PowerReading(timestamp=now, power_watts=1600.0),
         ]
         collector._power_buffer.extend(readings)
 
@@ -310,10 +296,7 @@ class TestCollectorService:
         """Test that buffer persists across multiple power collections."""
         readings = []
         for i in range(3):
-            reading = PowerReading(
-                timestamp=datetime.now(timezone.utc),
-                power_watts=1500.0 + i
-            )
+            reading = PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0 + i)
             readings.append(reading)
             mock_shelly.get_reading.return_value = reading
             await collector.collect_power()
@@ -331,7 +314,7 @@ class TestCollectorService:
             power_watts=0.0,
             voltage=230.0,
             current=0.0,
-            total_energy_wh=50000.0
+            total_energy_wh=50000.0,
         )
         mock_shelly.get_reading.return_value = reading
 
@@ -348,7 +331,7 @@ class TestCollectorService:
             power_watts=-500.0,
             voltage=230.0,
             current=-2.2,
-            total_energy_wh=50000.0
+            total_energy_wh=50000.0,
         )
         mock_shelly.get_reading.return_value = reading
 
@@ -363,7 +346,7 @@ class TestCollectorService:
         readings = [
             PowerReading(timestamp=now - timedelta(seconds=60), power_watts=0.0),
             PowerReading(timestamp=now - timedelta(seconds=30), power_watts=1500.0),
-            PowerReading(timestamp=now, power_watts=0.0)
+            PowerReading(timestamp=now, power_watts=0.0),
         ]
         collector._power_buffer.extend(readings)
 
@@ -377,7 +360,7 @@ class TestCollectorService:
         readings = [
             PowerReading(timestamp=now - timedelta(seconds=60), power_watts=-500.0),
             PowerReading(timestamp=now - timedelta(seconds=30), power_watts=1500.0),
-            PowerReading(timestamp=now, power_watts=-300.0)
+            PowerReading(timestamp=now, power_watts=-300.0),
         ]
         collector._power_buffer.extend(readings)
 
@@ -388,10 +371,7 @@ class TestCollectorService:
     @pytest.mark.asyncio
     async def test_concurrent_power_collections(self, collector, mock_shelly, mock_influx):
         """Test that concurrent power collections work correctly."""
-        readings = [
-            PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0 + i)
-            for i in range(3)
-        ]
+        readings = [PowerReading(timestamp=datetime.now(timezone.utc), power_watts=1500.0 + i) for i in range(3)]
 
         async def collect_with_reading(reading):
             mock_shelly.get_reading.return_value = reading
@@ -399,6 +379,7 @@ class TestCollectorService:
 
         # Collect concurrently
         import asyncio
+
         results = await asyncio.gather(*[collect_with_reading(r) for r in readings])
 
         # All collections should succeed
@@ -408,15 +389,14 @@ class TestCollectorService:
     @pytest.mark.asyncio
     async def test_collect_metrics_timestamp_update(self, collector, mock_viessmann, mock_influx, sample_heat_pump_data):
         """Test that metrics collection updates the timestamp."""
-        original_timestamp = sample_heat_pump_data.timestamp
         mock_viessmann.get_data.return_value = sample_heat_pump_data
 
-        with patch('heatpump_stats.services.collector.datetime') as mock_datetime:
+        with patch("heatpump_stats.services.collector.datetime") as mock_datetime:
             new_timestamp = datetime(2025, 11, 27, 12, 0, 0, tzinfo=timezone.utc)
             mock_datetime.now.return_value = new_timestamp
             mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
 
-            result = await collector.collect_metrics()
+            await collector.collect_metrics()
 
             # Verify timestamp was updated in the saved data
             call_args = mock_influx.save_heat_pump_data.call_args[0][0]
@@ -436,7 +416,7 @@ class TestCollectorService:
             power_watts=1234.56,
             voltage=229.5,
             current=5.38,
-            total_energy_wh=98765.43
+            total_energy_wh=98765.43,
         )
         mock_shelly.get_reading.return_value = reading
 
@@ -455,7 +435,7 @@ class TestCollectorService:
         readings = [
             PowerReading(timestamp=now - timedelta(seconds=60), power_watts=1234.567),
             PowerReading(timestamp=now - timedelta(seconds=30), power_watts=2345.678),
-            PowerReading(timestamp=now, power_watts=3456.789)
+            PowerReading(timestamp=now, power_watts=3456.789),
         ]
         collector._power_buffer.extend(readings)
 

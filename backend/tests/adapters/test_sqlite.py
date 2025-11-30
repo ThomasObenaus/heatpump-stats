@@ -3,8 +3,7 @@ import sqlite3
 import tempfile
 import os
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
-from pathlib import Path
+from unittest.mock import patch
 
 from heatpump_stats.adapters.sqlite import SqliteAdapter
 from heatpump_stats.domain.configuration import (
@@ -12,7 +11,7 @@ from heatpump_stats.domain.configuration import (
     CircuitConfig,
     DHWConfig,
     WeeklySchedule,
-    TimeSlot
+    TimeSlot,
 )
 
 
@@ -22,19 +21,19 @@ class TestSqliteAdapter:
     @pytest.fixture
     def temp_db_path(self):
         """Create a temporary database file path."""
-        fd, path = tempfile.mkstemp(suffix='.db')
+        fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         yield path
         # Cleanup
         try:
             os.unlink(path)
-        except:
+        except Exception:
             pass
 
     @pytest.fixture
     def mock_settings(self, temp_db_path):
         """Mock settings with temporary database path."""
-        with patch('heatpump_stats.adapters.sqlite.settings') as mock:
+        with patch("heatpump_stats.adapters.sqlite.settings") as mock:
             mock.SQLITE_DB_PATH = temp_db_path
             yield mock
 
@@ -53,20 +52,17 @@ class TestSqliteAdapter:
                     name="Living Room",
                     temp_comfort=22.0,
                     temp_normal=20.0,
-                    temp_reduced=18.0
+                    temp_reduced=18.0,
                 ),
                 CircuitConfig(
                     circuit_id=1,
                     name="Bedroom",
                     temp_comfort=20.0,
                     temp_normal=19.0,
-                    temp_reduced=17.0
-                )
+                    temp_reduced=17.0,
+                ),
             ],
-            dhw=DHWConfig(
-                active=True,
-                temp_target=50.0
-            )
+            dhw=DHWConfig(active=True, temp_target=50.0),
         )
 
     @pytest.fixture
@@ -75,15 +71,10 @@ class TestSqliteAdapter:
         schedule = WeeklySchedule(
             active=True,
             mon=[
-                TimeSlot(start="06:00", end="08:00",
-                         mode="comfort", position=0),
-                TimeSlot(start="17:00", end="22:00",
-                         mode="comfort", position=1)
+                TimeSlot(start="06:00", end="08:00", mode="comfort", position=0),
+                TimeSlot(start="17:00", end="22:00", mode="comfort", position=1),
             ],
-            tue=[
-                TimeSlot(start="06:00", end="08:00",
-                         mode="comfort", position=0)
-            ]
+            tue=[TimeSlot(start="06:00", end="08:00", mode="comfort", position=0)],
         )
 
         return HeatPumpConfig(
@@ -94,14 +85,10 @@ class TestSqliteAdapter:
                     temp_comfort=22.0,
                     temp_normal=20.0,
                     temp_reduced=18.0,
-                    schedule=schedule
+                    schedule=schedule,
                 )
             ],
-            dhw=DHWConfig(
-                active=True,
-                temp_target=50.0,
-                schedule=schedule
-            )
+            dhw=DHWConfig(active=True, temp_target=50.0, schedule=schedule),
         )
 
     def test_initialization(self, temp_db_path):
@@ -117,9 +104,7 @@ class TestSqliteAdapter:
 
         # Verify table exists
         with sqlite3.connect(temp_db_path) as conn:
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='configs'"
-            )
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='configs'")
             assert cursor.fetchone() is not None
 
     def test_database_schema_columns(self, temp_db_path):
@@ -130,28 +115,28 @@ class TestSqliteAdapter:
             cursor = conn.execute("PRAGMA table_info(configs)")
             columns = {row[1]: row[2] for row in cursor.fetchall()}
 
-            assert 'id' in columns
-            assert 'timestamp' in columns
-            assert 'config_json' in columns
-            assert columns['timestamp'] == 'TEXT'
-            assert columns['config_json'] == 'TEXT'
+            assert "id" in columns
+            assert "timestamp" in columns
+            assert "config_json" in columns
+            assert columns["timestamp"] == "TEXT"
+            assert columns["config_json"] == "TEXT"
 
     def test_init_db_creates_directory(self, temp_db_path):
         """Test that initialization creates parent directories if needed."""
         # Create a path with non-existent parent directory
-        parent_dir = os.path.join(os.path.dirname(temp_db_path), 'test_subdir')
-        db_path = os.path.join(parent_dir, 'test.db')
+        parent_dir = os.path.join(os.path.dirname(temp_db_path), "test_subdir")
+        db_path = os.path.join(parent_dir, "test.db")
 
         try:
             os.makedirs(parent_dir, exist_ok=True)
-            adapter = SqliteAdapter(db_path=db_path)
+            SqliteAdapter(db_path=db_path)
             assert os.path.exists(db_path)
         finally:
             # Cleanup
             try:
                 os.unlink(db_path)
                 os.rmdir(parent_dir)
-            except:
+            except Exception:
                 pass
 
     def test_init_db_error_handling(self):
@@ -298,7 +283,7 @@ class TestSqliteAdapter:
         with sqlite3.connect(adapter.db_path) as conn:
             conn.execute(
                 "INSERT INTO configs (timestamp, config_json) VALUES (?, ?)",
-                (datetime.now(timezone.utc).isoformat(), "invalid json {{{")
+                (datetime.now(timezone.utc).isoformat(), "invalid json {{{"),
             )
             conn.commit()
 
@@ -329,7 +314,7 @@ class TestSqliteAdapter:
                     name=None,
                     temp_comfort=None,
                     temp_normal=None,
-                    temp_reduced=None
+                    temp_reduced=None,
                 )
             ]
         )
@@ -349,14 +334,7 @@ class TestSqliteAdapter:
         # Create multiple configs with different values
         configs = []
         for i in range(5):
-            config = HeatPumpConfig(
-                circuits=[
-                    CircuitConfig(
-                        circuit_id=0,
-                        temp_comfort=20.0 + i
-                    )
-                ]
-            )
+            config = HeatPumpConfig(circuits=[CircuitConfig(circuit_id=0, temp_comfort=20.0 + i)])
             configs.append(config)
 
         # Save concurrently
@@ -373,9 +351,7 @@ class TestSqliteAdapter:
         """Test that multiple saves preserve insertion order."""
         configs = []
         for i in range(3):
-            config = HeatPumpConfig(
-                circuits=[CircuitConfig(circuit_id=0, temp_comfort=20.0 + i)]
-            )
+            config = HeatPumpConfig(circuits=[CircuitConfig(circuit_id=0, temp_comfort=20.0 + i)])
             await adapter.save_config(config)
             configs.append(config)
 
@@ -431,7 +407,7 @@ class TestSqliteAdapter:
         finally:
             try:
                 os.unlink(custom_path)
-            except:
+            except Exception:
                 pass
 
         # Test that it uses some default path when not specified
@@ -512,7 +488,7 @@ class TestSqliteAdapter:
             circuits=[
                 CircuitConfig(
                     circuit_id=0,
-                    name="Room with \"quotes\" and 'apostrophes' & symbols"
+                    name="Room with \"quotes\" and 'apostrophes' & symbols",
                 )
             ]
         )

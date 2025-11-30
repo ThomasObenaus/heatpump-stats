@@ -24,11 +24,9 @@ class TestShellyAdapter:
                 "total_current": 1.091,
                 "a_voltage": 223.9,
                 "b_voltage": 224.5,
-                "c_voltage": 222.3
+                "c_voltage": 222.3,
             },
-            "emdata:0": {
-                "total_act": 166778.15
-            }
+            "emdata:0": {"total_act": 166778.15},
         }
 
     @pytest.fixture
@@ -40,11 +38,9 @@ class TestShellyAdapter:
                 "total_current": 0.0,
                 "a_voltage": 0.0,
                 "b_voltage": 0.0,
-                "c_voltage": 0.0
+                "c_voltage": 0.0,
             },
-            "emdata:0": {
-                "total_act": 0.0
-            }
+            "emdata:0": {"total_act": 0.0},
         }
 
     @pytest.fixture
@@ -54,12 +50,10 @@ class TestShellyAdapter:
             "em:0": {
                 "total_act_power": 100.5,
                 "total_current": 1.5,
-                "a_voltage": 230.0
+                "a_voltage": 230.0,
                 # Missing b_voltage and c_voltage
             },
-            "emdata:0": {
-                "total_act": 200000.0
-            }
+            "emdata:0": {"total_act": 200000.0},
         }
 
     @pytest.mark.asyncio
@@ -104,14 +98,13 @@ class TestShellyAdapter:
         mock_response.status_code = 200
         mock_response.json.return_value = mock_pro_3em_response
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             reading = await adapter.get_reading()
 
             # Verify the request
-            mock_get.assert_called_once_with(
-                f"http://{adapter.host}/rpc/Shelly.GetStatus")
+            mock_get.assert_called_once_with(f"http://{adapter.host}/rpc/Shelly.GetStatus")
 
             # Verify the reading
             assert isinstance(reading, PowerReading)
@@ -135,7 +128,7 @@ class TestShellyAdapter:
         mock_response.status_code = 200
         mock_response.json.return_value = mock_pro_3em_minimal_response
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             reading = await adapter.get_reading()
@@ -152,7 +145,7 @@ class TestShellyAdapter:
         mock_response.status_code = 200
         mock_response.json.return_value = mock_pro_3em_partial_response
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             reading = await adapter.get_reading()
@@ -174,7 +167,7 @@ class TestShellyAdapter:
                 "total_current": 0.5,
                 "a_voltage": 230.0,
                 "b_voltage": 230.0,
-                "c_voltage": 230.0
+                "c_voltage": 230.0,
             }
             # Missing emdata:0
         }
@@ -183,7 +176,7 @@ class TestShellyAdapter:
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             reading = await adapter.get_reading()
@@ -199,7 +192,7 @@ class TestShellyAdapter:
         mock_response = MagicMock()
         mock_response.status_code = 401
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             with pytest.raises(Exception, match="Shelly Authentication Failed"):
@@ -210,11 +203,9 @@ class TestShellyAdapter:
         """Test handling of HTTP errors (e.g., 500)."""
         mock_response = MagicMock()
         mock_response.status_code = 500
-        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Server Error", request=MagicMock(), response=mock_response
-        )
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError("Server Error", request=MagicMock(), response=mock_response)
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             with pytest.raises(httpx.HTTPStatusError):
@@ -223,7 +214,7 @@ class TestShellyAdapter:
     @pytest.mark.asyncio
     async def test_get_reading_network_error(self, adapter):
         """Test handling of network errors."""
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = httpx.ConnectError("Connection refused")
 
             with pytest.raises(Exception):
@@ -232,7 +223,7 @@ class TestShellyAdapter:
     @pytest.mark.asyncio
     async def test_get_reading_timeout(self, adapter):
         """Test handling of timeout errors."""
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.side_effect = httpx.TimeoutException("Request timeout")
 
             with pytest.raises(Exception):
@@ -241,17 +232,13 @@ class TestShellyAdapter:
     @pytest.mark.asyncio
     async def test_get_reading_unknown_device_type(self, adapter):
         """Test handling of unknown device type (no em:0)."""
-        response_data = {
-            "some_other_key": {
-                "value": 123
-            }
-        }
+        response_data = {"some_other_key": {"value": 123}}
 
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             with pytest.raises(Exception, match="Unknown Shelly Gen 2 Device Type"):
@@ -264,7 +251,7 @@ class TestShellyAdapter:
         mock_response.status_code = 200
         mock_response.json.side_effect = ValueError("Invalid JSON")
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             with pytest.raises(Exception):
@@ -301,7 +288,7 @@ class TestShellyAdapter:
         mock_response.status_code = 200
         mock_response.json.return_value = mock_pro_3em_response
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             reading1 = await adapter.get_reading()
@@ -320,18 +307,16 @@ class TestShellyAdapter:
                 "total_current": 1.0,
                 "a_voltage": 220.0,
                 "b_voltage": 225.0,
-                "c_voltage": 230.0
+                "c_voltage": 230.0,
             },
-            "emdata:0": {
-                "total_act": 1000.0
-            }
+            "emdata:0": {"total_act": 1000.0},
         }
 
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
 
-        with patch.object(httpx.AsyncClient, 'get', new_callable=AsyncMock) as mock_get:
+        with patch.object(httpx.AsyncClient, "get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
 
             reading = await adapter.get_reading()
