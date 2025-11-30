@@ -93,28 +93,42 @@ class ViessmannAdapter:
             # Calculate Thermal Power (Delta T Method)
             # Formula: P (kW) = Flow (m3/h) * 1.16 * (T_supply - T_return)
             estimated_thermal_power_delta_t = None
-            if return_temp is not None and circuits_data:
-                # Strategy: Use the circuit that is currently active (pump on).
-                # If multiple are active or none are active, prefer Circuit 1 over Circuit 0.
-                selected_circuit = None
-                
-                # 1. Try to find active circuits
-                active_circuits = [c for c in circuits_data if c.pump_status == "on"]
-                
-                if active_circuits:
-                    # If multiple active, try to find Circuit 1, else take the first active one
-                    selected_circuit = next((c for c in active_circuits if c.circuit_id == 1), active_circuits[0])
-                else:
-                    # No active circuits, fallback to Circuit 1 if exists, else Circuit 0
-                    selected_circuit = next((c for c in circuits_data if c.circuit_id == 1), circuits_data[0])
+            if return_temp is not None:
+                supply_temp = None
 
-                if selected_circuit and selected_circuit.supply_temperature is not None:
-                    supply_temp = selected_circuit.supply_temperature
+                # Try to get secondary circuit supply temp (used during DHW and general heating)
+                secondary_supply = self._get_feature_property("heating.secondaryCircuit.sensors.temperature.supply", "value")
+
+                if secondary_supply is not None:
+                    # Use secondary circuit supply (more accurate, captures both heating and DHW modes)
+                    supply_temp = secondary_supply
+                    logger.debug(f"Delta T calc: Using secondary circuit supply temp: {supply_temp}")
+                elif circuits_data:
+                    # Fallback: Use heating circuit with pump on, prefer Circuit 1
+                    active_circuits = [c for c in circuits_data if c.pump_status and c.pump_status.lower() == "on"]
+                    if active_circuits:
+                        selected_circuit = next((c for c in active_circuits if c.circuit_id == 1), active_circuits[0])
+                    else:
+                        selected_circuit = next((c for c in circuits_data if c.circuit_id == 1), circuits_data[0])
+
+                    if selected_circuit and selected_circuit.supply_temperature is not None:
+                        supply_temp = selected_circuit.supply_temperature
+                        logger.debug(f"Delta T calc: Using circuit {selected_circuit.circuit_id} supply temp: {supply_temp}")
+
+                if supply_temp is not None:
                     delta_t = supply_temp - return_temp
+                    logger.debug(f"Delta T calc: supply_temp={supply_temp}, return_temp={return_temp}, delta_t={delta_t}")
                     # Only calculate if we are heating (Delta T > 0)
                     if delta_t > 0:
                         flow_rate_m3h = settings.ESTIMATED_FLOW_RATE / 1000.0
                         estimated_thermal_power_delta_t = flow_rate_m3h * 1.16 * delta_t
+                        logger.debug(f"Delta T calc: flow_rate_m3h={flow_rate_m3h}, result={estimated_thermal_power_delta_t}")
+                    else:
+                        logger.debug(f"Delta T calc: Skipped - delta_t ({delta_t}) <= 0")
+                else:
+                    logger.debug("Delta T calc: Skipped - no supply temperature available")
+            else:
+                logger.debug(f"Delta T calc: Skipped - return_temp is None")
 
             # 4. DHW Pump
             dhw_pump_status = self._get_feature_property("heating.dhw.pumps.circulation", "status")
