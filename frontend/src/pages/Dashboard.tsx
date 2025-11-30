@@ -90,7 +90,7 @@ const Dashboard: React.FC = () => {
             color="yellow"
             icon={<Activity className="h-6 w-6" />}
             subtext={circuit.pump_status ? `Pump: ${circuit.pump_status}` : "Pump: Unknown"}
-            className={circuit.pump_status === "on" ? "bg-green-50" : "bg-gray-50"}
+            className={circuit.pump_status === "on" ? "bg-green-100" : "bg-gray-200"}
           />
         ))}
       </div>
