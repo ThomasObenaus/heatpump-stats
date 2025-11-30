@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 from influxdb_client.client.write.point import Point
 
@@ -151,6 +151,10 @@ class InfluxDBAdapter:
             |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
         """
         records = await self._query(query)
+
+        latest_hp = await self.get_latest_heat_pump_data()
+        latest_power = await self.get_latest_power_reading()
+
         if not records:
             return SystemStatus(
                 heat_pump_online=False,
@@ -158,6 +162,8 @@ class InfluxDBAdapter:
                 database_connected=False,
                 message="No status data available",
                 last_update=datetime.now(),
+                latest_heat_pump_data=latest_hp,
+                latest_power_reading=latest_power,
             )
 
         record = records[0]
@@ -167,6 +173,55 @@ class InfluxDBAdapter:
             database_connected=bool(record.get("db_connected", 0)),
             message=record.get("message", ""),
             last_update=record["_time"],
+            latest_heat_pump_data=latest_hp,
+            latest_power_reading=latest_power,
+        )
+
+    async def get_latest_heat_pump_data(self) -> Optional[HeatPumpData]:
+        query = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: -1h)
+            |> filter(fn: (r) => r["_measurement"] == "heat_pump")
+            |> last()
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        """
+        records = await self._query(query)
+        if not records:
+            return None
+
+        record = records[0]
+        return HeatPumpData(
+            timestamp=record["_time"],
+            outside_temperature=record.get("outside_temp"),
+            return_temperature=record.get("return_temp"),
+            dhw_storage_temperature=record.get("dhw_storage_temp"),
+            compressor_modulation=record.get("compressor_modulation"),
+            compressor_power_rated=record.get("compressor_power_rated"),
+            compressor_runtime_hours=record.get("compressor_runtime"),
+            estimated_thermal_power=record.get("thermal_power"),
+            circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
+            circuits=[],
+        )
+
+    async def get_latest_power_reading(self) -> Optional[PowerReading]:
+        query = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: -1h)
+            |> filter(fn: (r) => r["_measurement"] == "power_meter")
+            |> last()
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        """
+        records = await self._query(query)
+        if not records:
+            return None
+
+        record = records[0]
+        return PowerReading(
+            timestamp=record["_time"],
+            power_watts=record.get("power_watts", 0.0),
+            voltage=record.get("voltage"),
+            current=record.get("current"),
+            total_energy_wh=record.get("total_energy_wh"),
         )
 
     async def _query(self, query: str) -> List[dict]:

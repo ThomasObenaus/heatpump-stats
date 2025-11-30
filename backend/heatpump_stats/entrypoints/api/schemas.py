@@ -47,6 +47,8 @@ class SystemStatusResponse(BaseModel):
     database_connected: bool
     message: str
     last_update: datetime
+    latest_heat_pump_data: Optional[HeatPumpDataResponse] = None
+    latest_power_reading: Optional[PowerReadingResponse] = None
 
 
 class ChangelogEntryResponse(BaseModel):

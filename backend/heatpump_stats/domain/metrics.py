@@ -51,6 +51,10 @@ class SystemStatus(BaseModel):
     last_update: datetime
     message: str = "OK"
 
+    # Latest readings for dashboard
+    latest_heat_pump_data: Optional[HeatPumpData] = None
+    latest_power_reading: Optional[PowerReading] = None
+
 
 class ChangelogEntry(BaseModel):
     id: Optional[int] = None
