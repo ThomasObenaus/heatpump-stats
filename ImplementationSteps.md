@@ -70,17 +70,17 @@
 - [x] Implement `GET /api/history`: Flux queries for historical data (resampled).
 - **Deliverable**: API serving JSON data for charts.
 
-### Step 2.3: Changelog Endpoints (SQLite Integration)
+### Step 2.3: Changelog Endpoints (SQLite Integration) (Completed)
 
-- Implement `GET /api/changelog`: List changes with filtering.
-- Implement `POST /api/changelog`: Add manual user notes.
+- [x] Implement `GET /api/changelog`: List changes with filtering.
+- [x] Implement `POST /api/changelog`: Add manual user notes.
 - **Deliverable**: Full CRUD for system logs.
 
-### Step 2.4: Graceful Shutdown & Resource Management
+### Step 2.4: Graceful Shutdown & Resource Management (Completed)
 
-- Implement FastAPI `lifespan` context manager in `main.py`.
-- Manage `InfluxDBAdapter` and `SqliteAdapter` lifecycle (open/close).
-- Ensure dependencies in `dependencies.py` use the shared/managed instances or close their own.
+- [x] Implement FastAPI `lifespan` context manager in `main.py`.
+- [x] Manage `InfluxDBAdapter` and `SqliteAdapter` lifecycle (open/close).
+- [x] Ensure dependencies in `dependencies.py` use the shared/managed instances or close their own.
 - **Deliverable**: No resource leaks (unclosed connections) on application shutdown.
 
 ## Phase 3: Frontend Dashboard

@@ -1,4 +1,4 @@
-from typing import Protocol, List
+from typing import Protocol, List, Optional
 from datetime import datetime
 from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus, ChangelogEntry
 from heatpump_stats.domain.configuration import HeatPumpConfig
@@ -55,7 +55,7 @@ class ConfigRepositoryPort(Protocol):
         """
         ...
 
-    async def get_changelog(self, limit: int = 50, offset: int = 0) -> List[ChangelogEntry]:
+    async def get_changelog(self, limit: int = 50, offset: int = 0, category: Optional[str] = None) -> List[ChangelogEntry]:
         """
         Retrieve changelog entries.
         """

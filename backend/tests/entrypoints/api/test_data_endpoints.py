@@ -112,7 +112,16 @@ def test_get_changelog_success(mock_reporting_service, auth_headers):
     assert len(data) == 1
     assert data[0]["message"] == "Test note"
 
-    mock_reporting_service.get_changelog.assert_called_once_with(limit=10, offset=0)
+    mock_reporting_service.get_changelog.assert_called_once_with(limit=10, offset=0, category=None)
+
+
+def test_get_changelog_filtering(mock_reporting_service, auth_headers):
+    mock_reporting_service.get_changelog.return_value = []
+
+    response = client.get("/api/changelog?category=note", headers=auth_headers)
+
+    assert response.status_code == 200
+    mock_reporting_service.get_changelog.assert_called_once_with(limit=50, offset=0, category="note")
 
 
 def test_add_note_success(mock_reporting_service, auth_headers):

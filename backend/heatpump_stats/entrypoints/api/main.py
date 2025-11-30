@@ -1,13 +1,42 @@
 from datetime import timedelta
-from typing import Annotated, List
+from typing import Annotated, List, Optional
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from heatpump_stats.config import settings
 from heatpump_stats.entrypoints.api import schemas, security, dependencies
+from heatpump_stats.adapters.influxdb import InfluxDBAdapter
+from heatpump_stats.adapters.sqlite import SqliteAdapter
+from heatpump_stats.services.reporting import ReportingService
 
-app = FastAPI(title="HeatPump Stats API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    influx_adapter = InfluxDBAdapter(
+        url=settings.INFLUXDB_URL,
+        token=settings.INFLUXDB_TOKEN,
+        org=settings.INFLUXDB_ORG,
+        bucket_raw=settings.INFLUXDB_BUCKET_RAW,
+        bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
+    )
+    sqlite_adapter = SqliteAdapter(db_path=settings.SQLITE_DB_PATH)
+
+    app.state.reporting_service = ReportingService(
+        repository=influx_adapter,
+        config_repository=sqlite_adapter,
+    )
+
+    yield
+
+    # Shutdown
+    influx_adapter.close()
+
+
+app = FastAPI(title="HeatPump Stats API", lifespan=lifespan)
+
 
 
 @app.post("/token", response_model=schemas.Token)
@@ -62,8 +91,9 @@ async def get_changelog(
     reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
     limit: int = 50,
     offset: int = 0,
+    category: Optional[str] = None,
 ):
-    return await reporting_service.get_changelog(limit=limit, offset=offset)
+    return await reporting_service.get_changelog(limit=limit, offset=offset, category=category)
 
 
 @app.post("/api/changelog", response_model=schemas.ChangelogEntryResponse)

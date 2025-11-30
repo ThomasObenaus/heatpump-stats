@@ -117,74 +117,6 @@ async def test_get_current_user_empty_sub():
     assert exc_info.value.detail == "Could not validate credentials"
 
 
-@patch("heatpump_stats.entrypoints.api.dependencies.SqliteAdapter")
-@patch("heatpump_stats.entrypoints.api.dependencies.InfluxDBAdapter")
-def test_get_reporting_service(mock_influxdb_adapter, mock_sqlite_adapter):
-    """Test that get_reporting_service creates a ReportingService with InfluxDBAdapter and SqliteAdapter."""
-    # Arrange
-    mock_influx_instance = MagicMock()
-    mock_influxdb_adapter.return_value = mock_influx_instance
-    mock_sqlite_instance = MagicMock()
-    mock_sqlite_adapter.return_value = mock_sqlite_instance
-
-    # Act
-    service = dependencies.get_reporting_service()
-
-    # Assert
-    mock_influxdb_adapter.assert_called_once_with(
-        url=settings.INFLUXDB_URL,
-        token=settings.INFLUXDB_TOKEN,
-        org=settings.INFLUXDB_ORG,
-        bucket_raw=settings.INFLUXDB_BUCKET_RAW,
-        bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
-    )
-    mock_sqlite_adapter.assert_called_once_with(db_path=settings.SQLITE_DB_PATH)
-    assert service.repository == mock_influx_instance
-    assert service.config_repository == mock_sqlite_instance
-
-
-@patch("heatpump_stats.entrypoints.api.dependencies.SqliteAdapter")
-@patch("heatpump_stats.entrypoints.api.dependencies.InfluxDBAdapter")
-def test_get_reporting_service_creates_new_instance_each_time(mock_influxdb_adapter, mock_sqlite_adapter):
-    """Test that get_reporting_service creates a new adapter instance on each call."""
-    # Arrange
-    mock_influxdb_adapter.side_effect = [MagicMock(), MagicMock()]
-    mock_sqlite_adapter.side_effect = [MagicMock(), MagicMock()]
-
-    # Act
-    service1 = dependencies.get_reporting_service()
-    service2 = dependencies.get_reporting_service()
-
-    # Assert
-    assert mock_influxdb_adapter.call_count == 2
-    assert mock_sqlite_adapter.call_count == 2
-    assert service1.repository is not service2.repository
-    assert service1.config_repository is not service2.config_repository
-
-
-@patch("heatpump_stats.entrypoints.api.dependencies.SqliteAdapter")
-@patch("heatpump_stats.entrypoints.api.dependencies.InfluxDBAdapter")
-def test_get_reporting_service_uses_settings(mock_influxdb_adapter, mock_sqlite_adapter):
-    """Test that get_reporting_service uses values from settings."""
-    # Arrange
-    mock_influxdb_adapter.return_value = MagicMock()
-    mock_sqlite_adapter.return_value = MagicMock()
-
-    # Act
-    dependencies.get_reporting_service()
-
-    # Assert
-    call_args = mock_influxdb_adapter.call_args
-    assert call_args.kwargs["url"] == settings.INFLUXDB_URL
-    assert call_args.kwargs["token"] == settings.INFLUXDB_TOKEN
-    assert call_args.kwargs["org"] == settings.INFLUXDB_ORG
-    assert call_args.kwargs["bucket_raw"] == settings.INFLUXDB_BUCKET_RAW
-    assert call_args.kwargs["bucket_downsampled"] == settings.INFLUXDB_BUCKET_DOWNSAMPLED
-
-    call_args_sqlite = mock_sqlite_adapter.call_args
-    assert call_args_sqlite.kwargs["db_path"] == settings.SQLITE_DB_PATH
-
-
 @pytest.mark.asyncio
 async def test_get_current_user_none_username_in_payload():
     """Test that a token with None username raises HTTPException."""
@@ -198,3 +130,18 @@ async def test_get_current_user_none_username_in_payload():
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Could not validate credentials"
+
+
+def test_get_reporting_service():
+    """Test that get_reporting_service retrieves service from app state."""
+    # Arrange
+    mock_request = MagicMock()
+    mock_service = MagicMock()
+    mock_request.app.state.reporting_service = mock_service
+
+    # Act
+    service = dependencies.get_reporting_service(mock_request)
+
+    # Assert
+    assert service == mock_service
+
