@@ -35,6 +35,12 @@ class RepositoryPort(Protocol):
         """
         ...
 
+    async def get_latest_system_status(self) -> SystemStatus:
+        """
+        Retrieve the latest system status.
+        """
+        ...
+
 
 class ConfigRepositoryPort(Protocol):
     async def save_config(self, config: HeatPumpConfig) -> bool:

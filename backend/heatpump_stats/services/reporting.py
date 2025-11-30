@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from heatpump_stats.ports.repository import RepositoryPort
+from heatpump_stats.domain.metrics import SystemStatus
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +10,12 @@ logger = logging.getLogger(__name__)
 class ReportingService:
     def __init__(self, repository: RepositoryPort):
         self.repository = repository
+
+    async def get_system_status(self) -> SystemStatus:
+        """
+        Fetches the latest system status.
+        """
+        return await self.repository.get_latest_system_status()
 
     async def get_recent_history(self, duration: timedelta = timedelta(hours=24)) -> dict:
         """

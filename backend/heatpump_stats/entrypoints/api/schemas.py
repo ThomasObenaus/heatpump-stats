@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from datetime import datetime
+from typing import List, Optional
 
 
 class Token(BaseModel):
@@ -12,3 +14,36 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     username: str
+
+
+class HeatPumpDataResponse(BaseModel):
+    timestamp: datetime
+    outside_temperature: Optional[float] = None
+    return_temperature: Optional[float] = None
+    dhw_storage_temperature: Optional[float] = None
+    compressor_modulation: Optional[float] = None
+    compressor_power_rated: Optional[float] = None
+    compressor_runtime_hours: Optional[float] = None
+    estimated_thermal_power: Optional[float] = None
+    circulation_pump_active: bool
+
+
+class PowerReadingResponse(BaseModel):
+    timestamp: datetime
+    power_watts: float
+    voltage: Optional[float] = None
+    current: Optional[float] = None
+    total_energy_wh: Optional[float] = None
+
+
+class HistoryResponse(BaseModel):
+    heat_pump: List[HeatPumpDataResponse]
+    power: List[PowerReadingResponse]
+
+
+class SystemStatusResponse(BaseModel):
+    heat_pump_online: bool
+    power_meter_online: bool
+    database_connected: bool
+    message: str
+    last_update: datetime
