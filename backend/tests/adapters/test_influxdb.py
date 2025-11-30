@@ -98,6 +98,9 @@ class TestInfluxDBAdapter:
         """Test closing the InfluxDB client."""
         mock_client, _ = mock_influxdb_client
 
+        # Ensure client is initialized
+        _ = adapter.client
+
         await adapter.close()
 
         mock_client.close.assert_called_once()
@@ -365,13 +368,16 @@ class TestInfluxDBAdapter:
     async def test_client_initialization_parameters(self):
         """Test that InfluxDB client is initialized with correct parameters."""
         with patch("heatpump_stats.adapters.influxdb.InfluxDBClientAsync") as MockClient:
-            InfluxDBAdapter(
+            adapter = InfluxDBAdapter(
                 url="http://localhost:8086",
                 token="test_token",
                 org="test_org",
                 bucket_raw="test_bucket",
                 bucket_downsampled="test_bucket_downsampled",
             )
+
+            # Trigger initialization
+            _ = adapter.client
 
             MockClient.assert_called_once_with(url="http://localhost:8086", token="test_token", org="test_org")
 

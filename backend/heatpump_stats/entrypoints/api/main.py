@@ -37,3 +37,20 @@ async def read_users_me(
     current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
 ):
     return current_user
+
+
+@app.get("/api/status", response_model=schemas.SystemStatusResponse)
+async def get_system_status(
+    current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
+    reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
+):
+    return await reporting_service.get_system_status()
+
+
+@app.get("/api/history", response_model=schemas.HistoryResponse)
+async def get_history(
+    current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
+    reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
+    hours: int = 24,
+):
+    return await reporting_service.get_recent_history(duration=timedelta(hours=hours))

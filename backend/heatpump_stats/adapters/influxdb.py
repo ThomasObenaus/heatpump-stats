@@ -11,12 +11,22 @@ logger = logging.getLogger(__name__)
 
 class InfluxDBAdapter:
     def __init__(self, url: str, token: str, org: str, bucket_raw: str, bucket_downsampled: str):
-        self.client = InfluxDBClientAsync(url=url, token=token, org=org)
+        self.url = url
+        self.token = token
+        self.org = org
         self.bucket = bucket_raw
         self.bucket_downsampled = bucket_downsampled
+        self._client = None
+
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = InfluxDBClientAsync(url=self.url, token=self.token, org=self.org)
+        return self._client
 
     async def close(self):
-        await self.client.close()
+        if self._client:
+            await self._client.close()
 
     async def save_heat_pump_data(self, data: HeatPumpData) -> None:
         if not data.is_connected:
@@ -131,6 +141,33 @@ class InfluxDBAdapter:
             )
             for record in records
         ]
+
+    async def get_latest_system_status(self) -> SystemStatus:
+        query = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: -1h)
+            |> filter(fn: (r) => r["_measurement"] == "system_status")
+            |> last()
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+        """
+        records = await self._query(query)
+        if not records:
+            return SystemStatus(
+                heat_pump_online=False,
+                power_meter_online=False,
+                database_connected=False,
+                message="No status data available",
+                last_update=datetime.now(),
+            )
+
+        record = records[0]
+        return SystemStatus(
+            heat_pump_online=bool(record.get("hp_online", 0)),
+            power_meter_online=bool(record.get("pm_online", 0)),
+            database_connected=bool(record.get("db_connected", 0)),
+            message=record.get("message", ""),
+            last_update=record["_time"],
+        )
 
     async def _query(self, query: str) -> List[dict]:
         try:
