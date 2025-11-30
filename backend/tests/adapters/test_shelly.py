@@ -110,19 +110,20 @@ class TestShellyAdapter:
             reading = await adapter.get_reading()
 
             # Verify the request
-            mock_get.assert_called_once_with(f"http://{adapter.host}/rpc/Shelly.GetStatus")
+            mock_get.assert_called_once_with(
+                f"http://{adapter.host}/rpc/Shelly.GetStatus")
 
             # Verify the reading
             assert isinstance(reading, PowerReading)
             assert reading.power_watts == 75.651
             assert reading.current == 1.091
             assert reading.total_energy_wh == 166778.15
-            
+
             # Calculate expected average voltage
             expected_voltage = (223.9 + 224.5 + 222.3) / 3.0
             assert reading.voltage is not None
             assert abs(reading.voltage - expected_voltage) < 0.01
-            
+
             # Verify timestamp is recent
             assert isinstance(reading.timestamp, datetime)
             assert reading.timestamp.tzinfo == timezone.utc
@@ -177,7 +178,7 @@ class TestShellyAdapter:
             }
             # Missing emdata:0
         }
-        
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
@@ -245,7 +246,7 @@ class TestShellyAdapter:
                 "value": 123
             }
         }
-        
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
@@ -273,7 +274,7 @@ class TestShellyAdapter:
     async def test_parse_gen2_status_with_valid_data(self, adapter, mock_pro_3em_response):
         """Test _parse_gen2_status with valid data."""
         reading = adapter._parse_gen2_status(mock_pro_3em_response)
-        
+
         assert isinstance(reading, PowerReading)
         assert reading.power_watts == 75.651
         assert reading.current == 1.091
@@ -283,7 +284,7 @@ class TestShellyAdapter:
     async def test_parse_gen2_status_missing_em0(self, adapter):
         """Test _parse_gen2_status raises error when em:0 is missing."""
         invalid_data = {"some_key": "some_value"}
-        
+
         with pytest.raises(Exception, match="Unknown Shelly Gen 2 Device Type"):
             adapter._parse_gen2_status(invalid_data)
 
@@ -325,7 +326,7 @@ class TestShellyAdapter:
                 "total_act": 1000.0
             }
         }
-        
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
@@ -344,9 +345,9 @@ class TestShellyAdapter:
         """Test that client is recreated after being closed."""
         client1 = adapter._get_client()
         await adapter.close()
-        
+
         client2 = adapter._get_client()
-        
+
         assert client1 is not client2
         assert not client1.is_closed or client1.is_closed
         assert not client2.is_closed
