@@ -575,3 +575,65 @@ class TestInfluxDBAdapter:
         # Should return empty list and log error
         result = await adapter._query("fake query")
         assert result == []
+
+    @pytest.mark.asyncio
+    async def test_get_latest_heat_pump_data_with_multiple_circuits(self, adapter, mock_influxdb_client):
+        """Test retrieving latest heat pump data with multiple circuits."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response for main heat pump data
+        mock_hp_record = MagicMock()
+        mock_hp_record.values = {
+            "_time": datetime(2025, 11, 26, 12, 0, 0, tzinfo=timezone.utc),
+            "outside_temp": 5.2,
+            "return_temp": 32.5,
+            "dhw_storage_temp": 48.0,
+            "compressor_modulation": 65.5,
+            "compressor_power_rated": 16.0,
+            "compressor_runtime": 1234.5,
+            "thermal_power": 10.48,
+            "dhw_pump_active": 1,
+        }
+        mock_hp_table = MagicMock()
+        mock_hp_table.records = [mock_hp_record]
+
+        # Mock response for circuits (raw un-pivoted data)
+        # Circuit 0
+        r1 = MagicMock()
+        r1.values = {"circuit_id": "0", "_field": "supply_temp", "_value": 35.0}
+        r2 = MagicMock()
+        r2.values = {"circuit_id": "0", "_field": "pump_status", "_value": "on"}
+        # Circuit 1
+        r3 = MagicMock()
+        r3.values = {"circuit_id": "1", "_field": "supply_temp", "_value": 30.5}
+        r4 = MagicMock()
+        r4.values = {"circuit_id": "1", "_field": "pump_status", "_value": "off"}
+
+        mock_circuit_table = MagicMock()
+        mock_circuit_table.records = [r1, r2, r3, r4]
+
+        # The adapter makes two queries: one for HP data, one for circuits
+        # We need to mock the return value of query() to return different results for each call
+        # But query() returns a list of tables.
+
+        # First call returns HP data
+        # Second call returns Circuit data
+        mock_query_api.query.side_effect = [[mock_hp_table], [mock_circuit_table]]
+
+        data = await adapter.get_latest_heat_pump_data()
+
+        assert data is not None
+        assert len(data.circuits) == 2
+
+        c0 = data.circuits[0]
+        assert c0.circuit_id == 0
+        assert c0.supply_temperature == 35.0
+        assert c0.pump_status == "on"
+
+        c1 = data.circuits[1]
+        assert c1.circuit_id == 1
+        assert c1.supply_temperature == 30.5
+        assert c1.pump_status == "off"
