@@ -14,6 +14,7 @@ async def test_lifespan():
          patch("heatpump_stats.entrypoints.api.main.ReportingService") as mock_service_cls:
         
         mock_influx = MagicMock()
+        mock_influx.close = AsyncMock()
         mock_influx_cls.return_value = mock_influx
         
         mock_sqlite = MagicMock()

@@ -32,11 +32,10 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    influx_adapter.close()
+    await influx_adapter.close()
 
 
 app = FastAPI(title="HeatPump Stats API", lifespan=lifespan)
-
 
 
 @app.post("/token", response_model=schemas.Token)
