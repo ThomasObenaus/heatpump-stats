@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface StatusWidgetProps {
   title: string;
@@ -13,6 +14,24 @@ interface StatusWidgetProps {
 
 const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, color = "blue", subtext, className, tooltip }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number; showAbove: boolean }>({ top: 0, left: 0, showAbove: false });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (showTooltip && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const tooltipHeight = 200; // Approximate max height
+      const spaceBelow = window.innerHeight - buttonRect.bottom;
+      const showAbove = spaceBelow < tooltipHeight && buttonRect.top > tooltipHeight;
+      
+      setTooltipPosition({
+        top: showAbove ? buttonRect.top - 8 : buttonRect.bottom + 8,
+        left: Math.min(buttonRect.left, window.innerWidth - 270), // Keep tooltip on screen
+        showAbove,
+      });
+    }
+  }, [showTooltip]);
+
   const colorClasses = {
     blue: "bg-blue-50 text-blue-700",
     green: "bg-green-50 text-green-700",
@@ -36,6 +55,7 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
                 {tooltip && (
                   <div className="relative inline-block flex-shrink-0">
                     <button
+                      ref={buttonRef}
                       type="button"
                       className="text-blue-400 hover:text-blue-600 focus:outline-none"
                       onMouseEnter={() => setShowTooltip(true)}
@@ -51,10 +71,20 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
                         />
                       </svg>
                     </button>
-                    {showTooltip && (
-                      <div className="absolute z-50 w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg right-0 top-6 whitespace-pre-line">
+                    {showTooltip && createPortal(
+                      <div
+                        className="fixed z-[9999] w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg whitespace-pre-line"
+                        style={{
+                          top: tooltipPosition.showAbove ? 'auto' : tooltipPosition.top,
+                          bottom: tooltipPosition.showAbove ? window.innerHeight - tooltipPosition.top : 'auto',
+                          left: tooltipPosition.left,
+                        }}
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                      >
                         {tooltip}
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                 )}
