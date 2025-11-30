@@ -34,6 +34,68 @@ def auth_headers():
     return {"Authorization": f"Bearer {access_token}"}
 
 
+def test_health_check_no_auth_required():
+    """Test that the health endpoint does not require authentication."""
+    # No auth headers provided
+    response = client.get("/health")
+
+    assert response.status_code == 200
+
+
+def test_login_invalid_username():
+    """Test login with invalid username returns 401."""
+    response = client.post(
+        "/token",
+        data={"username": "wrong_user", "password": settings.API_PASSWORD},
+    )
+
+    assert response.status_code == 401
+    data = response.json()
+    assert data["detail"] == "Incorrect username or password"
+
+
+def test_login_invalid_password():
+    """Test login with invalid password returns 401."""
+    response = client.post(
+        "/token",
+        data={"username": settings.API_USERNAME, "password": "wrong_password"},
+    )
+
+    assert response.status_code == 401
+    data = response.json()
+    assert data["detail"] == "Incorrect username or password"
+
+
+def test_login_empty_credentials():
+    """Test login with empty credentials returns 401."""
+    response = client.post(
+        "/token",
+        data={"username": "", "password": ""},
+    )
+
+    assert response.status_code == 401
+    data = response.json()
+    assert data["detail"] == "Incorrect username or password"
+
+
+def test_login_token_can_be_used_for_auth():
+    """Test that the token returned from login can be used for authentication."""
+    # First, login to get a token
+    login_response = client.post(
+        "/token",
+        data={"username": settings.API_USERNAME, "password": settings.API_PASSWORD},
+    )
+    assert login_response.status_code == 200
+    token = login_response.json()["access_token"]
+
+    # Use the token to access a protected endpoint
+    response = client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == settings.API_USERNAME
+
+
 def test_get_status_success(mock_reporting_service, auth_headers):
     # Mock the service response
     mock_status = SystemStatus(
