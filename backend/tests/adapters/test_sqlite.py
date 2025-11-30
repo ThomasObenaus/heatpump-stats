@@ -498,3 +498,49 @@ class TestSqliteAdapter:
 
         assert loaded_config is not None
         assert loaded_config.circuits[0].name == "Room with \"quotes\" and 'apostrophes' & symbols"
+
+    @pytest.mark.asyncio
+    async def test_save_changelog_entry(self, adapter):
+        """Test saving a changelog entry."""
+        from heatpump_stats.domain.metrics import ChangelogEntry
+
+        entry = ChangelogEntry(
+            category="note",
+            author="user",
+            message="Test note",
+            details="Some details",
+        )
+        await adapter.save_changelog_entry(entry)
+
+        with sqlite3.connect(adapter.db_path) as conn:
+            cursor = conn.execute("SELECT category, message FROM changelog")
+            row = cursor.fetchone()
+            assert row[0] == "note"
+            assert row[1] == "Test note"
+
+    @pytest.mark.asyncio
+    async def test_get_changelog(self, adapter):
+        """Test retrieving changelog entries."""
+        from heatpump_stats.domain.metrics import ChangelogEntry
+
+        entry1 = ChangelogEntry(category="note", author="user", message="Note 1")
+        entry2 = ChangelogEntry(category="system", author="system", message="Event 2")
+
+        await adapter.save_changelog_entry(entry1)
+        await adapter.save_changelog_entry(entry2)
+
+        entries = await adapter.get_changelog()
+        assert len(entries) == 2
+        # Should be ordered by timestamp DESC (latest first)
+        assert entries[0].message == "Event 2"
+        assert entries[1].message == "Note 1"
+
+    @pytest.mark.asyncio
+    async def test_save_config_creates_changelog(self, adapter, sample_config):
+        """Test that saving a config creates a changelog entry."""
+        await adapter.save_config(sample_config)
+
+        entries = await adapter.get_changelog()
+        assert len(entries) == 1
+        assert entries[0].category == "config"
+        assert entries[0].message == "Configuration change detected"

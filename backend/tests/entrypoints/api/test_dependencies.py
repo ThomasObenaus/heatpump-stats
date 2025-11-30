@@ -117,12 +117,15 @@ async def test_get_current_user_empty_sub():
     assert exc_info.value.detail == "Could not validate credentials"
 
 
+@patch("heatpump_stats.entrypoints.api.dependencies.SqliteAdapter")
 @patch("heatpump_stats.entrypoints.api.dependencies.InfluxDBAdapter")
-def test_get_reporting_service(mock_influxdb_adapter):
-    """Test that get_reporting_service creates a ReportingService with InfluxDBAdapter."""
+def test_get_reporting_service(mock_influxdb_adapter, mock_sqlite_adapter):
+    """Test that get_reporting_service creates a ReportingService with InfluxDBAdapter and SqliteAdapter."""
     # Arrange
-    mock_adapter_instance = MagicMock()
-    mock_influxdb_adapter.return_value = mock_adapter_instance
+    mock_influx_instance = MagicMock()
+    mock_influxdb_adapter.return_value = mock_influx_instance
+    mock_sqlite_instance = MagicMock()
+    mock_sqlite_adapter.return_value = mock_sqlite_instance
 
     # Act
     service = dependencies.get_reporting_service()
@@ -135,16 +138,18 @@ def test_get_reporting_service(mock_influxdb_adapter):
         bucket_raw=settings.INFLUXDB_BUCKET_RAW,
         bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
     )
-    assert service.repository == mock_adapter_instance
+    mock_sqlite_adapter.assert_called_once_with(db_path=settings.SQLITE_DB_PATH)
+    assert service.repository == mock_influx_instance
+    assert service.config_repository == mock_sqlite_instance
 
 
+@patch("heatpump_stats.entrypoints.api.dependencies.SqliteAdapter")
 @patch("heatpump_stats.entrypoints.api.dependencies.InfluxDBAdapter")
-def test_get_reporting_service_creates_new_instance_each_time(mock_influxdb_adapter):
+def test_get_reporting_service_creates_new_instance_each_time(mock_influxdb_adapter, mock_sqlite_adapter):
     """Test that get_reporting_service creates a new adapter instance on each call."""
     # Arrange
-    mock_adapter_instance1 = MagicMock()
-    mock_adapter_instance2 = MagicMock()
-    mock_influxdb_adapter.side_effect = [mock_adapter_instance1, mock_adapter_instance2]
+    mock_influxdb_adapter.side_effect = [MagicMock(), MagicMock()]
+    mock_sqlite_adapter.side_effect = [MagicMock(), MagicMock()]
 
     # Act
     service1 = dependencies.get_reporting_service()
@@ -152,17 +157,18 @@ def test_get_reporting_service_creates_new_instance_each_time(mock_influxdb_adap
 
     # Assert
     assert mock_influxdb_adapter.call_count == 2
-    assert service1.repository == mock_adapter_instance1
-    assert service2.repository == mock_adapter_instance2
+    assert mock_sqlite_adapter.call_count == 2
     assert service1.repository is not service2.repository
+    assert service1.config_repository is not service2.config_repository
 
 
+@patch("heatpump_stats.entrypoints.api.dependencies.SqliteAdapter")
 @patch("heatpump_stats.entrypoints.api.dependencies.InfluxDBAdapter")
-def test_get_reporting_service_uses_settings(mock_influxdb_adapter):
+def test_get_reporting_service_uses_settings(mock_influxdb_adapter, mock_sqlite_adapter):
     """Test that get_reporting_service uses values from settings."""
     # Arrange
-    mock_adapter_instance = MagicMock()
-    mock_influxdb_adapter.return_value = mock_adapter_instance
+    mock_influxdb_adapter.return_value = MagicMock()
+    mock_sqlite_adapter.return_value = MagicMock()
 
     # Act
     dependencies.get_reporting_service()
@@ -174,6 +180,9 @@ def test_get_reporting_service_uses_settings(mock_influxdb_adapter):
     assert call_args.kwargs["org"] == settings.INFLUXDB_ORG
     assert call_args.kwargs["bucket_raw"] == settings.INFLUXDB_BUCKET_RAW
     assert call_args.kwargs["bucket_downsampled"] == settings.INFLUXDB_BUCKET_DOWNSAMPLED
+
+    call_args_sqlite = mock_sqlite_adapter.call_args
+    assert call_args_sqlite.kwargs["db_path"] == settings.SQLITE_DB_PATH
 
 
 @pytest.mark.asyncio

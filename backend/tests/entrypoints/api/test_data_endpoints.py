@@ -5,7 +5,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from heatpump_stats.config import settings
-from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus
+from heatpump_stats.domain.metrics import (
+    ChangelogEntry,
+    HeatPumpData,
+    PowerReading,
+    SystemStatus,
+)
 from heatpump_stats.entrypoints.api.main import app
 from heatpump_stats.entrypoints.api import dependencies
 
@@ -88,3 +93,47 @@ def test_get_history_success(mock_reporting_service, auth_headers):
     mock_reporting_service.get_recent_history.assert_called_once()
     call_args = mock_reporting_service.get_recent_history.call_args
     assert call_args.kwargs["duration"] == timedelta(hours=12)
+
+
+def test_get_changelog_success(mock_reporting_service, auth_headers):
+    from heatpump_stats.domain.metrics import ChangelogEntry
+
+    mock_entry = ChangelogEntry(
+        id=1,
+        timestamp=datetime.now(timezone.utc),
+        category="note",
+        author="user",
+        message="Test note",
+    )
+    mock_reporting_service.get_changelog.return_value = [mock_entry]
+
+    response = client.get("/api/changelog?limit=10&offset=0", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["message"] == "Test note"
+
+    mock_reporting_service.get_changelog.assert_called_once_with(limit=10, offset=0)
+
+
+def test_add_note_success(mock_reporting_service, auth_headers):
+    from heatpump_stats.domain.metrics import ChangelogEntry
+
+    mock_entry = ChangelogEntry(
+        id=1,
+        timestamp=datetime.now(timezone.utc),
+        category="note",
+        author=settings.API_USERNAME,
+        message="New note",
+    )
+    mock_reporting_service.add_note.return_value = mock_entry
+
+    response = client.post("/api/changelog", json={"message": "New note"}, headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["message"] == "New note"
+    assert data["author"] == settings.API_USERNAME
+
+    mock_reporting_service.add_note.assert_called_once_with(message="New note", author=settings.API_USERNAME)

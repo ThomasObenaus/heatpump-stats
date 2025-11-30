@@ -47,3 +47,16 @@ class SystemStatusResponse(BaseModel):
     database_connected: bool
     message: str
     last_update: datetime
+
+
+class ChangelogEntryResponse(BaseModel):
+    id: Optional[int] = None
+    timestamp: datetime
+    category: str
+    author: str
+    message: str
+    details: Optional[str] = None
+
+
+class CreateNoteRequest(BaseModel):
+    message: str
