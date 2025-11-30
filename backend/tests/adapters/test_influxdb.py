@@ -439,3 +439,139 @@ class TestInfluxDBAdapter:
 
             # Reset for next iteration
             mock_write_api.write.reset_mock()
+
+    @pytest.mark.asyncio
+    async def test_get_heat_pump_history(self, adapter, mock_influxdb_client):
+        """Test retrieving heat pump history."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response data
+        mock_record = MagicMock()
+        mock_record.values = {
+            "_time": datetime(2025, 11, 26, 12, 0, 0, tzinfo=timezone.utc),
+            "outside_temp": 5.2,
+            "return_temp": 32.5,
+            "dhw_storage_temp": 48.0,
+            "compressor_modulation": 65.5,
+            "compressor_power_rated": 16.0,
+            "compressor_runtime": 1234.5,
+            "thermal_power": 10.48,
+            "dhw_pump_active": 1,
+        }
+
+        mock_table = MagicMock()
+        mock_table.records = [mock_record]
+
+        mock_query_api.query.return_value = [mock_table]
+
+        start = datetime(2025, 11, 26, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 11, 26, 23, 59, 59, tzinfo=timezone.utc)
+
+        history = await adapter.get_heat_pump_history(start, end)
+
+        assert len(history) == 1
+        data = history[0]
+        assert data.outside_temperature == 5.2
+        assert data.return_temperature == 32.5
+        assert data.circulation_pump_active is True
+        assert data.estimated_thermal_power == 10.48
+
+    @pytest.mark.asyncio
+    async def test_get_power_history(self, adapter, mock_influxdb_client):
+        """Test retrieving power history."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response data
+        mock_record = MagicMock()
+        mock_record.values = {
+            "_time": datetime(2025, 11, 26, 12, 0, 0, tzinfo=timezone.utc),
+            "power_watts": 1500.0,
+            "voltage": 230.0,
+            "current": 6.5,
+            "total_energy_wh": 50000.0,
+        }
+
+        mock_table = MagicMock()
+        mock_table.records = [mock_record]
+
+        mock_query_api.query.return_value = [mock_table]
+
+        start = datetime(2025, 11, 26, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 11, 26, 23, 59, 59, tzinfo=timezone.utc)
+
+        history = await adapter.get_power_history(start, end)
+
+        assert len(history) == 1
+        data = history[0]
+        assert data.power_watts == 1500.0
+        assert data.voltage == 230.0
+        assert data.current == 6.5
+        assert data.total_energy_wh == 50000.0
+
+    @pytest.mark.asyncio
+    async def test_get_latest_system_status(self, adapter, mock_influxdb_client):
+        """Test retrieving latest system status."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response data
+        mock_record = MagicMock()
+        mock_record.values = {
+            "_time": datetime(2025, 11, 26, 12, 0, 0, tzinfo=timezone.utc),
+            "hp_online": 1,
+            "pm_online": 1,
+            "db_connected": 1,
+            "message": "OK",
+        }
+
+        mock_table = MagicMock()
+        mock_table.records = [mock_record]
+
+        mock_query_api.query.return_value = [mock_table]
+
+        status = await adapter.get_latest_system_status()
+
+        assert status.heat_pump_online is True
+        assert status.power_meter_online is True
+        assert status.database_connected is True
+        assert status.message == "OK"
+
+    @pytest.mark.asyncio
+    async def test_get_latest_system_status_no_data(self, adapter, mock_influxdb_client):
+        """Test retrieving latest system status when no data is available."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock empty response
+        mock_query_api.query.return_value = []
+
+        status = await adapter.get_latest_system_status()
+
+        assert status.heat_pump_online is False
+        assert status.power_meter_online is False
+        assert status.database_connected is False
+        assert status.message == "No status data available"
+
+    @pytest.mark.asyncio
+    async def test_query_exception(self, adapter, mock_influxdb_client):
+        """Test exception handling during query."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        mock_query_api.query.side_effect = Exception("Query failed")
+
+        # Should return empty list and log error
+        result = await adapter._query("fake query")
+        assert result == []
