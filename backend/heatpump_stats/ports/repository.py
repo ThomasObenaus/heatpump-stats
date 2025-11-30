@@ -1,4 +1,4 @@
-from typing import Protocol, List, Optional
+from typing import Protocol, List
 from datetime import datetime
 from heatpump_stats.domain.metrics import HeatPumpData, PowerReading, SystemStatus, ChangelogEntry
 from heatpump_stats.domain.configuration import HeatPumpConfig

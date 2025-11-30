@@ -2,7 +2,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from typing import List
-from datetime import datetime, timedelta, timezone
 
 from heatpump_stats.ports.repository import RepositoryPort, ConfigRepositoryPort
 from heatpump_stats.domain.metrics import SystemStatus, ChangelogEntry
