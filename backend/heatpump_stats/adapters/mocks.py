@@ -1,13 +1,14 @@
 import logging
 import random
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
 from heatpump_stats.domain.metrics import (
     HeatPumpData,
     PowerReading,
     CircuitData,
     SystemStatus,
+    ChangelogEntry,
 )
 from heatpump_stats.domain.configuration import HeatPumpConfig, CircuitConfig, DHWConfig
 
@@ -94,8 +95,25 @@ class MockInfluxDBAdapter:
         logger.debug("Mock: Fetching power history")
         return []
 
+    async def get_latest_system_status(self) -> SystemStatus:
+        logger.debug("Mock: Fetching latest system status")
+        return SystemStatus(
+            heat_pump_online=True,
+            power_meter_online=True,
+            database_connected=True,
+            message="Mock System OK",
+            last_update=datetime.now(timezone.utc),
+        )
+
 
 class MockSqliteAdapter:
     async def save_config(self, config: HeatPumpConfig) -> bool:
         logger.debug("Mock: Saving config")
         return True
+
+    async def save_changelog_entry(self, entry: ChangelogEntry) -> None:
+        logger.debug(f"Mock: Saving changelog entry: {entry.message}")
+
+    async def get_changelog(self, limit: int = 50, offset: int = 0, category: Optional[str] = None) -> List[ChangelogEntry]:
+        logger.debug("Mock: Fetching changelog")
+        return []
