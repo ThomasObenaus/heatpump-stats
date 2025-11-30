@@ -150,8 +150,34 @@ This is the useful heat output for heating/DHW.`}
 
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Primary Circuit (Ground Source)</h3>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatusWidget title="Brine Supply" value={hp?.primary_supply_temp?.toFixed(1)} unit="°C" color="blue" subtext="To heat pump" />
-        <StatusWidget title="Brine Return" value={hp?.primary_return_temp?.toFixed(1)} unit="°C" color="blue" subtext="From heat pump" />
+        <StatusWidget
+          title="Brine Supply"
+          value={hp?.primary_supply_temp?.toFixed(1)}
+          unit="°C"
+          color="blue"
+          subtext="To heat pump"
+          tooltip={`Temperature of brine entering the heat pump from the ground loops.
+
+This is the heat source temperature - warmer brine means more efficient operation.
+
+Typical values:
+• Winter: 0-5°C
+• Summer: 10-15°C
+
+Higher supply temps = better COP (coefficient of performance).`}
+        />
+        <StatusWidget
+          title="Brine Return"
+          value={hp?.primary_return_temp?.toFixed(1)}
+          unit="°C"
+          color="blue"
+          subtext="From heat pump"
+          tooltip={`Temperature of brine returning to the ground loops after heat extraction.
+
+The heat pump extracts heat from the brine, cooling it before it returns to the ground to absorb more heat.
+
+Should always be lower than supply temperature when the compressor is running.`}
+        />
         <StatusWidget
           title="Brine ΔT"
           value={
@@ -177,6 +203,14 @@ Higher ΔT = more heat extracted from ground per cycle.`}
           unit="%"
           color="green"
           subtext="Rotation speed"
+          tooltip={`Brine circulation pump speed as percentage of maximum.
+
+The brine pump circulates the glycol/water mixture through the ground loops to extract heat.
+
+• Higher speed = more flow = more heat transfer capacity
+• Lower speed = energy saving when demand is low
+
+Variable-speed pumps adjust automatically based on heating demand and ground loop conditions.`}
         />
       </div>
 
@@ -237,7 +271,20 @@ Higher ΔT = more heat being delivered to the heating system.`}
 
 Variable-speed compressors adjust their output to match heating demand, improving efficiency compared to on/off cycling.`}
         />
-        <StatusWidget title="Runtime" value={hp?.compressor_runtime_hours?.toFixed(0)} unit="h" color="gray" />
+        <StatusWidget
+          title="Runtime"
+          value={hp?.compressor_runtime_hours?.toFixed(0)}
+          unit="h"
+          color="gray"
+          tooltip={`Total compressor operating hours since installation or last reset.
+
+Used for:
+• Maintenance scheduling
+• Warranty tracking
+• Efficiency analysis over time
+
+Typical lifespan: 60,000-100,000 hours for quality compressors.`}
+        />
       </div>
     </Layout>
   );
