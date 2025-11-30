@@ -83,7 +83,16 @@ const Dashboard: React.FC = () => {
             </div>
           }
           color={status?.heat_pump_online && status?.power_meter_online ? "green" : "red"}
-          subtext={`Last update: ${status?.last_update ? new Date(status.last_update).toLocaleTimeString() : "-"}`}
+          subtext={`Last update: ${
+            status?.last_update
+              ? new Date(status.last_update).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: false,
+                })
+              : "-"
+          }`}
         />
 
         {/* Power Consumption */}
