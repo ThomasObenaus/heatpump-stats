@@ -80,6 +80,16 @@ const Dashboard: React.FC = () => {
         <StatusWidget title="Outside Temp" value={hp?.outside_temperature?.toFixed(1)} unit="°C" color="gray" />
         <StatusWidget title="Return Temp" value={hp?.return_temperature?.toFixed(1)} unit="°C" color="blue" />
         <StatusWidget title="DHW Temp" value={hp?.dhw_storage_temperature?.toFixed(1)} unit="°C" color="red" />
+        {hp?.circuits?.map((circuit) => (
+          <StatusWidget
+            key={circuit.circuit_id}
+            title={`Circuit ${circuit.circuit_id} Supply`}
+            value={circuit.supply_temperature?.toFixed(1)}
+            unit="°C"
+            color="yellow"
+            subtext={circuit.pump_status ? `Pump: ${circuit.pump_status}` : undefined}
+          />
+        ))}
       </div>
 
       <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Compressor</h3>
