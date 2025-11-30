@@ -31,13 +31,13 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
           <div className="flex-shrink-0">{icon && <div className={`rounded-md p-3 ${colorClasses[color]}`}>{icon}</div>}</div>
           <div className="w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 flex items-center gap-1">
+              <dt className="text-sm font-medium text-gray-500 flex items-center justify-between">
                 <span className="truncate">{title}</span>
                 {tooltip && (
                   <div className="relative inline-block flex-shrink-0">
                     <button
                       type="button"
-                      className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                      className="text-blue-400 hover:text-blue-600 focus:outline-none"
                       onMouseEnter={() => setShowTooltip(true)}
                       onMouseLeave={() => setShowTooltip(false)}
                       onClick={() => setShowTooltip(!showTooltip)}
@@ -52,7 +52,7 @@ const StatusWidget: React.FC<StatusWidgetProps> = ({ title, value, unit, icon, c
                       </svg>
                     </button>
                     {showTooltip && (
-                      <div className="absolute z-50 w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg left-0 top-6 whitespace-pre-line">
+                      <div className="absolute z-50 w-64 p-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg right-0 top-6 whitespace-pre-line">
                         {tooltip}
                       </div>
                     )}
