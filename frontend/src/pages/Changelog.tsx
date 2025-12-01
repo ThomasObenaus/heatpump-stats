@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
+import DiffViewer from "../components/DiffViewer";
 import type { ChangelogEntry } from "../types";
 
 const Changelog: React.FC = () => {
@@ -135,11 +136,7 @@ const Changelog: React.FC = () => {
                           <p className="text-sm text-gray-500">
                             {entry.message} <span className="font-medium text-gray-900">by {entry.author}</span>
                           </p>
-                          {entry.details && (
-                            <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-200 font-mono whitespace-pre-wrap">
-                              {entry.details}
-                            </div>
-                          )}
+                          {entry.details && <DiffViewer details={entry.details} />}
                         </div>
                         <div className="text-right text-sm whitespace-nowrap text-gray-500">
                           <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString()}</time>

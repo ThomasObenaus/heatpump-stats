@@ -119,10 +119,10 @@
 - [x] Implement loading states and error handling.
 - **Deliverable**: Interactive charts with comprehensive heat pump metrics.
 
-### Step 3.4: Changelog UI
+### Step 3.4: Changelog UI (Completed)
 
-- Create a timeline view for the Changelog.
-- Add a form to submit new notes.
+- [x] Create a timeline view for the Changelog.
+- [x] Add a form to submit new notes.
 - **Deliverable**: Complete monitoring solution.
 
 #### 3.5 Improvements for the History Charts (To be implemented)
