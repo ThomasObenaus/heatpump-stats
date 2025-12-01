@@ -53,10 +53,16 @@ const TIME_RANGES = [
   { label: "7d", hours: 168 },
 ];
 
-// Helper to format datetime for input[type="datetime-local"]
-const formatDateTimeLocal = (date: Date): string => {
+// Helper to format date for input[type="date"]
+const formatDate = (date: Date): string => {
   const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+// Helper to format time for input[type="time"] in 24h format
+const formatTime = (date: Date): string => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const History: React.FC = () => {
@@ -65,9 +71,15 @@ const History: React.FC = () => {
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
     d.setHours(d.getHours() - 24);
-    return formatDateTimeLocal(d);
+    return formatDate(d);
   });
-  const [endDate, setEndDate] = useState<string>(() => formatDateTimeLocal(new Date()));
+  const [startTime, setStartTime] = useState<string>(() => {
+    const d = new Date();
+    d.setHours(d.getHours() - 24);
+    return formatTime(d);
+  });
+  const [endDate, setEndDate] = useState<string>(() => formatDate(new Date()));
+  const [endTime, setEndTime] = useState<string>(() => formatTime(new Date()));
   const [data, setData] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,8 +94,8 @@ const History: React.FC = () => {
     try {
       let url: string;
       if (useCustomRange) {
-        const startISO = new Date(startDate).toISOString();
-        const endISO = new Date(endDate).toISOString();
+        const startISO = new Date(`${startDate}T${startTime}`).toISOString();
+        const endISO = new Date(`${endDate}T${endTime}`).toISOString();
         url = `/api/history?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
       } else {
         url = `/api/history?hours=${selectedRange}`;
@@ -170,26 +182,74 @@ const History: React.FC = () => {
         {useCustomRange && (
           <div className="bg-white rounded-lg shadow p-4 flex flex-wrap items-end gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
               <input
-                type="datetime-local"
+                type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <input
-                type="datetime-local"
+                type="text"
+                value={startTime}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^([0-1]?[0-9]|2[0-3])?:?[0-5]?[0-9]?$/.test(val) || val === "") {
+                    setStartTime(val);
+                  }
+                }}
+                onBlur={(e) => {
+                  const match = e.target.value.match(/^(\d{1,2}):?(\d{2})$/);
+                  if (match) {
+                    const hours = match[1].padStart(2, "0");
+                    const mins = match[2];
+                    setStartTime(`${hours}:${mins}`);
+                  }
+                }}
+                placeholder="HH:MM"
+                pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+                className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input
+                type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+              <input
+                type="text"
+                value={endTime}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^([0-1]?[0-9]|2[0-3])?:?[0-5]?[0-9]?$/.test(val) || val === "") {
+                    setEndTime(val);
+                  }
+                }}
+                onBlur={(e) => {
+                  const match = e.target.value.match(/^(\d{1,2}):?(\d{2})$/);
+                  if (match) {
+                    const hours = match[1].padStart(2, "0");
+                    const mins = match[2];
+                    setEndTime(`${hours}:${mins}`);
+                  }
+                }}
+                placeholder="HH:MM"
+                pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+                className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border font-mono"
+              />
+            </div>
             <button
               onClick={handleApplyCustomRange}
-              disabled={!startDate || !endDate}
+              disabled={!startDate || !startTime || !endDate || !endTime}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Apply Range
