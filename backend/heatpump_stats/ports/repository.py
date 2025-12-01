@@ -66,3 +66,9 @@ class ConfigRepositoryPort(Protocol):
         Retrieve changelog entries.
         """
         ...
+
+    async def update_changelog_name(self, entry_id: int, name: str) -> bool:
+        """
+        Update the name of a changelog entry.
+        """
+        ...
