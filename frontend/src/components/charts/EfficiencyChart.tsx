@@ -1,5 +1,5 @@
 import React from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
 
 interface PowerReading {
   timestamp: string;
@@ -12,16 +12,28 @@ interface HeatPumpData {
   estimated_thermal_power?: number;
 }
 
+interface ZoomRange {
+  start: number;
+  end: number;
+}
+
 interface EfficiencyChartProps {
   powerData: PowerReading[];
   heatPumpData: HeatPumpData[];
+  zoomRange?: ZoomRange | null;
+  onZoomChange?: (range: ZoomRange | null) => void;
 }
 
-const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpData }) => {
+const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpData, zoomRange, onZoomChange }) => {
   const [visible, setVisible] = React.useState<{ [key: string]: boolean }>({
     cop: true,
     modulation: true,
   });
+
+  // For drag-to-zoom
+  const [refAreaLeft, setRefAreaLeft] = React.useState<number | null>(null);
+  const [refAreaRight, setRefAreaRight] = React.useState<number | null>(null);
+  const [isSelecting, setIsSelecting] = React.useState(false);
 
   const handleLegendClick = (e: any) => {
     const { dataKey } = e;
@@ -68,6 +80,7 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
 
         return {
           timestamp,
+          time: timestamp.getTime(),
           displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
           tooltipLabel: timestamp.toLocaleString("de-DE", {
             day: "2-digit",
@@ -83,6 +96,46 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }, [powerData, heatPumpData]);
 
+  // Filter data based on zoom range
+  const displayData = React.useMemo(() => {
+    if (!zoomRange) return mergedData;
+    return mergedData.filter((d) => d.time >= zoomRange.start && d.time <= zoomRange.end);
+  }, [mergedData, zoomRange]);
+
+  const handleMouseDown = (e: any) => {
+    if (e && e.activeLabel) {
+      const point = mergedData.find((d) => d.displayTime === e.activeLabel);
+      if (point) {
+        setRefAreaLeft(point.time);
+        setIsSelecting(true);
+      }
+    }
+  };
+
+  const handleMouseMove = (e: any) => {
+    if (isSelecting && e && e.activeLabel) {
+      const point = mergedData.find((d) => d.displayTime === e.activeLabel);
+      if (point) {
+        setRefAreaRight(point.time);
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (refAreaLeft && refAreaRight && refAreaLeft !== refAreaRight) {
+      const start = Math.min(refAreaLeft, refAreaRight);
+      const end = Math.max(refAreaLeft, refAreaRight);
+      onZoomChange?.({ start, end });
+    }
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+    setIsSelecting(false);
+  };
+
+  const handleResetZoom = () => {
+    onZoomChange?.(null);
+  };
+
   if (mergedData.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
@@ -94,9 +147,26 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Efficiency & Modulation</h3>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Efficiency & Modulation</h3>
+        {zoomRange && (
+          <button
+            onClick={handleResetZoom}
+            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+          >
+            Reset Zoom
+          </button>
+        )}
+      </div>
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={mergedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+        <LineChart
+          data={displayData}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="displayTime" stroke="#6b7280" fontSize={12} tickLine={false} />
           <YAxis
@@ -154,6 +224,16 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
             activeDot={{ r: 4 }}
             hide={!visible.modulation}
           />
+          {isSelecting && refAreaLeft && refAreaRight && (
+            <ReferenceArea
+              yAxisId="left"
+              x1={mergedData.find((d) => d.time === refAreaLeft)?.displayTime}
+              x2={mergedData.find((d) => d.time === refAreaRight)?.displayTime}
+              strokeOpacity={0.3}
+              fill="#3b82f6"
+              fillOpacity={0.3}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
