@@ -83,10 +83,6 @@ class UpdateChangelogNoteRequest(BaseModel):
     note: str = Field(max_length=1000)
 
 
-class CreateNoteRequest(BaseModel):
-    message: str
-
-
 class EnergyStatPoint(BaseModel):
     timestamp: datetime
     electrical_energy_kwh: float

@@ -71,25 +71,6 @@ async def test_get_changelog():
 
 
 @pytest.mark.asyncio
-async def test_add_note():
-    # Arrange
-    mock_repo = MagicMock()
-    mock_config_repo = MagicMock()
-    mock_config_repo.save_changelog_entry = AsyncMock()
-
-    service = ReportingService(repository=mock_repo, config_repository=mock_config_repo)
-
-    # Act
-    entry = await service.add_note(message="Test note", author="user")
-
-    # Assert
-    assert entry.message == "Test note"
-    assert entry.author == "user"
-    assert entry.category == "note"
-    mock_config_repo.save_changelog_entry.assert_called_once()
-
-
-@pytest.mark.asyncio
 async def test_get_energy_stats_day_mode():
     """Test get_energy_stats with 'day' mode."""
     # Arrange
