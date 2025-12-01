@@ -113,13 +113,43 @@ class InfluxDBAdapter:
             logger.error(f"Failed to write to InfluxDB: {e}")
 
     async def get_heat_pump_history(self, start: datetime, end: datetime) -> List[HeatPumpData]:
-        query = f"""
+        # 1. Fetch main heat pump data
+        query_hp = f"""
         from(bucket: "{self.bucket}")
             |> range(start: time(v: "{start.isoformat()}"), stop: time(v: "{end.isoformat()}"))
             |> filter(fn: (r) => r["_measurement"] == "heat_pump")
             |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
         """
-        records = await self._query(query)
+        hp_records = await self._query(query_hp)
+
+        # 2. Fetch circuit data
+        query_circuits = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: time(v: "{start.isoformat()}"), stop: time(v: "{end.isoformat()}"))
+            |> filter(fn: (r) => r["_measurement"] == "heating_circuit")
+            |> pivot(rowKey:["_time", "circuit_id"], columnKey: ["_field"], valueColumn: "_value")
+        """
+        circuit_records = await self._query(query_circuits)
+
+        # Organize circuit records by timestamp
+        circuits_by_time = {}
+        for r in circuit_records:
+            ts = r["_time"]
+            if ts not in circuits_by_time:
+                circuits_by_time[ts] = []
+
+            try:
+                cid = int(r.get("circuit_id"))
+                circuits_by_time[ts].append(
+                    CircuitData(
+                        circuit_id=cid,
+                        supply_temperature=r.get("supply_temp"),
+                        pump_status=r.get("pump_status"),
+                    )
+                )
+            except (ValueError, TypeError):
+                continue
+
         return [
             HeatPumpData(
                 timestamp=record["_time"],
@@ -133,11 +163,12 @@ class InfluxDBAdapter:
                 estimated_thermal_power_delta_t=record.get("thermal_power_delta_t"),
                 primary_supply_temp=record.get("primary_supply_temp"),
                 primary_return_temp=record.get("primary_return_temp"),
+                primary_pump_rotation=record.get("primary_pump_rotation"),
                 secondary_supply_temp=record.get("secondary_supply_temp"),
                 circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
-                circuits=[],  # Circuits are stored in a separate measurement, skipping for summary
+                circuits=circuits_by_time.get(record["_time"], []),
             )
-            for record in records
+            for record in hp_records
         ]
 
     async def get_power_history(self, start: datetime, end: datetime) -> List[PowerReading]:
