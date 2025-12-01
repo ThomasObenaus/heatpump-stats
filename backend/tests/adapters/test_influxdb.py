@@ -637,3 +637,539 @@ class TestInfluxDBAdapter:
         assert c1.circuit_id == 1
         assert c1.supply_temperature == 30.5
         assert c1.pump_status == "off"
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_day_interval(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats with daily interval."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response for electrical energy
+        elec_record1 = MagicMock()
+        elec_record1.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 10.5,
+        }
+        elec_record2 = MagicMock()
+        elec_record2.values = {
+            "_time": datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 12.3,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record1, elec_record2]
+
+        # Mock response for thermal energy
+        thermal_record1 = MagicMock()
+        thermal_record1.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 42.0,
+        }
+        thermal_record2 = MagicMock()
+        thermal_record2.values = {
+            "_time": datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 49.2,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record1, thermal_record2]
+
+        # Mock response for thermal energy delta T
+        thermal_dt_record1 = MagicMock()
+        thermal_dt_record1.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 40.5,
+        }
+        thermal_dt_record2 = MagicMock()
+        thermal_dt_record2.values = {
+            "_time": datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 47.8,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record1, thermal_dt_record2]
+
+        # Mock three queries: electrical, thermal, thermal_dt
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 2
+
+        # Check first entry
+        assert result[0]["time"] == datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        assert result[0]["electrical_energy_kwh"] == 10.5
+        assert result[0]["thermal_energy_kwh"] == 42.0
+        assert result[0]["thermal_energy_delta_t_kwh"] == 40.5
+        assert result[0]["cop"] == pytest.approx(42.0 / 10.5, rel=1e-6)
+
+        # Check second entry
+        assert result[1]["time"] == datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc)
+        assert result[1]["electrical_energy_kwh"] == 12.3
+        assert result[1]["thermal_energy_kwh"] == 49.2
+        assert result[1]["thermal_energy_delta_t_kwh"] == 47.8
+        assert result[1]["cop"] == pytest.approx(49.2 / 12.3, rel=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_week_interval(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats with weekly interval."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response for one week
+        elec_record = MagicMock()
+        elec_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 75.5,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record]
+
+        thermal_record = MagicMock()
+        thermal_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 302.0,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record]
+
+        thermal_dt_record = MagicMock()
+        thermal_dt_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 295.0,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record]
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 10, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1w")
+
+        assert len(result) == 1
+        assert result[0]["electrical_energy_kwh"] == 75.5
+        assert result[0]["thermal_energy_kwh"] == 302.0
+        assert result[0]["thermal_energy_delta_t_kwh"] == 295.0
+        assert result[0]["cop"] == pytest.approx(302.0 / 75.5, rel=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_month_interval(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats with monthly interval."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response for one month
+        elec_record = MagicMock()
+        elec_record.values = {
+            "_time": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 320.5,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record]
+
+        thermal_record = MagicMock()
+        thermal_record.values = {
+            "_time": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 1282.0,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record]
+
+        thermal_dt_record = MagicMock()
+        thermal_dt_record.values = {
+            "_time": datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 1250.0,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record]
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1mo")
+
+        assert len(result) == 1
+        assert result[0]["electrical_energy_kwh"] == 320.5
+        assert result[0]["thermal_energy_kwh"] == 1282.0
+        assert result[0]["thermal_energy_delta_t_kwh"] == 1250.0
+        assert result[0]["cop"] == pytest.approx(1282.0 / 320.5, rel=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_empty_result(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats when no data is available."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock empty responses
+        empty_table = MagicMock()
+        empty_table.records = []
+
+        mock_query_api.query.side_effect = [
+            [empty_table],
+            [empty_table],
+            [empty_table],
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_zero_electrical_energy(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats with zero electrical energy (avoid division by zero)."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response with zero electrical energy
+        elec_record = MagicMock()
+        elec_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 0.0,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record]
+
+        thermal_record = MagicMock()
+        thermal_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 0.0,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record]
+
+        thermal_dt_record = MagicMock()
+        thermal_dt_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 0.0,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record]
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 1
+        # When both are 0, COP should be 0
+        assert result[0]["cop"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_zero_elec_nonzero_thermal(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats with zero electrical but non-zero thermal energy."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response with zero electrical but non-zero thermal
+        elec_record = MagicMock()
+        elec_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 0.0,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record]
+
+        thermal_record = MagicMock()
+        thermal_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 42.0,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record]
+
+        thermal_dt_record = MagicMock()
+        thermal_dt_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 40.5,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record]
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 1
+        # When elec is 0 but thermal > 0, COP should be None (undefined)
+        assert result[0]["cop"] is None
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_partial_data(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats when only some queries return data."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response: only electrical data available
+        elec_record = MagicMock()
+        elec_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 10.5,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record]
+
+        empty_table = MagicMock()
+        empty_table.records = []
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [empty_table],  # No thermal data
+            [empty_table],  # No thermal_dt data
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 1
+        assert result[0]["electrical_energy_kwh"] == 10.5
+        assert result[0]["thermal_energy_kwh"] == 0.0
+        assert result[0]["thermal_energy_delta_t_kwh"] == 0.0
+        # With no thermal energy, COP should be 0
+        assert result[0]["cop"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_none_values(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats handling of None values in responses."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock response with None value
+        elec_record = MagicMock()
+        elec_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": None,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record]
+
+        thermal_record = MagicMock()
+        thermal_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": None,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record]
+
+        thermal_dt_record = MagicMock()
+        thermal_dt_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": None,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record]
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 1
+        # None values should be converted to 0.0
+        assert result[0]["electrical_energy_kwh"] == 0.0
+        assert result[0]["thermal_energy_kwh"] == 0.0
+        assert result[0]["thermal_energy_delta_t_kwh"] == 0.0
+        assert result[0]["cop"] == 0.0
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_multiple_time_periods(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats with multiple time periods and correct sorting."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock responses for multiple days (out of order)
+        elec_record2 = MagicMock()
+        elec_record2.values = {
+            "_time": datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 12.3,
+        }
+        elec_record1 = MagicMock()
+        elec_record1.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 10.5,
+        }
+        elec_record3 = MagicMock()
+        elec_record3.values = {
+            "_time": datetime(2025, 11, 3, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 11.0,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record2, elec_record1, elec_record3]  # Intentionally out of order
+
+        thermal_record1 = MagicMock()
+        thermal_record1.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 42.0,
+        }
+        thermal_record2 = MagicMock()
+        thermal_record2.values = {
+            "_time": datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 49.2,
+        }
+        thermal_record3 = MagicMock()
+        thermal_record3.values = {
+            "_time": datetime(2025, 11, 3, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 44.0,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record1, thermal_record2, thermal_record3]
+
+        thermal_dt_record1 = MagicMock()
+        thermal_dt_record1.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 40.5,
+        }
+        thermal_dt_record2 = MagicMock()
+        thermal_dt_record2.values = {
+            "_time": datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 47.8,
+        }
+        thermal_dt_record3 = MagicMock()
+        thermal_dt_record3.values = {
+            "_time": datetime(2025, 11, 3, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 42.5,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record1, thermal_dt_record2, thermal_dt_record3]
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 11, 4, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 3
+
+        # Should be sorted by time
+        assert result[0]["time"] == datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        assert result[1]["time"] == datetime(2025, 11, 2, 0, 0, 0, tzinfo=timezone.utc)
+        assert result[2]["time"] == datetime(2025, 11, 3, 0, 0, 0, tzinfo=timezone.utc)
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_query_error(self, adapter, mock_influxdb_client):
+        """Test get_energy_stats when query fails."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # First query fails
+        mock_query_api.query.side_effect = Exception("Query failed")
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        # Should return empty list when query fails
+        assert len(result) == 0
+
+    @pytest.mark.asyncio
+    async def test_get_energy_stats_cop_calculation_precision(self, adapter, mock_influxdb_client):
+        """Test COP calculation maintains precision."""
+        mock_client, _ = mock_influxdb_client
+        mock_query_api = MagicMock()
+        mock_query_api.query = AsyncMock()
+        mock_client.query_api.return_value = mock_query_api
+
+        # Mock precise values
+        elec_record = MagicMock()
+        elec_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 10.123456789,
+        }
+        elec_table = MagicMock()
+        elec_table.records = [elec_record]
+
+        thermal_record = MagicMock()
+        thermal_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 42.987654321,
+        }
+        thermal_table = MagicMock()
+        thermal_table.records = [thermal_record]
+
+        thermal_dt_record = MagicMock()
+        thermal_dt_record.values = {
+            "_time": datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc),
+            "_value": 41.5,
+        }
+        thermal_dt_table = MagicMock()
+        thermal_dt_table.records = [thermal_dt_record]
+
+        mock_query_api.query.side_effect = [
+            [elec_table],
+            [thermal_table],
+            [thermal_dt_table],
+        ]
+
+        start = datetime(2025, 11, 1, 0, 0, 0, tzinfo=timezone.utc)
+        end = datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc)
+
+        result = await adapter.get_energy_stats(start, end, "1d")
+
+        assert len(result) == 1
+        expected_cop = 42.987654321 / 10.123456789
+        assert result[0]["cop"] == pytest.approx(expected_cop, rel=1e-9)
