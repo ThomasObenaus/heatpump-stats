@@ -99,6 +99,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
             dot={false}
             activeDot={{ r: 4 }}
             hide={!visible.powerWatts}
+            connectNulls
           />
           <Line
             type="monotone"
@@ -109,6 +110,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
             dot={false}
             activeDot={{ r: 4 }}
             hide={!visible.thermalPower}
+            connectNulls
           />
           <Line
             type="monotone"
@@ -120,6 +122,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
             activeDot={{ r: 4 }}
             strokeDasharray="5 5"
             hide={!visible.thermalPowerDeltaT}
+            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>

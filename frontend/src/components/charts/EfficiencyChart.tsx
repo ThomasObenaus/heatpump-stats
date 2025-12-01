@@ -30,49 +30,46 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
 
   // Merge and calculate COP
   const mergedData = React.useMemo(() => {
-    const dataMap = new Map<string, any>();
+    if (powerData.length === 0 || heatPumpData.length === 0) return [];
 
-    // Add power data
-    powerData.forEach((reading) => {
-      const timestamp = new Date(reading.timestamp);
-      const key = timestamp.toISOString();
-      dataMap.set(key, {
-        timestamp,
-        displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-        powerWatts: reading.power_watts,
-      });
-    });
+    const sortedPower = [...powerData].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-    // Merge heat pump data
-    heatPumpData.forEach((reading) => {
-      const timestamp = new Date(reading.timestamp);
-      const key = timestamp.toISOString();
-      const existing = dataMap.get(key) || {
-        timestamp,
-        displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-      };
-      dataMap.set(key, {
-        ...existing,
-        modulation: reading.compressor_modulation,
-        thermalPower: reading.estimated_thermal_power,
-      });
-    });
+    return heatPumpData
+      .map((hp) => {
+        const hpTime = new Date(hp.timestamp).getTime();
 
-    // Calculate COP for entries with both power and thermal power
-    return Array.from(dataMap.values())
-      .map((entry) => {
-        let cop: number | undefined;
-        if (entry.thermalPower && entry.powerWatts && entry.powerWatts > 100) {
-          // thermalPower is in kW, powerWatts is in W
-          // COP = Output (W) / Input (W)
-          cop = (entry.thermalPower * 1000) / entry.powerWatts;
-          // Sanity check: COP should typically be between 1 and 8 for heat pumps
-          if (cop < 0.5 || cop > 10) {
-            cop = undefined;
+        // Find closest power reading
+        let closestPower = sortedPower[0];
+        let minDiff = Math.abs(new Date(closestPower.timestamp).getTime() - hpTime);
+
+        // Optimization: Start search from a reasonable index if possible, but simple loop is robust
+        for (const p of sortedPower) {
+          const diff = Math.abs(new Date(p.timestamp).getTime() - hpTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestPower = p;
           }
         }
+
+        // Only use if within 5 minutes (300000 ms)
+        let powerWatts = undefined;
+        if (minDiff < 300000) {
+          powerWatts = closestPower.power_watts;
+        }
+
+        const timestamp = new Date(hp.timestamp);
+        let cop: number | undefined;
+
+        if (hp.estimated_thermal_power && powerWatts && powerWatts > 100) {
+          // thermalPower is in kW, powerWatts is in W
+          cop = (hp.estimated_thermal_power * 1000) / powerWatts;
+          if (cop < 0.5 || cop > 10) cop = undefined;
+        }
+
         return {
-          ...entry,
+          timestamp,
+          displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+          modulation: hp.compressor_modulation,
           cop,
         };
       })
