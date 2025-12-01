@@ -15,6 +15,19 @@ interface TemperatureChartProps {
 }
 
 const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
+  const [visible, setVisible] = React.useState<{ [key: string]: boolean }>({
+    condenserSupply: true,
+    returnTemp: true,
+    brineSupply: true,
+    brineReturn: true,
+    outsideTemp: true,
+  });
+
+  const handleLegendClick = (e: any) => {
+    const { dataKey } = e;
+    setVisible({ ...visible, [dataKey]: !visible[dataKey] });
+  };
+
   const chartData = React.useMemo(() => {
     return data
       .map((reading) => {
@@ -64,7 +77,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             formatter={(value: number) => [value?.toFixed(1) + " °C", ""]}
             labelFormatter={(label) => `Time: ${label}`}
           />
-          <Legend />
+          <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line
             type="monotone"
             dataKey="condenserSupply"
@@ -73,6 +86,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+            hide={!visible.condenserSupply}
           />
           <Line
             type="monotone"
@@ -82,6 +96,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+            hide={!visible.returnTemp}
           />
           <Line
             type="monotone"
@@ -91,6 +106,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+            hide={!visible.brineSupply}
           />
           <Line
             type="monotone"
@@ -100,6 +116,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+            hide={!visible.brineReturn}
           />
           <Line
             type="monotone"
@@ -110,6 +127,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             dot={false}
             activeDot={{ r: 4 }}
             strokeDasharray="5 5"
+            hide={!visible.outsideTemp}
           />
         </LineChart>
       </ResponsiveContainer>
