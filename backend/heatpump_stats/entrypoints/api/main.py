@@ -117,7 +117,11 @@ async def get_energy_stats(
 
     points = [
         schemas.EnergyStatPoint(
-            timestamp=d["time"], electrical_energy_kwh=d["electrical_energy_kwh"], thermal_energy_kwh=d["thermal_energy_kwh"], cop=d["cop"]
+            timestamp=d["time"],
+            electrical_energy_kwh=d["electrical_energy_kwh"],
+            thermal_energy_kwh=d["thermal_energy_kwh"],
+            thermal_energy_delta_t_kwh=d["thermal_energy_delta_t_kwh"],
+            cop=d["cop"],
         )
         for d in data
     ]

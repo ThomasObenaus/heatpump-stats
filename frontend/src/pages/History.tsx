@@ -37,6 +37,7 @@ interface EnergyStatPoint {
   timestamp: string;
   electrical_energy_kwh: number;
   thermal_energy_kwh: number;
+  thermal_energy_delta_t_kwh: number;
   cop?: number;
 }
 
