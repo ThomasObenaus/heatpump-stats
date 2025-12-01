@@ -104,15 +104,42 @@
 - [x] Hook up to `GET /api/status` with polling.
 - **Deliverable**: Dashboard showing live numbers.
 
-### Step 3.3: Historical Charts
+### Step 3.3: Historical Charts (Completed)
 
-- Integrate a charting library (e.g., Recharts).
-- Create components for Power, Temperatures, and Efficiency.
-- Hook up to `GET /api/history`.
-- **Deliverable**: Interactive charts.
+- [x] Integrate a charting library (Recharts).
+- [x] Create components for Power, Temperatures, and Efficiency.
+- [x] Hook up to `GET /api/history`.
+- [x] Create PowerChart component with electrical and thermal power visualization.
+- [x] Create TemperatureChart component with multiple temperature sensors and delta-T calculations.
+- [x] Create CircuitChart component for heating circuits and DHW temperatures.
+- [x] Create EfficiencyChart component for COP and modulation display.
+- [x] Create EnergyChart component for accumulated energy statistics.
+- [x] Implement interactive legend toggling for all charts.
+- [x] Add time range selection (6h, 12h, 24h, 48h, 7d).
+- [x] Implement loading states and error handling.
+- **Deliverable**: Interactive charts with comprehensive heat pump metrics.
 
 ### Step 3.4: Changelog UI
 
 - Create a timeline view for the Changelog.
 - Add a form to submit new notes.
 - **Deliverable**: Complete monitoring solution.
+
+#### 3.5 Improvements for the History Charts (To be implemented)
+
+- [ ] **Export EnergyChart from index.ts**: Add `EnergyChart` to the chart exports in `frontend/src/components/charts/index.ts` for consistency.
+- [ ] **Improve TypeScript typing**: Replace `any` types in legend click handlers with proper Recharts types.
+- [ ] **Add zoom/pan functionality**: Consider adding chart zoom capabilities for detailed analysis of specific time periods.
+- [ ] **Add keyboard navigation**: Implement keyboard controls for chart interaction and navigation.
+- [ ] **Add chart synchronization**: Synchronize tooltips/crosshairs across multiple charts for better correlation analysis.
+- [ ] **Add data point markers**: Option to show/hide data point markers on line charts for sparse data.
+- [ ] **Add statistical overlays**: Add trend lines, moving averages, or statistical annotations.
+- [ ] **Performance optimization**: Implement data downsampling for very long time ranges to improve rendering performance.
+- [ ] **Add chart customization**: Allow users to customize colors, line styles, or visible metrics via settings.
+- [ ] **Add comparison mode**: Enable comparing current period with previous periods (day-over-day, week-over-week).
+- [ ] **Add alerts/annotations**: Visual markers for system events, configuration changes, or anomalies.
+- [ ] **Improve error states**: Add more detailed error messages and recovery options when data fetching fails.
+- [ ] **Add refresh controls**: Manual refresh button and auto-refresh toggle for history data.
+- [ ] **Add chart print/screenshot**: Functionality to export charts as images for reports.
+- [ ] **Add tooltip enhancements**: Show more context in tooltips (e.g., outdoor temp, system status at that time).
+- [ ] **Add loading skeleton**: Replace spinner with skeleton screens for better perceived performance.
