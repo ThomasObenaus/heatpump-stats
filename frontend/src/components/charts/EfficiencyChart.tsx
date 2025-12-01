@@ -69,6 +69,13 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
         return {
           timestamp,
           displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+          tooltipLabel: timestamp.toLocaleString("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           modulation: hp.compressor_modulation,
           cop,
         };
@@ -121,7 +128,7 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
               }
               return [value?.toFixed(2), name];
             }}
-            labelFormatter={(label) => `Time: ${label}`}
+            labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel || ""}
           />
           <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line

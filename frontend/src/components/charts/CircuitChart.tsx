@@ -39,6 +39,13 @@ const CircuitChart: React.FC<CircuitChartProps> = ({ data }) => {
         return {
           timestamp,
           displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+          tooltipLabel: timestamp.toLocaleString("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           dhw: reading.dhw_storage_temperature,
           circuit0: circuit0?.supply_temperature,
           circuit1: circuit1?.supply_temperature,
@@ -77,7 +84,7 @@ const CircuitChart: React.FC<CircuitChartProps> = ({ data }) => {
               borderRadius: "0.375rem",
             }}
             formatter={(value: number) => [value?.toFixed(1) + " °C", ""]}
-            labelFormatter={(label) => `Time: ${label}`}
+            labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel || ""}
           />
           <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line
