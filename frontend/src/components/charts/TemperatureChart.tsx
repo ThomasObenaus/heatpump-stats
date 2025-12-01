@@ -1,5 +1,7 @@
 import React from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
+import type { ChangeMarker } from "./markerUtils";
+import { injectMarkerPoints, calculateVisibleMarkers, getMarkerAtTime } from "./markerUtils";
 
 interface HeatPumpData {
   timestamp: string;
@@ -13,14 +15,6 @@ interface HeatPumpData {
 interface ZoomRange {
   start: number;
   end: number;
-}
-
-interface ChangeMarker {
-  time: number;
-  displayTime: string;
-  name?: string;
-  message: string;
-  category: string;
 }
 
 interface TemperatureChartProps {
@@ -89,11 +83,14 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, on
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }, [data]);
 
-  // Filter data based on zoom range
+  // Filter data based on zoom range and inject marker points
   const displayData = React.useMemo(() => {
-    if (!zoomRange) return chartData;
-    return chartData.filter((d) => d.time >= zoomRange.start && d.time <= zoomRange.end);
-  }, [chartData, zoomRange]);
+    const filtered = zoomRange ? chartData.filter((d) => d.time >= zoomRange.start && d.time <= zoomRange.end) : chartData;
+    return injectMarkerPoints(filtered, changeMarkers);
+  }, [chartData, zoomRange, changeMarkers]);
+
+  // Calculate visible markers with chart-aligned displayTime
+  const visibleMarkers = React.useMemo(() => calculateVisibleMarkers(displayData, changeMarkers), [displayData, changeMarkers]);
 
   const handleMouseDown = (e: any) => {
     if (e && e.activeLabel) {
@@ -127,38 +124,6 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, on
 
   const handleResetZoom = () => {
     onZoomChange?.(null);
-  };
-
-  // Find the closest display time for a marker timestamp
-  const getMarkerDisplayTime = (markerTime: number): string | undefined => {
-    if (displayData.length === 0) return undefined;
-    let closest = displayData[0];
-    let minDiff = Math.abs(displayData[0].time - markerTime);
-    for (const point of displayData) {
-      const diff = Math.abs(point.time - markerTime);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = point;
-      }
-    }
-    // Only show marker if within 5 minutes of a data point
-    if (minDiff < 5 * 60 * 1000) {
-      return closest.displayTime;
-    }
-    return undefined;
-  };
-
-  // Filter markers within current display range
-  const visibleMarkers = React.useMemo(() => {
-    if (!displayData.length) return [];
-    const minTime = displayData[0].time;
-    const maxTime = displayData[displayData.length - 1].time;
-    return changeMarkers.filter((m) => m.time >= minTime && m.time <= maxTime);
-  }, [changeMarkers, displayData]);
-
-  // Find marker near a given time (within 2 minutes)
-  const getMarkerAtTime = (time: number): (typeof changeMarkers)[0] | undefined => {
-    return visibleMarkers.find((m) => Math.abs(m.time - time) < 2 * 60 * 1000);
   };
 
   if (chartData.length === 0) {
@@ -226,7 +191,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, on
             labelFormatter={(_, payload) => {
               const point = payload?.[0]?.payload;
               if (!point) return "";
-              const marker = getMarkerAtTime(point.time);
+              const marker = getMarkerAtTime(point.time, visibleMarkers);
               if (marker) {
                 const markerLabel = marker.name || marker.message;
                 return `${point.tooltipLabel}\n📌 ${markerLabel}`;
@@ -332,11 +297,16 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, on
               fillOpacity={0.3}
             />
           )}
-          {visibleMarkers.map((marker, idx) => {
-            const xValue = getMarkerDisplayTime(marker.time);
-            if (!xValue) return null;
-            return <ReferenceLine key={`marker-${idx}`} yAxisId="left" x={xValue} stroke="#9333ea" strokeWidth={2} strokeDasharray="4 4" />;
-          })}
+          {visibleMarkers.map((marker, idx) => (
+            <ReferenceLine
+              key={`marker-${idx}`}
+              yAxisId="left"
+              x={marker.chartDisplayTime}
+              stroke="#9333ea"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+            />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </div>

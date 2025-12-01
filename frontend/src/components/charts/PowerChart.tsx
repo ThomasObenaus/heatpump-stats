@@ -1,5 +1,7 @@
 import React from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
+import type { ChangeMarker } from "./markerUtils";
+import { injectMarkerPoints, calculateVisibleMarkers, getMarkerAtTime, roundToMinute } from "./markerUtils";
 
 interface PowerReading {
   timestamp: string;
@@ -15,14 +17,6 @@ interface HeatPumpData {
 interface ZoomRange {
   start: number;
   end: number;
-}
-
-interface ChangeMarker {
-  time: number;
-  displayTime: string;
-  name?: string;
-  message: string;
-  category: string;
 }
 
 interface PowerChartProps {
@@ -48,13 +42,6 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
   const handleLegendClick = (e: any) => {
     const { dataKey } = e;
     setVisible({ ...visible, [dataKey]: !visible[dataKey] });
-  };
-
-  // Helper to round timestamp to nearest minute for matching
-  const roundToMinute = (date: Date): Date => {
-    const rounded = new Date(date);
-    rounded.setSeconds(0, 0);
-    return rounded;
   };
 
   // Helper to interpolate a value between two points
@@ -155,11 +142,16 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
     }));
   }, [powerData, heatPumpData]);
 
-  // Filter data based on zoom range
+  // Filter data based on zoom range and inject marker points
   const displayData = React.useMemo(() => {
-    if (!zoomRange) return mergedData;
-    return mergedData.filter((d) => d.time >= zoomRange.start && d.time <= zoomRange.end);
-  }, [mergedData, zoomRange]);
+    const filtered = zoomRange ? mergedData.filter((d) => d.time >= zoomRange.start && d.time <= zoomRange.end) : mergedData;
+
+    // Inject marker points - PowerChart rounds timestamps to minute, so use roundToMinute option
+    return injectMarkerPoints(filtered, changeMarkers, { roundToMinute: true, deduplicationMs: 60000 });
+  }, [mergedData, zoomRange, changeMarkers]);
+
+  // Calculate visible markers with chart-aligned displayTime
+  const visibleMarkers = React.useMemo(() => calculateVisibleMarkers(displayData, changeMarkers), [displayData, changeMarkers]);
 
   const handleMouseDown = (e: any) => {
     if (e && e.activeLabel) {
@@ -195,37 +187,8 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
     onZoomChange?.(null);
   };
 
-  // Find the closest display time for a marker timestamp
-  const getMarkerDisplayTime = (markerTime: number): string | undefined => {
-    if (displayData.length === 0) return undefined;
-    let closest = displayData[0];
-    let minDiff = Math.abs(displayData[0].time - markerTime);
-    for (const point of displayData) {
-      const diff = Math.abs(point.time - markerTime);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = point;
-      }
-    }
-    // Only show marker if within 5 minutes of a data point
-    if (minDiff < 5 * 60 * 1000) {
-      return closest.displayTime;
-    }
-    return undefined;
-  };
-
-  // Filter markers within current display range
-  const visibleMarkers = React.useMemo(() => {
-    if (!displayData.length) return [];
-    const minTime = displayData[0].time;
-    const maxTime = displayData[displayData.length - 1].time;
-    return changeMarkers.filter((m) => m.time >= minTime && m.time <= maxTime);
-  }, [changeMarkers, displayData]);
-
-  // Find marker near a given time (within 2 minutes)
-  const getMarkerAtTime = (time: number): (typeof changeMarkers)[0] | undefined => {
-    return visibleMarkers.find((m) => Math.abs(m.time - time) < 2 * 60 * 1000);
-  };
+  if (mergedData.length === 0) {
+  }
 
   if (mergedData.length === 0) {
     return (
@@ -271,7 +234,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
             labelFormatter={(_, payload) => {
               const point = payload?.[0]?.payload;
               if (!point) return "";
-              const marker = getMarkerAtTime(point.time);
+              const marker = getMarkerAtTime(point.time, visibleMarkers);
               if (marker) {
                 const markerLabel = marker.name || marker.message;
                 return `${point.tooltipLabel}\n📌 ${markerLabel}`;
@@ -323,11 +286,9 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
               fillOpacity={0.3}
             />
           )}
-          {visibleMarkers.map((marker, idx) => {
-            const xValue = getMarkerDisplayTime(marker.time);
-            if (!xValue) return null;
-            return <ReferenceLine key={`marker-${idx}`} x={xValue} stroke="#9333ea" strokeWidth={2} strokeDasharray="4 4" />;
-          })}
+          {visibleMarkers.map((marker, idx) => (
+            <ReferenceLine key={`marker-${idx}`} x={marker.chartDisplayTime} stroke="#9333ea" strokeWidth={2} strokeDasharray="4 4" />
+          ))}
         </LineChart>
       </ResponsiveContainer>
     </div>
