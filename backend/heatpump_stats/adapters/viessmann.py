@@ -133,7 +133,7 @@ class ViessmannAdapter:
                 else:
                     logger.debug("Delta T calc: Skipped - no supply temperature available")
             else:
-                logger.debug(f"Delta T calc: Skipped - return_temp is None")
+                logger.debug("Delta T calc: Skipped - return_temp is None")
 
             if estimated_thermal_power is not None:
                 logger.debug(f"Calculated thermal power (modulation): {estimated_thermal_power} kW")
