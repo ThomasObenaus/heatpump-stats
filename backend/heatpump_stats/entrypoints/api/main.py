@@ -95,15 +95,6 @@ async def get_changelog(
     return await reporting_service.get_changelog(limit=limit, offset=offset, category=category)
 
 
-@app.post("/api/changelog", response_model=schemas.ChangelogEntryResponse)
-async def add_note(
-    note: schemas.CreateNoteRequest,
-    current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
-    reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
-):
-    return await reporting_service.add_note(message=note.message, author=current_user.username)
-
-
 @app.patch("/api/changelog/{entry_id}/name")
 async def update_changelog_name(
     entry_id: int,

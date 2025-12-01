@@ -184,23 +184,3 @@ def test_get_changelog_filtering(mock_reporting_service, auth_headers):
 
     assert response.status_code == 200
     mock_reporting_service.get_changelog.assert_called_once_with(limit=50, offset=0, category="note")
-
-
-def test_add_note_success(mock_reporting_service, auth_headers):
-    mock_entry = ChangelogEntry(
-        id=1,
-        timestamp=datetime.now(timezone.utc),
-        category="note",
-        author=settings.API_USERNAME,
-        message="New note",
-    )
-    mock_reporting_service.add_note.return_value = mock_entry
-
-    response = client.post("/api/changelog", json={"message": "New note"}, headers=auth_headers)
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["message"] == "New note"
-    assert data["author"] == settings.API_USERNAME
-
-    mock_reporting_service.add_note.assert_called_once_with(message="New note", author=settings.API_USERNAME)

@@ -41,14 +41,6 @@ class ReportingService:
         """
         return await self.config_repository.get_changelog(limit, offset, category)
 
-    async def add_note(self, message: str, author: str) -> ChangelogEntry:
-        """
-        Adds a manual note to the changelog.
-        """
-        entry = ChangelogEntry(category="note", author=author, message=message)
-        await self.config_repository.save_changelog_entry(entry)
-        return entry
-
     async def update_changelog_name(self, entry_id: int, name: str) -> bool:
         """
         Updates the name of a changelog entry.
