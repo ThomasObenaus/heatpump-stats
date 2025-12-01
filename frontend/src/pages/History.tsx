@@ -53,6 +53,15 @@ const TIME_RANGES = [
   { label: "7d", hours: 168 },
 ];
 
+const PERIOD_MODES = [
+  { label: "Day", value: "day" as const },
+  { label: "Week", value: "week" as const },
+  { label: "Month", value: "month" as const },
+];
+
+type RangeMode = "preset" | "custom" | "period";
+type PeriodType = "day" | "week" | "month";
+
 // Helper to format date for input[type="date"]
 const formatDate = (date: Date): string => {
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -65,9 +74,72 @@ const formatTime = (date: Date): string => {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+// Helper to format period display
+const formatPeriodLabel = (date: Date, periodType: PeriodType): string => {
+  const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" };
+  if (periodType === "day") {
+    return date.toLocaleDateString(undefined, { weekday: "short", ...options });
+  } else if (periodType === "week") {
+    const weekEnd = new Date(date);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    return `${date.toLocaleDateString(undefined, { month: "short", day: "numeric" })} - ${weekEnd.toLocaleDateString(undefined, options)}`;
+  } else {
+    return date.toLocaleDateString(undefined, { year: "numeric", month: "long" });
+  }
+};
+
+// Get start of period
+const getStartOfPeriod = (date: Date, periodType: PeriodType): Date => {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  if (periodType === "day") {
+    // Already at start of day
+  } else if (periodType === "week") {
+    const day = result.getDay();
+    const diff = result.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
+    result.setDate(diff);
+  } else {
+    result.setDate(1);
+  }
+  return result;
+};
+
+// Get end of period
+const getEndOfPeriod = (date: Date, periodType: PeriodType): Date => {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  if (periodType === "day") {
+    // Already at end of day
+  } else if (periodType === "week") {
+    const start = getStartOfPeriod(date, "week");
+    result.setTime(start.getTime());
+    result.setDate(result.getDate() + 6);
+    result.setHours(23, 59, 59, 999);
+  } else {
+    result.setMonth(result.getMonth() + 1);
+    result.setDate(0); // Last day of current month
+  }
+  return result;
+};
+
+// Navigate period
+const navigatePeriod = (date: Date, periodType: PeriodType, direction: number): Date => {
+  const result = new Date(date);
+  if (periodType === "day") {
+    result.setDate(result.getDate() + direction);
+  } else if (periodType === "week") {
+    result.setDate(result.getDate() + direction * 7);
+  } else {
+    result.setMonth(result.getMonth() + direction);
+  }
+  return result;
+};
+
 const History: React.FC = () => {
-  const [selectedRange, setSelectedRange] = useState<number | null>(24);
-  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [rangeMode, setRangeMode] = useState<RangeMode>("preset");
+  const [selectedRange, setSelectedRange] = useState<number>(24);
+
+  // Custom range state
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
     d.setHours(d.getHours() - 24);
@@ -80,6 +152,11 @@ const History: React.FC = () => {
   });
   const [endDate, setEndDate] = useState<string>(() => formatDate(new Date()));
   const [endTime, setEndTime] = useState<string>(() => formatTime(new Date()));
+
+  // Period navigation state
+  const [periodType, setPeriodType] = useState<PeriodType>("day");
+  const [periodDate, setPeriodDate] = useState<Date>(() => getStartOfPeriod(new Date(), "day"));
+
   const [data, setData] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,10 +170,14 @@ const History: React.FC = () => {
     setError(null);
     try {
       let url: string;
-      if (useCustomRange) {
+      if (rangeMode === "custom") {
         const startISO = new Date(`${startDate}T${startTime}`).toISOString();
         const endISO = new Date(`${endDate}T${endTime}`).toISOString();
         url = `/api/history?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
+      } else if (rangeMode === "period") {
+        const start = getStartOfPeriod(periodDate, periodType);
+        const end = getEndOfPeriod(periodDate, periodType);
+        url = `/api/history?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`;
       } else {
         url = `/api/history?hours=${selectedRange}`;
       }
@@ -111,10 +192,16 @@ const History: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!useCustomRange && selectedRange !== null) {
+    if (rangeMode === "preset") {
       fetchHistory();
     }
-  }, [selectedRange, useCustomRange]);
+  }, [selectedRange, rangeMode]);
+
+  useEffect(() => {
+    if (rangeMode === "period") {
+      fetchHistory();
+    }
+  }, [periodDate, periodType, rangeMode]);
 
   useEffect(() => {
     const fetchEnergyStats = async () => {
@@ -139,13 +226,32 @@ const History: React.FC = () => {
   };
 
   const handlePresetClick = (hours: number) => {
-    setUseCustomRange(false);
+    setRangeMode("preset");
     setSelectedRange(hours);
   };
 
   const handleCustomRangeToggle = () => {
-    setUseCustomRange(true);
-    setSelectedRange(null);
+    setRangeMode("custom");
+  };
+
+  const handlePeriodModeClick = (type: PeriodType) => {
+    setRangeMode("period");
+    setPeriodType(type);
+    setPeriodDate(getStartOfPeriod(new Date(), type));
+  };
+
+  const handlePeriodNavigate = (direction: number) => {
+    setPeriodDate(navigatePeriod(periodDate, periodType, direction));
+  };
+
+  const handleGoToToday = () => {
+    setPeriodDate(getStartOfPeriod(new Date(), periodType));
+  };
+
+  const isCurrentPeriod = (): boolean => {
+    const now = new Date();
+    const currentStart = getStartOfPeriod(now, periodType);
+    return periodDate.getTime() === currentStart.getTime();
   };
 
   return (
@@ -153,13 +259,14 @@ const History: React.FC = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-900">History</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
+            {/* Preset ranges */}
             {TIME_RANGES.map((range) => (
               <button
                 key={range.hours}
                 onClick={() => handlePresetClick(range.hours)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  !useCustomRange && selectedRange === range.hours
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  rangeMode === "preset" && selectedRange === range.hours
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
@@ -167,10 +274,27 @@ const History: React.FC = () => {
                 {range.label}
               </button>
             ))}
+            <div className="w-px bg-gray-300 mx-1" />
+            {/* Period modes */}
+            {PERIOD_MODES.map((mode) => (
+              <button
+                key={mode.value}
+                onClick={() => handlePeriodModeClick(mode.value)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  rangeMode === "period" && periodType === mode.value
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+            <div className="w-px bg-gray-300 mx-1" />
+            {/* Custom */}
             <button
               onClick={handleCustomRangeToggle}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                useCustomRange ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                rangeMode === "custom" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
               Custom
@@ -178,8 +302,46 @@ const History: React.FC = () => {
           </div>
         </div>
 
+        {/* Period Navigation */}
+        {rangeMode === "period" && (
+          <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+            <button
+              onClick={() => handlePeriodNavigate(-1)}
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+              title={`Previous ${periodType}`}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-4">
+              <span className="text-lg font-medium text-gray-900">{formatPeriodLabel(periodDate, periodType)}</span>
+              {!isCurrentPeriod() && (
+                <button
+                  onClick={handleGoToToday}
+                  className="px-3 py-1 text-sm rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                >
+                  Today
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => handlePeriodNavigate(1)}
+              disabled={isCurrentPeriod()}
+              className={`p-2 rounded-lg transition-colors ${
+                isCurrentPeriod() ? "bg-gray-50 text-gray-300 cursor-not-allowed" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+              }`}
+              title={`Next ${periodType}`}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Custom Date Range Picker */}
-        {useCustomRange && (
+        {rangeMode === "custom" && (
           <div className="bg-white rounded-lg shadow p-4 flex flex-wrap items-end gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
