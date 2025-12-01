@@ -34,9 +34,15 @@ class SqliteAdapter:
                         category TEXT NOT NULL,
                         author TEXT NOT NULL,
                         message TEXT NOT NULL,
+                        name TEXT,
                         details TEXT
                     )
                 """)
+                # Migration: add name column if it doesn't exist
+                cursor = conn.execute("PRAGMA table_info(changelog)")
+                columns = [row[1] for row in cursor.fetchall()]
+                if "name" not in columns:
+                    conn.execute("ALTER TABLE changelog ADD COLUMN name TEXT")
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed to initialize SQLite DB: {e}")
@@ -141,12 +147,13 @@ class SqliteAdapter:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
-                    "INSERT INTO changelog (timestamp, category, author, message, details) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO changelog (timestamp, category, author, message, name, details) VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         entry.timestamp.isoformat(),
                         entry.category,
                         entry.author,
                         entry.message,
+                        entry.name,
                         entry.details,
                     ),
                 )
@@ -162,7 +169,7 @@ class SqliteAdapter:
     def _get_changelog_sync(self, limit: int, offset: int, category: Optional[str] = None) -> List[ChangelogEntry]:
         try:
             with sqlite3.connect(self.db_path) as conn:
-                query = "SELECT id, timestamp, category, author, message, details FROM changelog"
+                query = "SELECT id, timestamp, category, author, message, name, details FROM changelog"
                 params = []
 
                 if category:
@@ -181,10 +188,28 @@ class SqliteAdapter:
                         category=row[2],
                         author=row[3],
                         message=row[4],
-                        details=row[5],
+                        name=row[5],
+                        details=row[6],
                     )
                     for row in rows
                 ]
         except Exception as e:
             logger.error(f"Failed to get changelog: {e}")
             return []
+
+    async def update_changelog_name(self, entry_id: int, name: str) -> bool:
+        """Update the name of a changelog entry."""
+        return await asyncio.to_thread(self._update_changelog_name_sync, entry_id, name)
+
+    def _update_changelog_name_sync(self, entry_id: int, name: str) -> bool:
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "UPDATE changelog SET name = ? WHERE id = ?",
+                    (name, entry_id),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Failed to update changelog name: {e}")
+            return False

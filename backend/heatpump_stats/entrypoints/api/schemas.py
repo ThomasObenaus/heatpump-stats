@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Optional
 
@@ -71,7 +71,12 @@ class ChangelogEntryResponse(BaseModel):
     category: str
     author: str
     message: str
+    name: Optional[str] = None
     details: Optional[str] = None
+
+
+class UpdateChangelogNameRequest(BaseModel):
+    name: str = Field(max_length=100)
 
 
 class CreateNoteRequest(BaseModel):

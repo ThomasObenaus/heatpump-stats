@@ -71,4 +71,5 @@ class ChangelogEntry(BaseModel):
     category: str  # "config", "note", "system"
     author: str  # "system", "user"
     message: str
+    name: Optional[str] = None  # User-editable name (max 100 chars)
     details: Optional[str] = None  # JSON string or simple text details
