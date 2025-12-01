@@ -81,7 +81,10 @@ class ViessmannAdapter:
             # These often need direct property access if high-level methods are missing
             modulation = self._get_feature_property("heating.compressors.0.sensors.power", "value")
             power_rated = self._get_feature_property("heating.compressors.0.power", "value")
-            runtime = self._get_feature_property("heating.compressors.0.statistics", "hours")
+
+            # Fallback to configured rated power if API doesn't provide it
+            if power_rated is None:
+                power_rated = settings.HEAT_PUMP_RATED_POWER
 
             estimated_thermal_power = None
             if modulation is not None and power_rated is not None:
@@ -124,11 +127,17 @@ class ViessmannAdapter:
                         estimated_thermal_power_delta_t = flow_rate_m3h * 1.16 * delta_t
                         logger.debug(f"Delta T calc: flow_rate_m3h={flow_rate_m3h}, result={estimated_thermal_power_delta_t}")
                     else:
-                        logger.debug(f"Delta T calc: Skipped - delta_t ({delta_t}) <= 0")
+                        estimated_thermal_power_delta_t = 0.0
+                        logger.debug(f"Delta T calc: delta_t ({delta_t}) <= 0, setting power to 0.0")
                 else:
                     logger.debug("Delta T calc: Skipped - no supply temperature available")
             else:
                 logger.debug(f"Delta T calc: Skipped - return_temp is None")
+
+            if estimated_thermal_power is not None:
+                logger.debug(f"Calculated thermal power (modulation): {estimated_thermal_power} kW")
+            else:
+                logger.debug("Could not calculate thermal power (modulation) - modulation or power_rated missing")
 
             # 4. Primary Circuit (Ground Source / Evaporator Side)
             primary_supply_temp = self._get_feature_property("heating.primaryCircuit.sensors.temperature.supply", "value")

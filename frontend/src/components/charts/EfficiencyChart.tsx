@@ -63,7 +63,9 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
       .map((entry) => {
         let cop: number | undefined;
         if (entry.thermalPower && entry.powerWatts && entry.powerWatts > 100) {
-          cop = entry.thermalPower / entry.powerWatts;
+          // thermalPower is in kW, powerWatts is in W
+          // COP = Output (W) / Input (W)
+          cop = (entry.thermalPower * 1000) / entry.powerWatts;
           // Sanity check: COP should typically be between 1 and 8 for heat pumps
           if (cop < 0.5 || cop > 10) {
             cop = undefined;
