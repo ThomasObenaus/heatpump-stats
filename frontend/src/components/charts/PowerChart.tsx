@@ -54,8 +54,8 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
       };
       dataMap.set(key, {
         ...existing,
-        thermalPower: reading.estimated_thermal_power ? reading.estimated_thermal_power / 1000 : undefined, // Convert to kW
-        thermalPowerDeltaT: reading.estimated_thermal_power_delta_t ? reading.estimated_thermal_power_delta_t / 1000 : undefined,
+        thermalPower: reading.estimated_thermal_power, // Already in kW
+        thermalPowerDeltaT: reading.estimated_thermal_power_delta_t, // Already in kW
       });
     });
 
