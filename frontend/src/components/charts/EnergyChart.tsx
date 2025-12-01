@@ -96,18 +96,8 @@ const EnergyChart: React.FC<EnergyChartProps> = ({ data, mode, onModeChange, loa
               formatter={(value: number) => [value.toFixed(2) + " kWh", ""]}
             />
             <Legend onClick={handleLegendClick} cursor="pointer" />
-            <Bar
-              dataKey="electrical_energy_kwh"
-              name="Electrical Energy"
-              fill="#ef4444"
-              hide={!visible.electrical_energy_kwh}
-            />
-            <Bar
-              dataKey="thermal_energy_kwh"
-              name="Thermal Energy (Modulation)"
-              fill="#22c55e"
-              hide={!visible.thermal_energy_kwh}
-            />
+            <Bar dataKey="electrical_energy_kwh" name="Electrical Energy" fill="#ef4444" hide={!visible.electrical_energy_kwh} />
+            <Bar dataKey="thermal_energy_kwh" name="Thermal Energy (Modulation)" fill="#22c55e" hide={!visible.thermal_energy_kwh} />
             <Bar
               dataKey="thermal_energy_delta_t_kwh"
               name="Thermal Energy (ΔT)"
