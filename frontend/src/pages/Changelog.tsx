@@ -47,11 +47,11 @@ const Changelog: React.FC = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">System Changelog</h1>
 
         {/* Add Note Form */}
-        <div className="bg-white shadow sm:rounded-lg mb-8 p-6">
+        <div className="bg-white shadow sm:rounded-lg mb-8 p-6 max-w-2xl">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Add Note</h3>
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
@@ -102,7 +102,7 @@ const Changelog: React.FC = () => {
                       <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
                     ) : null}
                     <div className="relative flex space-x-3">
-                      <div>
+                      <div className="flex-shrink-0">
                         <span
                           className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
                             entry.category === "manual" ? "bg-blue-500" : entry.category === "system" ? "bg-green-500" : "bg-gray-500"
@@ -131,16 +131,16 @@ const Changelog: React.FC = () => {
                           )}
                         </span>
                       </div>
-                      <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                        <div>
+                      <div className="min-w-0 flex-1 pt-1.5">
+                        <div className="flex justify-between items-start">
                           <p className="text-sm text-gray-500">
                             {entry.message} <span className="font-medium text-gray-900">by {entry.author}</span>
                           </p>
-                          {entry.details && <DiffViewer details={entry.details} />}
+                          <div className="text-right text-sm whitespace-nowrap text-gray-500 ml-4">
+                            <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString()}</time>
+                          </div>
                         </div>
-                        <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                          <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString()}</time>
-                        </div>
+                        {entry.details && <DiffViewer details={entry.details} />}
                       </div>
                     </div>
                   </div>
