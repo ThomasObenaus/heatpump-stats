@@ -79,6 +79,10 @@ class UpdateChangelogNameRequest(BaseModel):
     name: str = Field(max_length=100)
 
 
+class UpdateChangelogNoteRequest(BaseModel):
+    note: str = Field(max_length=1000)
+
+
 class CreateNoteRequest(BaseModel):
     message: str
 
