@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
-import { PowerChart, TemperatureChart, EfficiencyChart } from "../components/charts";
+import { PowerChart, TemperatureChart, EfficiencyChart, CircuitChart } from "../components/charts";
+
+interface CircuitData {
+  circuit_id: number;
+  supply_temperature?: number;
+}
 
 interface HeatPumpData {
   timestamp: string;
@@ -13,6 +18,8 @@ interface HeatPumpData {
   primary_supply_temp?: number;
   primary_return_temp?: number;
   secondary_supply_temp?: number;
+  dhw_storage_temperature?: number;
+  circuits: CircuitData[];
 }
 
 interface PowerReading {
@@ -88,6 +95,7 @@ const History: React.FC = () => {
         <div className="space-y-6">
           <PowerChart powerData={data.power} heatPumpData={data.heat_pump} />
           <TemperatureChart data={data.heat_pump} />
+          <CircuitChart data={data.heat_pump} />
           <EfficiencyChart powerData={data.power} heatPumpData={data.heat_pump} />
         </div>
       )}
