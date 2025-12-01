@@ -3,6 +3,15 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import { PowerChart, TemperatureChart, EfficiencyChart, CircuitChart } from "../components/charts";
 import EnergyChart from "../components/charts/EnergyChart";
+import type { ChangelogEntry } from "../types";
+
+export interface ChangeMarker {
+  time: number;
+  displayTime: string;
+  name?: string;
+  message: string;
+  category: string;
+}
 
 interface CircuitData {
   circuit_id: number;
@@ -165,6 +174,9 @@ const History: React.FC = () => {
   const [energyData, setEnergyData] = useState<EnergyStatPoint[]>([]);
   const [energyLoading, setEnergyLoading] = useState(true);
 
+  // Changelog markers for detected changes
+  const [changeMarkers, setChangeMarkers] = useState<ChangeMarker[]>([]);
+
   // Synchronized zoom state - time-based for cross-chart sync
   const [zoomRange, setZoomRange] = useState<{ start: number; end: number } | null>(null);
 
@@ -195,6 +207,44 @@ const History: React.FC = () => {
       }
       const response = await axios.get<HistoryData>(url);
       setData(response.data);
+
+      // Fetch changelog entries for the same time range
+      try {
+        const changelogResponse = await axios.get<ChangelogEntry[]>("/api/changelog?limit=100");
+        // Calculate time range
+        let rangeStart: Date, rangeEnd: Date;
+        if (rangeMode === "custom") {
+          rangeStart = new Date(`${startDate}T${startTime}`);
+          rangeEnd = new Date(`${endDate}T${endTime}`);
+        } else if (rangeMode === "period") {
+          rangeStart = getStartOfPeriod(periodDate, periodType);
+          rangeEnd = getEndOfPeriod(periodDate, periodType);
+        } else {
+          rangeEnd = new Date();
+          rangeStart = new Date(rangeEnd.getTime() - selectedRange * 60 * 60 * 1000);
+        }
+
+        // Filter and map changelog entries to markers
+        const markers: ChangeMarker[] = changelogResponse.data
+          .filter((entry) => {
+            const entryTime = new Date(entry.timestamp).getTime();
+            return entryTime >= rangeStart.getTime() && entryTime <= rangeEnd.getTime();
+          })
+          .map((entry) => {
+            const timestamp = new Date(entry.timestamp);
+            return {
+              time: timestamp.getTime(),
+              displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+              name: entry.name,
+              message: entry.message,
+              category: entry.category,
+            };
+          });
+        setChangeMarkers(markers);
+      } catch (err) {
+        console.error("Error fetching changelog:", err);
+        setChangeMarkers([]);
+      }
     } catch (err) {
       setError("Failed to load history data");
       console.error("Error fetching history:", err);
@@ -442,10 +492,22 @@ const History: React.FC = () => {
 
       {!loading && !error && data && (
         <div className="space-y-6">
-          <PowerChart powerData={data.power} heatPumpData={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
-          <TemperatureChart data={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
-          <CircuitChart data={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
-          <EfficiencyChart powerData={data.power} heatPumpData={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
+          <PowerChart
+            powerData={data.power}
+            heatPumpData={data.heat_pump}
+            zoomRange={zoomRange}
+            onZoomChange={handleZoomChange}
+            changeMarkers={changeMarkers}
+          />
+          <TemperatureChart data={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} changeMarkers={changeMarkers} />
+          <CircuitChart data={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} changeMarkers={changeMarkers} />
+          <EfficiencyChart
+            powerData={data.power}
+            heatPumpData={data.heat_pump}
+            zoomRange={zoomRange}
+            onZoomChange={handleZoomChange}
+            changeMarkers={changeMarkers}
+          />
           <EnergyChart data={energyData} mode={energyMode} onModeChange={setEnergyMode} loading={energyLoading} />
         </div>
       )}

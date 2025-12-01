@@ -1,5 +1,5 @@
 import React from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
 
 interface HeatPumpData {
   timestamp: string;
@@ -15,13 +15,22 @@ interface ZoomRange {
   end: number;
 }
 
+interface ChangeMarker {
+  time: number;
+  displayTime: string;
+  name?: string;
+  message: string;
+  category: string;
+}
+
 interface TemperatureChartProps {
   data: HeatPumpData[];
   zoomRange?: ZoomRange | null;
   onZoomChange?: (range: ZoomRange | null) => void;
+  changeMarkers?: ChangeMarker[];
 }
 
-const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, onZoomChange }) => {
+const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, onZoomChange, changeMarkers = [] }) => {
   const [visible, setVisible] = React.useState<{ [key: string]: boolean }>({
     condenserSupply: true,
     returnTemp: true,
@@ -120,6 +129,38 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, on
     onZoomChange?.(null);
   };
 
+  // Find the closest display time for a marker timestamp
+  const getMarkerDisplayTime = (markerTime: number): string | undefined => {
+    if (displayData.length === 0) return undefined;
+    let closest = displayData[0];
+    let minDiff = Math.abs(displayData[0].time - markerTime);
+    for (const point of displayData) {
+      const diff = Math.abs(point.time - markerTime);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = point;
+      }
+    }
+    // Only show marker if within 5 minutes of a data point
+    if (minDiff < 5 * 60 * 1000) {
+      return closest.displayTime;
+    }
+    return undefined;
+  };
+
+  // Filter markers within current display range
+  const visibleMarkers = React.useMemo(() => {
+    if (!displayData.length) return [];
+    const minTime = displayData[0].time;
+    const maxTime = displayData[displayData.length - 1].time;
+    return changeMarkers.filter((m) => m.time >= minTime && m.time <= maxTime);
+  }, [changeMarkers, displayData]);
+
+  // Find marker near a given time (within 2 minutes)
+  const getMarkerAtTime = (time: number): (typeof changeMarkers)[0] | undefined => {
+    return visibleMarkers.find((m) => Math.abs(m.time - time) < 2 * 60 * 1000);
+  };
+
   if (chartData.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
@@ -182,7 +223,16 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, on
               }
               return [value?.toFixed(1) + " °C", name];
             }}
-            labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel || ""}
+            labelFormatter={(_, payload) => {
+              const point = payload?.[0]?.payload;
+              if (!point) return "";
+              const marker = getMarkerAtTime(point.time);
+              if (marker) {
+                const markerLabel = marker.name || marker.message;
+                return `${point.tooltipLabel}\n📌 ${markerLabel}`;
+              }
+              return point.tooltipLabel || "";
+            }}
           />
           <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line
@@ -282,6 +332,11 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data, zoomRange, on
               fillOpacity={0.3}
             />
           )}
+          {visibleMarkers.map((marker, idx) => {
+            const xValue = getMarkerDisplayTime(marker.time);
+            if (!xValue) return null;
+            return <ReferenceLine key={`marker-${idx}`} yAxisId="left" x={xValue} stroke="#9333ea" strokeWidth={2} strokeDasharray="4 4" />;
+          })}
         </LineChart>
       </ResponsiveContainer>
     </div>
