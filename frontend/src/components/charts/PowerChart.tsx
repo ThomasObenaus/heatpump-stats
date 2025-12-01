@@ -40,6 +40,13 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
       dataMap.set(key, {
         timestamp,
         displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+        tooltipLabel: timestamp.toLocaleString("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         powerWatts: reading.power_watts / 1000, // Convert to kW
       });
     });
@@ -51,6 +58,13 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
       const existing = dataMap.get(key) || {
         timestamp,
         displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+        tooltipLabel: timestamp.toLocaleString("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       };
       dataMap.set(key, {
         ...existing,
@@ -87,7 +101,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
               borderRadius: "0.375rem",
             }}
             formatter={(value: number) => [value.toFixed(2) + " kW", ""]}
-            labelFormatter={(label) => `Time: ${label}`}
+            labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel || ""}
           />
           <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line

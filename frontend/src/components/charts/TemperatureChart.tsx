@@ -48,6 +48,13 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
         return {
           timestamp,
           displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+          tooltipLabel: timestamp.toLocaleString("de-DE", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           outsideTemp: reading.outside_temperature,
           returnTemp: reading.return_temperature,
           brineSupply: reading.primary_supply_temp,
@@ -105,7 +112,7 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
               }
               return [value?.toFixed(1) + " °C", name];
             }}
-            labelFormatter={(label) => `Time: ${label}`}
+            labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel || ""}
           />
           <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line
