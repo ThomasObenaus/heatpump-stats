@@ -41,3 +41,16 @@ export interface SystemStatus {
   latest_heat_pump_data?: HeatPumpData;
   latest_power_reading?: PowerReading;
 }
+
+export interface ChangelogEntry {
+  id?: number;
+  timestamp: string;
+  category: string;
+  author: string;
+  message: string;
+  details?: string;
+}
+
+export interface CreateNoteRequest {
+  message: string;
+}
