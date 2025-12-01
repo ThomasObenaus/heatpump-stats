@@ -41,13 +41,56 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ details }) => {
     );
   }
 
+  // Helper to format values for display
+  const formatValue = (val: any): string => {
+    if (val === undefined || val === null) return "null";
+
+    // Check for TimeSlot array (Schedule)
+    if (Array.isArray(val) && val.every((item) => item && typeof item === "object" && "start" in item && "end" in item)) {
+      if (val.length === 0) return "No active slots";
+      return val.map((slot) => `${slot.start}-${slot.end} (${slot.mode})`).join(", ");
+    }
+
+    if (typeof val === "object") return JSON.stringify(val);
+    return String(val);
+  };
+
   // Helper to compute deep differences
   const getDifferences = (oldVal: any, newVal: any, path: string = ""): ChangeItem[] => {
     const changes: ChangeItem[] = [];
 
     if (oldVal === newVal) return [];
 
-    // Handle primitives or type mismatch
+    // 1. Check for Atomic Types (TimeSlot Arrays) - treat as single unit
+    const isTimeSlotArray = (val: any) =>
+      Array.isArray(val) && val.length > 0 && val.every((item: any) => item && "start" in item && "end" in item);
+
+    if (isTimeSlotArray(oldVal) || isTimeSlotArray(newVal)) {
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        const type = !oldVal ? "added" : !newVal ? "removed" : "changed";
+        return [{ path, oldVal, newVal, type }];
+      }
+      return [];
+    }
+
+    // 2. Handle one side missing (Addition/Removal of complex structures)
+    if ((oldVal === undefined || oldVal === null) && typeof newVal === "object" && newVal !== null) {
+      if (Array.isArray(newVal)) {
+        if (newVal.length === 0) return [{ path, oldVal, newVal, type: "added" }];
+        return newVal.flatMap((item, idx) => getDifferences(undefined, item, `${path}[${idx}]`));
+      }
+      return Object.keys(newVal).flatMap((key) => getDifferences(undefined, newVal[key], path ? `${path}.${key}` : key));
+    }
+
+    if ((newVal === undefined || newVal === null) && typeof oldVal === "object" && oldVal !== null) {
+      if (Array.isArray(oldVal)) {
+        if (oldVal.length === 0) return [{ path, oldVal, newVal, type: "removed" }];
+        return oldVal.flatMap((item, idx) => getDifferences(item, undefined, `${path}[${idx}]`));
+      }
+      return Object.keys(oldVal).flatMap((key) => getDifferences(oldVal[key], undefined, path ? `${path}.${key}` : key));
+    }
+
+    // 3. Handle Primitives / Type Mismatch
     if (
       typeof oldVal !== "object" ||
       oldVal === null ||
@@ -58,7 +101,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ details }) => {
       return [{ path, oldVal, newVal, type: "changed" }];
     }
 
-    // Handle Arrays
+    // 4. Handle Arrays (Both exist)
     if (Array.isArray(oldVal) && Array.isArray(newVal)) {
       // Try to match by ID if possible (heuristic for circuits/schedules)
       const oldMap = new Map();
@@ -76,7 +119,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ details }) => {
         oldMap.forEach((val, key) => {
           const currentPath = `${path}[id=${key}]`;
           if (!newMap.has(key)) {
-            changes.push({ path: currentPath, oldVal: val, newVal: undefined, type: "removed" });
+            changes.push(...getDifferences(val, undefined, currentPath)); // Recurse for removal
           } else {
             changes.push(...getDifferences(val, newMap.get(key), currentPath));
           }
@@ -85,7 +128,7 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ details }) => {
         // Check for added
         newMap.forEach((val, key) => {
           if (!oldMap.has(key)) {
-            changes.push({ path: `${path}[id=${key}]`, oldVal: undefined, newVal: val, type: "added" });
+            changes.push(...getDifferences(undefined, val, `${path}[id=${key}]`)); // Recurse for addition
           }
         });
       } else {
@@ -94,9 +137,9 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ details }) => {
         for (let i = 0; i < maxLen; i++) {
           const currentPath = `${path}[${i}]`;
           if (i >= oldVal.length) {
-            changes.push({ path: currentPath, oldVal: undefined, newVal: newVal[i], type: "added" });
+            changes.push(...getDifferences(undefined, newVal[i], currentPath));
           } else if (i >= newVal.length) {
-            changes.push({ path: currentPath, oldVal: oldVal[i], newVal: undefined, type: "removed" });
+            changes.push(...getDifferences(oldVal[i], undefined, currentPath));
           } else {
             changes.push(...getDifferences(oldVal[i], newVal[i], currentPath));
           }
@@ -105,14 +148,14 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ details }) => {
       return changes;
     }
 
-    // Handle Objects
+    // 5. Handle Objects (Both exist)
     const allKeys = new Set([...Object.keys(oldVal), ...Object.keys(newVal)]);
     allKeys.forEach((key) => {
       const currentPath = path ? `${path}.${key}` : key;
       if (!(key in oldVal)) {
-        changes.push({ path: currentPath, oldVal: undefined, newVal: newVal[key], type: "added" });
+        changes.push(...getDifferences(undefined, newVal[key], currentPath));
       } else if (!(key in newVal)) {
-        changes.push({ path: currentPath, oldVal: oldVal[key], newVal: undefined, type: "removed" });
+        changes.push(...getDifferences(oldVal[key], undefined, currentPath));
       } else {
         changes.push(...getDifferences(oldVal[key], newVal[key], currentPath));
       }
@@ -149,15 +192,9 @@ const DiffViewer: React.FC<DiffViewerProps> = ({ details }) => {
 
                     <div className="flex-1 grid grid-cols-2 gap-4 items-center">
                       {diff.type !== "added" && (
-                        <div className="text-red-700 line-through opacity-75 break-all">
-                          {typeof diff.oldVal === "object" ? JSON.stringify(diff.oldVal) : String(diff.oldVal)}
-                        </div>
+                        <div className="text-red-700 line-through opacity-75 break-all">{formatValue(diff.oldVal)}</div>
                       )}
-                      {diff.type !== "removed" && (
-                        <div className="text-green-700 font-medium break-all">
-                          {typeof diff.newVal === "object" ? JSON.stringify(diff.newVal) : String(diff.newVal)}
-                        </div>
-                      )}
+                      {diff.type !== "removed" && <div className="text-green-700 font-medium break-all">{formatValue(diff.newVal)}</div>}
                     </div>
                   </div>
                 </div>
