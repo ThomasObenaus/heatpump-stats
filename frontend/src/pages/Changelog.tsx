@@ -23,6 +23,19 @@ const Changelog: React.FC = () => {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [editingNote, setEditingNote] = useState<EditingNoteState | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
+  const [expandedEntries, setExpandedEntries] = useState<Set<number>>(new Set());
+
+  const toggleExpanded = (entryId: number) => {
+    setExpandedEntries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
 
   const fetchChangelog = async () => {
     try {
@@ -188,8 +201,9 @@ const Changelog: React.FC = () => {
                     ) : null}
                     <div className="relative flex space-x-3">
                       <div className="flex-shrink-0">
-                        <span
-                          className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
+                        <button
+                          onClick={() => entry.id && toggleExpanded(entry.id)}
+                          className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white cursor-pointer hover:ring-gray-100 transition-all ${
                             entry.category === "manual" ? "bg-blue-500" : entry.category === "system" ? "bg-green-500" : "bg-gray-500"
                           }`}
                         >
@@ -214,19 +228,54 @@ const Changelog: React.FC = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                           )}
-                        </span>
+                        </button>
                       </div>
                       <div className="min-w-0 flex-1 pt-1.5">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
+                        {/* Collapsed Header - Always Visible */}
+                        <div
+                          className="flex justify-between items-center cursor-pointer hover:bg-gray-50 rounded p-1 -ml-1"
+                          onClick={() => entry.id && toggleExpanded(entry.id)}
+                        >
+                          <div className="flex items-center space-x-2 flex-1">
+                            {/* Expand/Collapse Arrow */}
+                            <svg
+                              className={`h-4 w-4 text-gray-400 transition-transform ${
+                                entry.id && expandedEntries.has(entry.id) ? "rotate-90" : ""
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            {/* Name or placeholder */}
+                            {entry.name ? (
+                              <span className="text-sm font-semibold text-gray-900">{entry.name}</span>
+                            ) : (
+                              <span className="text-sm text-gray-400 italic">Unnamed change</span>
+                            )}
+                            {/* Brief message preview when collapsed */}
+                            {!(entry.id && expandedEntries.has(entry.id)) && (
+                              <span className="text-sm text-gray-500 truncate max-w-md">— {entry.message}</span>
+                            )}
+                          </div>
+                          <div className="text-right text-sm whitespace-nowrap text-gray-500 ml-4">
+                            <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString()}</time>
+                          </div>
+                        </div>
+
+                        {/* Expanded Content */}
+                        {entry.id && expandedEntries.has(entry.id) && (
+                          <div className="mt-2 pl-6">
                             {/* Editable Name */}
                             {editing && editing.entryId === entry.id ? (
-                              <div className="flex items-center space-x-2 mb-1">
+                              <div className="flex items-center space-x-2 mb-2">
                                 <input
                                   type="text"
                                   value={editing.name}
                                   onChange={(e) => setEditing({ entryId: editing.entryId, name: e.target.value.slice(0, 100) })}
                                   onKeyDown={handleKeyDown}
+                                  onClick={(e) => e.stopPropagation()}
                                   maxLength={100}
                                   className="flex-1 text-sm font-semibold text-gray-900 border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   placeholder="Enter a name for this change..."
@@ -234,7 +283,10 @@ const Changelog: React.FC = () => {
                                   disabled={saving}
                                 />
                                 <button
-                                  onClick={saveName}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    saveName();
+                                  }}
                                   disabled={saving}
                                   className="text-green-600 hover:text-green-800 p-1"
                                   title="Save"
@@ -244,7 +296,10 @@ const Changelog: React.FC = () => {
                                   </svg>
                                 </button>
                                 <button
-                                  onClick={cancelEditing}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    cancelEditing();
+                                  }}
                                   disabled={saving}
                                   className="text-gray-500 hover:text-gray-700 p-1"
                                   title="Cancel"
@@ -255,14 +310,18 @@ const Changelog: React.FC = () => {
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center space-x-2 mb-1 group">
+                              <div className="flex items-center space-x-2 mb-2 group">
+                                <span className="text-sm font-medium text-gray-700">Name:</span>
                                 {entry.name ? (
-                                  <span className="text-sm font-semibold text-gray-900">{entry.name}</span>
+                                  <span className="text-sm text-gray-900">{entry.name}</span>
                                 ) : (
                                   <span className="text-sm text-gray-400 italic">No name</span>
                                 )}
                                 <button
-                                  onClick={() => startEditing(entry)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditing(entry);
+                                  }}
                                   className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
                                   title="Edit name"
                                 >
@@ -279,11 +338,12 @@ const Changelog: React.FC = () => {
                             )}
                             {/* Editable Note */}
                             {editingNote && editingNote.entryId === entry.id ? (
-                              <div className="flex items-start space-x-2">
+                              <div className="flex items-start space-x-2 mb-2">
                                 <textarea
                                   value={editingNote.note}
                                   onChange={(e) => setEditingNote({ entryId: editingNote.entryId, note: e.target.value.slice(0, 1000) })}
                                   onKeyDown={handleNoteKeyDown}
+                                  onClick={(e) => e.stopPropagation()}
                                   maxLength={1000}
                                   rows={2}
                                   className="flex-1 text-sm text-gray-500 border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -292,7 +352,10 @@ const Changelog: React.FC = () => {
                                   disabled={saving}
                                 />
                                 <button
-                                  onClick={saveNote}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    saveNote();
+                                  }}
                                   disabled={saving}
                                   className="text-green-600 hover:text-green-800 p-1"
                                   title="Save"
@@ -302,7 +365,10 @@ const Changelog: React.FC = () => {
                                   </svg>
                                 </button>
                                 <button
-                                  onClick={cancelEditingNote}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    cancelEditingNote();
+                                  }}
                                   disabled={saving}
                                   className="text-gray-500 hover:text-gray-700 p-1"
                                   title="Cancel"
@@ -313,12 +379,16 @@ const Changelog: React.FC = () => {
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center space-x-2 group">
+                              <div className="flex items-center space-x-2 mb-2 group">
+                                <span className="text-sm font-medium text-gray-700">Note:</span>
                                 <p className="text-sm text-gray-500">
                                   {entry.message} <span className="font-medium text-gray-900">by {entry.author}</span>
                                 </p>
                                 <button
-                                  onClick={() => startEditingNote(entry)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditingNote(entry);
+                                  }}
                                   className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
                                   title="Edit note"
                                 >
@@ -333,12 +403,9 @@ const Changelog: React.FC = () => {
                                 </button>
                               </div>
                             )}
+                            {entry.details && <DiffViewer details={entry.details} />}
                           </div>
-                          <div className="text-right text-sm whitespace-nowrap text-gray-500 ml-4">
-                            <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString()}</time>
-                          </div>
-                        </div>
-                        {entry.details && <DiffViewer details={entry.details} />}
+                        )}
                       </div>
                     </div>
                   </div>
