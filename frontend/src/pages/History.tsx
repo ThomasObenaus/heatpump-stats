@@ -165,6 +165,18 @@ const History: React.FC = () => {
   const [energyData, setEnergyData] = useState<EnergyStatPoint[]>([]);
   const [energyLoading, setEnergyLoading] = useState(true);
 
+  // Synchronized zoom state - time-based for cross-chart sync
+  const [zoomRange, setZoomRange] = useState<{ start: number; end: number } | null>(null);
+
+  // Reset zoom when data changes
+  useEffect(() => {
+    setZoomRange(null);
+  }, [data]);
+
+  const handleZoomChange = (range: { start: number; end: number } | null) => {
+    setZoomRange(range);
+  };
+
   const fetchHistory = async () => {
     setLoading(true);
     setError(null);
@@ -430,10 +442,10 @@ const History: React.FC = () => {
 
       {!loading && !error && data && (
         <div className="space-y-6">
-          <PowerChart powerData={data.power} heatPumpData={data.heat_pump} />
-          <TemperatureChart data={data.heat_pump} />
-          <CircuitChart data={data.heat_pump} />
-          <EfficiencyChart powerData={data.power} heatPumpData={data.heat_pump} />
+          <PowerChart powerData={data.power} heatPumpData={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
+          <TemperatureChart data={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
+          <CircuitChart data={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
+          <EfficiencyChart powerData={data.power} heatPumpData={data.heat_pump} zoomRange={zoomRange} onZoomChange={handleZoomChange} />
           <EnergyChart data={energyData} mode={energyMode} onModeChange={setEnergyMode} loading={energyLoading} />
         </div>
       )}
