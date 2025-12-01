@@ -81,6 +81,7 @@ class ViessmannAdapter:
             # These often need direct property access if high-level methods are missing
             modulation = self._get_feature_property("heating.compressors.0.sensors.power", "value")
             power_rated = self._get_feature_property("heating.compressors.0.power", "value")
+            runtime = self._get_feature_property("heating.compressors.0.statistics", "hours")
 
             # Fallback to configured rated power if API doesn't provide it
             if power_rated is None:
