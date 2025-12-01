@@ -4,12 +4,19 @@ import Layout from "../components/Layout";
 import DiffViewer from "../components/DiffViewer";
 import type { ChangelogEntry } from "../types";
 
+interface EditingState {
+  entryId: number;
+  name: string;
+}
+
 const Changelog: React.FC = () => {
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [editing, setEditing] = useState<EditingState | null>(null);
+  const [saving, setSaving] = useState<boolean>(false);
 
   const fetchChangelog = async () => {
     try {
@@ -38,6 +45,42 @@ const Changelog: React.FC = () => {
       alert("Failed to add note");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEditing = (entry: ChangelogEntry) => {
+    if (entry.id) {
+      setEditing({ entryId: entry.id, name: entry.name || "" });
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditing(null);
+  };
+
+  const saveName = async () => {
+    if (!editing) return;
+
+    setSaving(true);
+    try {
+      await axios.patch(`/api/changelog/${editing.entryId}/name`, { name: editing.name });
+      // Update local state
+      setEntries((prev) => prev.map((e) => (e.id === editing.entryId ? { ...e, name: editing.name } : e)));
+      setEditing(null);
+    } catch (err) {
+      console.error("Failed to update name:", err);
+      alert("Failed to save name");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveName();
+    } else if (e.key === "Escape") {
+      cancelEditing();
     }
   };
 
@@ -133,9 +176,69 @@ const Changelog: React.FC = () => {
                       </div>
                       <div className="min-w-0 flex-1 pt-1.5">
                         <div className="flex justify-between items-start">
-                          <p className="text-sm text-gray-500">
-                            {entry.message} <span className="font-medium text-gray-900">by {entry.author}</span>
-                          </p>
+                          <div className="flex-1">
+                            {/* Editable Name */}
+                            {editing && editing.entryId === entry.id ? (
+                              <div className="flex items-center space-x-2 mb-1">
+                                <input
+                                  type="text"
+                                  value={editing.name}
+                                  onChange={(e) => setEditing({ entryId: editing.entryId, name: e.target.value.slice(0, 100) })}
+                                  onKeyDown={handleKeyDown}
+                                  maxLength={100}
+                                  className="flex-1 text-sm font-semibold text-gray-900 border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Enter a name for this change..."
+                                  autoFocus
+                                  disabled={saving}
+                                />
+                                <button
+                                  onClick={saveName}
+                                  disabled={saving}
+                                  className="text-green-600 hover:text-green-800 p-1"
+                                  title="Save"
+                                >
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={cancelEditing}
+                                  disabled={saving}
+                                  className="text-gray-500 hover:text-gray-700 p-1"
+                                  title="Cancel"
+                                >
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2 mb-1 group">
+                                {entry.name ? (
+                                  <span className="text-sm font-semibold text-gray-900">{entry.name}</span>
+                                ) : (
+                                  <span className="text-sm text-gray-400 italic">No name</span>
+                                )}
+                                <button
+                                  onClick={() => startEditing(entry)}
+                                  className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                  title="Edit name"
+                                >
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                            <p className="text-sm text-gray-500">
+                              {entry.message} <span className="font-medium text-gray-900">by {entry.author}</span>
+                            </p>
+                          </div>
                           <div className="text-right text-sm whitespace-nowrap text-gray-500 ml-4">
                             <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString()}</time>
                           </div>

@@ -48,6 +48,7 @@ export interface ChangelogEntry {
   category: string;
   author: string;
   message: string;
+  name?: string;
   details?: string;
 }
 
