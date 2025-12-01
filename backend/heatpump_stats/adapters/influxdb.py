@@ -139,7 +139,10 @@ class InfluxDBAdapter:
                 circuits_by_time[ts] = []
 
             try:
-                cid = int(r.get("circuit_id"))
+                cid_val = r.get("circuit_id")
+                if cid_val is None:
+                    continue
+                cid = int(cid_val)
                 circuits_by_time[ts].append(
                     CircuitData(
                         circuit_id=cid,
@@ -324,7 +327,7 @@ class InfluxDBAdapter:
             total_energy_wh=record.get("total_energy_wh"),
         )
 
-    async def get_energy_stats(self, start: datetime, end: datetime, interval: str) -> dict:
+    async def get_energy_stats(self, start: datetime, end: datetime, interval: str) -> List[dict]:
         """
         Calculates energy consumption (kWh) and thermal output (kWh) aggregated by interval.
         interval: "1d", "1w", "1mo"

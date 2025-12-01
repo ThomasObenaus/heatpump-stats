@@ -170,7 +170,8 @@ class TestViessmannAdapter:
         assert isinstance(data, HeatPumpData)
         assert data.is_connected is True
         assert data.compressor_modulation is None
-        assert data.compressor_power_rated is None
+        # Fallback to default rated power (16.0) when API returns None
+        assert data.compressor_power_rated == 16.0
         assert data.compressor_runtime_hours is None
         assert data.circulation_pump_active is False  # Defaults to False
 
@@ -347,7 +348,8 @@ class TestViessmannAdapter:
         data = await adapter.get_data()
 
         assert data.compressor_modulation == 50.0
-        assert data.compressor_power_rated is None
+        # Fallback to default rated power (16.0) when API returns None
+        assert data.compressor_power_rated == 16.0
         assert data.compressor_runtime_hours is None
 
     @pytest.mark.asyncio

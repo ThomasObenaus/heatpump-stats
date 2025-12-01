@@ -129,6 +129,10 @@ class MockInfluxDBAdapter:
             latest_power_reading=power_data,
         )
 
+    async def get_energy_stats(self, start: datetime, end: datetime, interval: str) -> List[dict]:
+        logger.debug("Mock: Fetching energy stats")
+        return []
+
 
 class MockSqliteAdapter:
     async def save_config(self, config: HeatPumpConfig) -> bool:
