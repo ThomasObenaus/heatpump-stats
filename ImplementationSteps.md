@@ -97,11 +97,11 @@
 - [x] Implement Login Page and `AuthProvider`.
 - **Deliverable**: Frontend app with protected routes.
 
-### Step 3.2: Dashboard Layout & Real-time Status
+### Step 3.2: Dashboard Layout & Real-time Status (Completed)
 
-- Create layout shell (Sidebar/Header).
-- Create "Current Status" widgets (Power, Temps, COP).
-- Hook up to `GET /api/status` with polling.
+- [x] Create layout shell (Sidebar/Header).
+- [x] Create "Current Status" widgets (Power, Temps, COP).
+- [x] Hook up to `GET /api/status` with polling.
 - **Deliverable**: Dashboard showing live numbers.
 
 ### Step 3.3: Historical Charts
