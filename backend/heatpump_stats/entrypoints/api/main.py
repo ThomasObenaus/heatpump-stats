@@ -1,8 +1,8 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, List, Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordRequestForm
 
 from heatpump_stats.config import settings
@@ -79,9 +79,22 @@ async def get_system_status(
 async def get_history(
     current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
     reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
-    hours: int = 24,
+    hours: Optional[int] = Query(None, description="Number of hours to look back (deprecated, use start/end instead)"),
+    start: Optional[datetime] = Query(None, description="Start datetime (ISO format)"),
+    end: Optional[datetime] = Query(None, description="End datetime (ISO format)"),
 ):
-    return await reporting_service.get_recent_history(duration=timedelta(hours=hours))
+    # If start/end are provided, use them; otherwise fall back to hours
+    if start is not None and end is not None:
+        # Ensure timezone awareness
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=timezone.utc)
+        return await reporting_service.get_history_range(start=start, end=end)
+    else:
+        # Fall back to duration-based query
+        duration_hours = hours if hours is not None else 24
+        return await reporting_service.get_recent_history(duration=timedelta(hours=duration_hours))
 
 
 @app.get("/api/changelog", response_model=List[schemas.ChangelogEntryResponse])
