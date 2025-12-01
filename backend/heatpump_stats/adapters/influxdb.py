@@ -365,16 +365,29 @@ class InfluxDBAdapter:
         for r in elec_records:
             ts = r["_time"]
             if ts not in results:
-                results[ts] = {"timestamp": ts, "electrical_kwh": 0.0, "thermal_kwh": 0.0}
-            results[ts]["electrical_kwh"] = r.get("_value", 0.0) or 0.0
+                results[ts] = {"time": ts, "electrical_energy_kwh": 0.0, "thermal_energy_kwh": 0.0, "cop": None}
+            results[ts]["electrical_energy_kwh"] = r.get("_value", 0.0) or 0.0
 
         for r in thermal_records:
             ts = r["_time"]
             if ts not in results:
-                results[ts] = {"timestamp": ts, "electrical_kwh": 0.0, "thermal_kwh": 0.0}
-            results[ts]["thermal_kwh"] = r.get("_value", 0.0) or 0.0
+                results[ts] = {"time": ts, "electrical_energy_kwh": 0.0, "thermal_energy_kwh": 0.0, "cop": None}
+            results[ts]["thermal_energy_kwh"] = r.get("_value", 0.0) or 0.0
 
-        return sorted(results.values(), key=lambda x: x["timestamp"])
+        # Calculate COP
+        final_results = []
+        for item in results.values():
+            elec = item["electrical_energy_kwh"]
+            thermal = item["thermal_energy_kwh"]
+            if elec > 0:
+                item["cop"] = thermal / elec
+            else:
+                item["cop"] = (
+                    0.0 if thermal == 0 else None
+                )  # Avoid division by zero, but if thermal > 0 and elec = 0, it's infinite/undefined.
+            final_results.append(item)
+
+        return sorted(final_results, key=lambda x: x["time"])
 
     async def _query(self, query: str) -> List[dict]:
         try:
