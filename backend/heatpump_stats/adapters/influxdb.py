@@ -359,20 +359,56 @@ class InfluxDBAdapter:
         """
         thermal_records = await self._query(query_thermal)
 
+        # Thermal Energy Delta T (kWh)
+        query_thermal_dt = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: time(v: "{start.isoformat()}"), stop: time(v: "{end.isoformat()}"))
+            |> filter(fn: (r) => r["_measurement"] == "heat_pump" and r["_field"] == "thermal_power_delta_t")
+            |> aggregateWindow(every: {interval}, fn: (tables=<-, column) =>
+                tables
+                |> integral(unit: 1h)
+            )
+        """
+        thermal_dt_records = await self._query(query_thermal_dt)
+
         # Format results
         results = {}
 
         for r in elec_records:
             ts = r["_time"]
             if ts not in results:
-                results[ts] = {"time": ts, "electrical_energy_kwh": 0.0, "thermal_energy_kwh": 0.0, "cop": None}
+                results[ts] = {
+                    "time": ts,
+                    "electrical_energy_kwh": 0.0,
+                    "thermal_energy_kwh": 0.0,
+                    "thermal_energy_delta_t_kwh": 0.0,
+                    "cop": None,
+                }
             results[ts]["electrical_energy_kwh"] = r.get("_value", 0.0) or 0.0
 
         for r in thermal_records:
             ts = r["_time"]
             if ts not in results:
-                results[ts] = {"time": ts, "electrical_energy_kwh": 0.0, "thermal_energy_kwh": 0.0, "cop": None}
+                results[ts] = {
+                    "time": ts,
+                    "electrical_energy_kwh": 0.0,
+                    "thermal_energy_kwh": 0.0,
+                    "thermal_energy_delta_t_kwh": 0.0,
+                    "cop": None,
+                }
             results[ts]["thermal_energy_kwh"] = r.get("_value", 0.0) or 0.0
+
+        for r in thermal_dt_records:
+            ts = r["_time"]
+            if ts not in results:
+                results[ts] = {
+                    "time": ts,
+                    "electrical_energy_kwh": 0.0,
+                    "thermal_energy_kwh": 0.0,
+                    "thermal_energy_delta_t_kwh": 0.0,
+                    "cop": None,
+                }
+            results[ts]["thermal_energy_delta_t_kwh"] = r.get("_value", 0.0) or 0.0
 
         # Calculate COP
         final_results = []

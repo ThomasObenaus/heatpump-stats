@@ -82,6 +82,7 @@ class EnergyStatPoint(BaseModel):
     timestamp: datetime
     electrical_energy_kwh: float
     thermal_energy_kwh: float
+    thermal_energy_delta_t_kwh: float
     cop: Optional[float] = None
 
 
