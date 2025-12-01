@@ -18,6 +18,17 @@ interface PowerChartProps {
 }
 
 const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
+  const [visible, setVisible] = React.useState<{ [key: string]: boolean }>({
+    powerWatts: true,
+    thermalPower: true,
+    thermalPowerDeltaT: true,
+  });
+
+  const handleLegendClick = (e: any) => {
+    const { dataKey } = e;
+    setVisible({ ...visible, [dataKey]: !visible[dataKey] });
+  };
+
   // Merge data by timestamp (rounded to minute)
   const mergedData = React.useMemo(() => {
     const dataMap = new Map<string, any>();
@@ -78,7 +89,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
             formatter={(value: number) => [value.toFixed(2) + " kW", ""]}
             labelFormatter={(label) => `Time: ${label}`}
           />
-          <Legend />
+          <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line
             type="monotone"
             dataKey="powerWatts"
@@ -87,6 +98,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+            hide={!visible.powerWatts}
           />
           <Line
             type="monotone"
@@ -96,6 +108,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+            hide={!visible.thermalPower}
           />
           <Line
             type="monotone"
@@ -106,6 +119,7 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData }) => {
             dot={false}
             activeDot={{ r: 4 }}
             strokeDasharray="5 5"
+            hide={!visible.thermalPowerDeltaT}
           />
         </LineChart>
       </ResponsiveContainer>

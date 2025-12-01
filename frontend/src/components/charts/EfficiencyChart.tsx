@@ -18,6 +18,16 @@ interface EfficiencyChartProps {
 }
 
 const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpData }) => {
+  const [visible, setVisible] = React.useState<{ [key: string]: boolean }>({
+    cop: true,
+    modulation: true,
+  });
+
+  const handleLegendClick = (e: any) => {
+    const { dataKey } = e;
+    setVisible({ ...visible, [dataKey]: !visible[dataKey] });
+  };
+
   // Merge and calculate COP
   const mergedData = React.useMemo(() => {
     const dataMap = new Map<string, any>();
@@ -114,7 +124,7 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
             }}
             labelFormatter={(label) => `Time: ${label}`}
           />
-          <Legend />
+          <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line
             yAxisId="left"
             type="monotone"
@@ -125,6 +135,7 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
             dot={false}
             activeDot={{ r: 4 }}
             connectNulls
+            hide={!visible.cop}
           />
           <Line
             yAxisId="right"
@@ -135,6 +146,7 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+            hide={!visible.modulation}
           />
         </LineChart>
       </ResponsiveContainer>
