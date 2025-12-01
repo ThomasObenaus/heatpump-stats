@@ -48,6 +48,37 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
     return rounded;
   };
 
+  // Helper to interpolate a value between two points
+  const interpolate = (time: number, data: Array<{ time: number; value: number | undefined }>): number | undefined => {
+    // Find the two nearest points
+    let before: { time: number; value: number } | null = null;
+    let after: { time: number; value: number } | null = null;
+
+    for (const point of data) {
+      if (point.value === undefined) continue;
+      if (point.time <= time) {
+        if (!before || point.time > before.time) {
+          before = { time: point.time, value: point.value };
+        }
+      }
+      if (point.time >= time) {
+        if (!after || point.time < after.time) {
+          after = { time: point.time, value: point.value };
+        }
+      }
+    }
+
+    if (before && after) {
+      if (before.time === after.time) return before.value;
+      // Linear interpolation
+      const ratio = (time - before.time) / (after.time - before.time);
+      return before.value + ratio * (after.value - before.value);
+    }
+    if (before) return before.value;
+    if (after) return after.value;
+    return undefined;
+  };
+
   // Merge data by timestamp (rounded to minute)
   const mergedData = React.useMemo(() => {
     const dataMap = new Map<string, any>();
@@ -99,7 +130,20 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
     });
 
     // Sort by timestamp
-    return Array.from(dataMap.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const sorted = Array.from(dataMap.values()).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+    // Build lookup arrays for interpolation
+    const powerPoints = sorted.map((d) => ({ time: d.time, value: d.powerWatts }));
+    const thermalPoints = sorted.map((d) => ({ time: d.time, value: d.thermalPower }));
+    const thermalDeltaTPoints = sorted.map((d) => ({ time: d.time, value: d.thermalPowerDeltaT }));
+
+    // Interpolate missing values
+    return sorted.map((d) => ({
+      ...d,
+      powerWatts: d.powerWatts ?? interpolate(d.time, powerPoints),
+      thermalPower: d.thermalPower ?? interpolate(d.time, thermalPoints),
+      thermalPowerDeltaT: d.thermalPowerDeltaT ?? interpolate(d.time, thermalDeltaTPoints),
+    }));
   }, [powerData, heatPumpData]);
 
   // Filter data based on zoom range
