@@ -21,6 +21,8 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
     brineSupply: true,
     brineReturn: true,
     outsideTemp: true,
+    brineDeltaT: true,
+    secondaryDeltaT: true,
   });
 
   const handleLegendClick = (e: any) => {
@@ -32,6 +34,17 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
     return data
       .map((reading) => {
         const timestamp = new Date(reading.timestamp);
+
+        let brineDeltaT: number | undefined;
+        if (reading.primary_supply_temp !== undefined && reading.primary_return_temp !== undefined) {
+          brineDeltaT = Math.abs(reading.primary_supply_temp - reading.primary_return_temp);
+        }
+
+        let secondaryDeltaT: number | undefined;
+        if (reading.secondary_supply_temp !== undefined && reading.return_temperature !== undefined) {
+          secondaryDeltaT = Math.abs(reading.secondary_supply_temp - reading.return_temperature);
+        }
+
         return {
           timestamp,
           displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
@@ -40,6 +53,8 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
           brineSupply: reading.primary_supply_temp,
           brineReturn: reading.primary_return_temp,
           condenserSupply: reading.secondary_supply_temp,
+          brineDeltaT,
+          secondaryDeltaT,
         };
       })
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -62,11 +77,21 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis dataKey="displayTime" stroke="#6b7280" fontSize={12} tickLine={false} />
           <YAxis
+            yAxisId="left"
             stroke="#6b7280"
             fontSize={12}
             tickLine={false}
             domain={["auto", "auto"]}
             label={{ value: "°C", angle: -90, position: "insideLeft" }}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            stroke="#6b7280"
+            fontSize={12}
+            tickLine={false}
+            domain={[0, "auto"]}
+            label={{ value: "ΔT (K)", angle: 90, position: "insideRight" }}
           />
           <Tooltip
             contentStyle={{
@@ -74,11 +99,17 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
               border: "1px solid #e5e7eb",
               borderRadius: "0.375rem",
             }}
-            formatter={(value: number) => [value?.toFixed(1) + " °C", ""]}
+            formatter={(value: number, name: string) => {
+              if (name.includes("Delta T")) {
+                return [value?.toFixed(1) + " K", name];
+              }
+              return [value?.toFixed(1) + " °C", name];
+            }}
             labelFormatter={(label) => `Time: ${label}`}
           />
           <Legend onClick={handleLegendClick} cursor="pointer" />
           <Line
+            yAxisId="left"
             type="monotone"
             dataKey="condenserSupply"
             name="Condenser Supply"
@@ -87,8 +118,10 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             dot={false}
             activeDot={{ r: 4 }}
             hide={!visible.condenserSupply}
+            connectNulls
           />
           <Line
+            yAxisId="left"
             type="monotone"
             dataKey="returnTemp"
             name="Condenser Return"
@@ -97,8 +130,10 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             dot={false}
             activeDot={{ r: 4 }}
             hide={!visible.returnTemp}
+            connectNulls
           />
           <Line
+            yAxisId="left"
             type="monotone"
             dataKey="brineSupply"
             name="Brine Supply"
@@ -107,8 +142,10 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             dot={false}
             activeDot={{ r: 4 }}
             hide={!visible.brineSupply}
+            connectNulls
           />
           <Line
+            yAxisId="left"
             type="monotone"
             dataKey="brineReturn"
             name="Brine Return"
@@ -117,8 +154,10 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             dot={false}
             activeDot={{ r: 4 }}
             hide={!visible.brineReturn}
+            connectNulls
           />
           <Line
+            yAxisId="left"
             type="monotone"
             dataKey="outsideTemp"
             name="Outside"
@@ -128,6 +167,33 @@ const TemperatureChart: React.FC<TemperatureChartProps> = ({ data }) => {
             activeDot={{ r: 4 }}
             strokeDasharray="5 5"
             hide={!visible.outsideTemp}
+            connectNulls
+          />
+          <Line
+            yAxisId="right"
+            type="monotone"
+            dataKey="brineDeltaT"
+            name="Brine Delta T"
+            stroke="#16a34a"
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 4 }}
+            strokeDasharray="3 3"
+            hide={!visible.brineDeltaT}
+            connectNulls
+          />
+          <Line
+            yAxisId="right"
+            type="monotone"
+            dataKey="secondaryDeltaT"
+            name="Secondary Delta T"
+            stroke="#ea580c"
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 4 }}
+            strokeDasharray="3 3"
+            hide={!visible.secondaryDeltaT}
+            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>
