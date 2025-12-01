@@ -40,6 +40,37 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
     setVisible({ ...visible, [dataKey]: !visible[dataKey] });
   };
 
+  // Helper to interpolate a value between two points
+  const interpolate = (time: number, data: Array<{ time: number; value: number | undefined }>): number | undefined => {
+    // Find the two nearest points
+    let before: { time: number; value: number } | null = null;
+    let after: { time: number; value: number } | null = null;
+
+    for (const point of data) {
+      if (point.value === undefined) continue;
+      if (point.time <= time) {
+        if (!before || point.time > before.time) {
+          before = { time: point.time, value: point.value };
+        }
+      }
+      if (point.time >= time) {
+        if (!after || point.time < after.time) {
+          after = { time: point.time, value: point.value };
+        }
+      }
+    }
+
+    if (before && after) {
+      if (before.time === after.time) return before.value;
+      // Linear interpolation
+      const ratio = (time - before.time) / (after.time - before.time);
+      return before.value + ratio * (after.value - before.value);
+    }
+    if (before) return before.value;
+    if (after) return after.value;
+    return undefined;
+  };
+
   // Merge and calculate COP
   const mergedData = React.useMemo(() => {
     if (powerData.length === 0 || heatPumpData.length === 0) return [];
@@ -96,15 +127,30 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }, [powerData, heatPumpData]);
 
+  // Interpolate missing values for smoother tooltip display
+  const interpolatedData = React.useMemo(() => {
+    if (mergedData.length === 0) return [];
+
+    // Prepare data arrays for interpolation
+    const copData = mergedData.map((d) => ({ time: d.time, value: d.cop }));
+    const modData = mergedData.map((d) => ({ time: d.time, value: d.modulation }));
+
+    return mergedData.map((point) => ({
+      ...point,
+      cop: point.cop ?? interpolate(point.time, copData),
+      modulation: point.modulation ?? interpolate(point.time, modData),
+    }));
+  }, [mergedData]);
+
   // Filter data based on zoom range
   const displayData = React.useMemo(() => {
-    if (!zoomRange) return mergedData;
-    return mergedData.filter((d) => d.time >= zoomRange.start && d.time <= zoomRange.end);
-  }, [mergedData, zoomRange]);
+    if (!zoomRange) return interpolatedData;
+    return interpolatedData.filter((d) => d.time >= zoomRange.start && d.time <= zoomRange.end);
+  }, [interpolatedData, zoomRange]);
 
   const handleMouseDown = (e: any) => {
     if (e && e.activeLabel) {
-      const point = mergedData.find((d) => d.displayTime === e.activeLabel);
+      const point = interpolatedData.find((d) => d.displayTime === e.activeLabel);
       if (point) {
         setRefAreaLeft(point.time);
         setIsSelecting(true);
@@ -114,7 +160,7 @@ const EfficiencyChart: React.FC<EfficiencyChartProps> = ({ powerData, heatPumpDa
 
   const handleMouseMove = (e: any) => {
     if (isSelecting && e && e.activeLabel) {
-      const point = mergedData.find((d) => d.displayTime === e.activeLabel);
+      const point = interpolatedData.find((d) => d.displayTime === e.activeLabel);
       if (point) {
         setRefAreaRight(point.time);
       }
