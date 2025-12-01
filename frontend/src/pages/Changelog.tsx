@@ -9,6 +9,11 @@ interface EditingState {
   name: string;
 }
 
+interface EditingNoteState {
+  entryId: number;
+  note: string;
+}
+
 const Changelog: React.FC = () => {
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -16,6 +21,7 @@ const Changelog: React.FC = () => {
   const [newMessage, setNewMessage] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [editingNote, setEditingNote] = useState<EditingNoteState | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
 
   const fetchChangelog = async () => {
@@ -81,6 +87,42 @@ const Changelog: React.FC = () => {
       saveName();
     } else if (e.key === "Escape") {
       cancelEditing();
+    }
+  };
+
+  const startEditingNote = (entry: ChangelogEntry) => {
+    if (entry.id) {
+      setEditingNote({ entryId: entry.id, note: entry.message || "" });
+    }
+  };
+
+  const cancelEditingNote = () => {
+    setEditingNote(null);
+  };
+
+  const saveNote = async () => {
+    if (!editingNote) return;
+
+    setSaving(true);
+    try {
+      await axios.patch(`/api/changelog/${editingNote.entryId}/note`, { note: editingNote.note });
+      // Update local state
+      setEntries((prev) => prev.map((e) => (e.id === editingNote.entryId ? { ...e, message: editingNote.note } : e)));
+      setEditingNote(null);
+    } catch (err) {
+      console.error("Failed to update note:", err);
+      alert("Failed to save note");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNoteKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      saveNote();
+    } else if (e.key === "Escape") {
+      cancelEditingNote();
     }
   };
 
@@ -235,9 +277,62 @@ const Changelog: React.FC = () => {
                                 </button>
                               </div>
                             )}
-                            <p className="text-sm text-gray-500">
-                              {entry.message} <span className="font-medium text-gray-900">by {entry.author}</span>
-                            </p>
+                            {/* Editable Note */}
+                            {editingNote && editingNote.entryId === entry.id ? (
+                              <div className="flex items-start space-x-2">
+                                <textarea
+                                  value={editingNote.note}
+                                  onChange={(e) => setEditingNote({ entryId: editingNote.entryId, note: e.target.value.slice(0, 1000) })}
+                                  onKeyDown={handleNoteKeyDown}
+                                  maxLength={1000}
+                                  rows={2}
+                                  className="flex-1 text-sm text-gray-500 border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Enter a note..."
+                                  autoFocus
+                                  disabled={saving}
+                                />
+                                <button
+                                  onClick={saveNote}
+                                  disabled={saving}
+                                  className="text-green-600 hover:text-green-800 p-1"
+                                  title="Save"
+                                >
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={cancelEditingNote}
+                                  disabled={saving}
+                                  className="text-gray-500 hover:text-gray-700 p-1"
+                                  title="Cancel"
+                                >
+                                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2 group">
+                                <p className="text-sm text-gray-500">
+                                  {entry.message} <span className="font-medium text-gray-900">by {entry.author}</span>
+                                </p>
+                                <button
+                                  onClick={() => startEditingNote(entry)}
+                                  className="text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                  title="Edit note"
+                                >
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
                           </div>
                           <div className="text-right text-sm whitespace-nowrap text-gray-500 ml-4">
                             <time dateTime={entry.timestamp}>{new Date(entry.timestamp).toLocaleString()}</time>

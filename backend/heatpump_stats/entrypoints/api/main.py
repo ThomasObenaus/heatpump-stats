@@ -117,6 +117,19 @@ async def update_changelog_name(
     return {"status": "ok"}
 
 
+@app.patch("/api/changelog/{entry_id}/note")
+async def update_changelog_note(
+    entry_id: int,
+    request: schemas.UpdateChangelogNoteRequest,
+    current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
+    reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
+):
+    success = await reporting_service.update_changelog_note(entry_id, request.note)
+    if not success:
+        raise HTTPException(status_code=404, detail="Changelog entry not found")
+    return {"status": "ok"}
+
+
 @app.get("/api/energy", response_model=schemas.EnergyStatsResponse)
 async def get_energy_stats(
     current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],

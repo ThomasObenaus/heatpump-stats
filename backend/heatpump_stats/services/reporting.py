@@ -55,6 +55,12 @@ class ReportingService:
         """
         return await self.config_repository.update_changelog_name(entry_id, name)
 
+    async def update_changelog_note(self, entry_id: int, note: str) -> bool:
+        """
+        Updates the note/message of a changelog entry.
+        """
+        return await self.config_repository.update_changelog_note(entry_id, note)
+
     async def get_energy_stats(self, mode: str) -> List[dict]:
         """
         Fetches aggregated energy stats.

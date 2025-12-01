@@ -213,3 +213,20 @@ class SqliteAdapter:
         except Exception as e:
             logger.error(f"Failed to update changelog name: {e}")
             return False
+
+    async def update_changelog_note(self, entry_id: int, note: str) -> bool:
+        """Update the note/message of a changelog entry."""
+        return await asyncio.to_thread(self._update_changelog_note_sync, entry_id, note)
+
+    def _update_changelog_note_sync(self, entry_id: int, note: str) -> bool:
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(
+                    "UPDATE changelog SET message = ? WHERE id = ?",
+                    (note, entry_id),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Failed to update changelog note: {e}")
+            return False

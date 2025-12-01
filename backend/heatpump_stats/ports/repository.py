@@ -72,3 +72,9 @@ class ConfigRepositoryPort(Protocol):
         Update the name of a changelog entry.
         """
         ...
+
+    async def update_changelog_note(self, entry_id: int, note: str) -> bool:
+        """
+        Update the note/message of a changelog entry.
+        """
+        ...
