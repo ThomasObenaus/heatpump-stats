@@ -131,6 +131,9 @@ class InfluxDBAdapter:
                 compressor_runtime_hours=record.get("compressor_runtime"),
                 estimated_thermal_power=record.get("thermal_power"),
                 estimated_thermal_power_delta_t=record.get("thermal_power_delta_t"),
+                primary_supply_temp=record.get("primary_supply_temp"),
+                primary_return_temp=record.get("primary_return_temp"),
+                secondary_supply_temp=record.get("secondary_supply_temp"),
                 circulation_pump_active=bool(record.get("dhw_pump_active", 0)),
                 circuits=[],  # Circuits are stored in a separate measurement, skipping for summary
             )
