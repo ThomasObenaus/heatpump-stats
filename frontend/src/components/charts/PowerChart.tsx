@@ -41,6 +41,13 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
     setVisible({ ...visible, [dataKey]: !visible[dataKey] });
   };
 
+  // Helper to round timestamp to nearest minute for matching
+  const roundToMinute = (date: Date): Date => {
+    const rounded = new Date(date);
+    rounded.setSeconds(0, 0);
+    return rounded;
+  };
+
   // Merge data by timestamp (rounded to minute)
   const mergedData = React.useMemo(() => {
     const dataMap = new Map<string, any>();
@@ -48,12 +55,15 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
     // Add power data
     powerData.forEach((reading) => {
       const timestamp = new Date(reading.timestamp);
-      const key = timestamp.toISOString();
+      const rounded = roundToMinute(timestamp);
+      const key = rounded.toISOString();
+      const existing = dataMap.get(key);
       dataMap.set(key, {
-        timestamp,
-        time: timestamp.getTime(),
-        displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-        tooltipLabel: timestamp.toLocaleString("de-DE", {
+        ...existing,
+        timestamp: rounded,
+        time: rounded.getTime(),
+        displayTime: rounded.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+        tooltipLabel: rounded.toLocaleString("de-DE", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
@@ -67,12 +77,13 @@ const PowerChart: React.FC<PowerChartProps> = ({ powerData, heatPumpData, zoomRa
     // Merge heat pump data
     heatPumpData.forEach((reading) => {
       const timestamp = new Date(reading.timestamp);
-      const key = timestamp.toISOString();
+      const rounded = roundToMinute(timestamp);
+      const key = rounded.toISOString();
       const existing = dataMap.get(key) || {
-        timestamp,
-        time: timestamp.getTime(),
-        displayTime: timestamp.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
-        tooltipLabel: timestamp.toLocaleString("de-DE", {
+        timestamp: rounded,
+        time: rounded.getTime(),
+        displayTime: rounded.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }),
+        tooltipLabel: rounded.toLocaleString("de-DE", {
           day: "2-digit",
           month: "2-digit",
           year: "numeric",
