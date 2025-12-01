@@ -35,6 +35,18 @@ class ReportingService:
 
         return {"heat_pump": hp_data, "power": power_data}
 
+    async def get_history_range(self, start: datetime, end: datetime) -> dict:
+        """
+        Fetches history for a specific time range.
+        Returns a dict with 'heat_pump' and 'power' lists.
+        """
+        logger.info(f"Fetching history range from {start} to {end}")
+
+        hp_data = await self.repository.get_heat_pump_history(start, end)
+        power_data = await self.repository.get_power_history(start, end)
+
+        return {"heat_pump": hp_data, "power": power_data}
+
     async def get_changelog(self, limit: int = 50, offset: int = 0, category: Optional[str] = None) -> List[ChangelogEntry]:
         """
         Fetches the changelog.
