@@ -324,6 +324,58 @@ class InfluxDBAdapter:
             total_energy_wh=record.get("total_energy_wh"),
         )
 
+    async def get_energy_stats(self, start: datetime, end: datetime, interval: str) -> dict:
+        """
+        Calculates energy consumption (kWh) and thermal output (kWh) aggregated by interval.
+        interval: "1d", "1w", "1mo"
+        """
+        # Electrical Energy (kWh) = Integral of Power (W) / 1000 / 3600 (if unit is seconds)
+        # InfluxDB integral unit defaults to 1s. If we set unit=1h, we get Wh directly if input is Watts?
+        # No, integral(unit: 1h) of Watts gives Watt-hours.
+        # Then divide by 1000 to get kWh.
+
+        query_elec = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: time(v: "{start.isoformat()}"), stop: time(v: "{end.isoformat()}"))
+            |> filter(fn: (r) => r["_measurement"] == "power_meter" and r["_field"] == "power_watts")
+            |> aggregateWindow(every: {interval}, fn: (tables=<-, column) =>
+                tables
+                |> integral(unit: 1h)
+                |> map(fn: (r) => ({{ r with _value: r._value / 1000.0 }}))
+            )
+        """
+        elec_records = await self._query(query_elec)
+
+        # Thermal Energy (kWh) = Integral of Thermal Power (kW)
+        # Input is kW, so integral(unit: 1h) gives kWh directly.
+        query_thermal = f"""
+        from(bucket: "{self.bucket}")
+            |> range(start: time(v: "{start.isoformat()}"), stop: time(v: "{end.isoformat()}"))
+            |> filter(fn: (r) => r["_measurement"] == "heat_pump" and r["_field"] == "thermal_power")
+            |> aggregateWindow(every: {interval}, fn: (tables=<-, column) =>
+                tables
+                |> integral(unit: 1h)
+            )
+        """
+        thermal_records = await self._query(query_thermal)
+
+        # Format results
+        results = {}
+
+        for r in elec_records:
+            ts = r["_time"]
+            if ts not in results:
+                results[ts] = {"timestamp": ts, "electrical_kwh": 0.0, "thermal_kwh": 0.0}
+            results[ts]["electrical_kwh"] = r.get("_value", 0.0) or 0.0
+
+        for r in thermal_records:
+            ts = r["_time"]
+            if ts not in results:
+                results[ts] = {"timestamp": ts, "electrical_kwh": 0.0, "thermal_kwh": 0.0}
+            results[ts]["thermal_kwh"] = r.get("_value", 0.0) or 0.0
+
+        return sorted(results.values(), key=lambda x: x["timestamp"])
+
     async def _query(self, query: str) -> List[dict]:
         try:
             query_api = self.client.query_api()

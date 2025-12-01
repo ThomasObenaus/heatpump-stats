@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Layout from "../components/Layout";
 import { PowerChart, TemperatureChart, EfficiencyChart, CircuitChart } from "../components/charts";
+import EnergyChart from "../components/charts/EnergyChart";
 
 interface CircuitData {
   circuit_id: number;
@@ -32,6 +33,17 @@ interface HistoryData {
   power: PowerReading[];
 }
 
+interface EnergyStatPoint {
+  timestamp: string;
+  electrical_energy_kwh: number;
+  thermal_energy_kwh: number;
+  cop?: number;
+}
+
+interface EnergyStatsResponse {
+  data: EnergyStatPoint[];
+}
+
 const TIME_RANGES = [
   { label: "6h", hours: 6 },
   { label: "12h", hours: 12 },
@@ -45,6 +57,10 @@ const History: React.FC = () => {
   const [data, setData] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [energyMode, setEnergyMode] = useState<"day" | "week" | "month">("day");
+  const [energyData, setEnergyData] = useState<EnergyStatPoint[]>([]);
+  const [energyLoading, setEnergyLoading] = useState(true);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -63,6 +79,22 @@ const History: React.FC = () => {
 
     fetchHistory();
   }, [selectedRange]);
+
+  useEffect(() => {
+    const fetchEnergyStats = async () => {
+      setEnergyLoading(true);
+      try {
+        const response = await axios.get<EnergyStatsResponse>(`/api/energy?mode=${energyMode}`);
+        setEnergyData(response.data.data);
+      } catch (err) {
+        console.error("Error fetching energy stats:", err);
+      } finally {
+        setEnergyLoading(false);
+      }
+    };
+
+    fetchEnergyStats();
+  }, [energyMode]);
 
   return (
     <Layout>
@@ -97,6 +129,7 @@ const History: React.FC = () => {
           <TemperatureChart data={data.heat_pump} />
           <CircuitChart data={data.heat_pump} />
           <EfficiencyChart powerData={data.power} heatPumpData={data.heat_pump} />
+          <EnergyChart data={energyData} mode={energyMode} onModeChange={setEnergyMode} loading={energyLoading} />
         </div>
       )}
     </Layout>
