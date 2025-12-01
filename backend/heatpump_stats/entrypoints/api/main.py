@@ -102,3 +102,23 @@ async def add_note(
     reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
 ):
     return await reporting_service.add_note(message=note.message, author=current_user.username)
+
+
+@app.get("/api/energy", response_model=schemas.EnergyStatsResponse)
+async def get_energy_stats(
+    current_user: Annotated[schemas.User, Depends(dependencies.get_current_user)],
+    reporting_service: Annotated[dependencies.ReportingService, Depends(dependencies.get_reporting_service)],
+    mode: str = "day",
+):
+    try:
+        data = await reporting_service.get_energy_stats(mode=mode)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    points = [
+        schemas.EnergyStatPoint(
+            timestamp=d["time"], electrical_energy_kwh=d["electrical_energy_kwh"], thermal_energy_kwh=d["thermal_energy_kwh"], cop=d["cop"]
+        )
+        for d in data
+    ]
+    return schemas.EnergyStatsResponse(data=points)

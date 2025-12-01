@@ -48,3 +48,24 @@ class ReportingService:
         entry = ChangelogEntry(category="note", author=author, message=message)
         await self.config_repository.save_changelog_entry(entry)
         return entry
+
+    async def get_energy_stats(self, mode: str) -> List[dict]:
+        """
+        Fetches aggregated energy stats.
+        mode: "day", "week", "month"
+        """
+        end = datetime.now(timezone.utc)
+
+        if mode == "day":
+            start = end - timedelta(days=30)
+            interval = "1d"
+        elif mode == "week":
+            start = end - timedelta(weeks=12)
+            interval = "1w"
+        elif mode == "month":
+            start = end - timedelta(days=365)
+            interval = "1mo"
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
+
+        return await self.repository.get_energy_stats(start, end, interval)

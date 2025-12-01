@@ -76,3 +76,14 @@ class ChangelogEntryResponse(BaseModel):
 
 class CreateNoteRequest(BaseModel):
     message: str
+
+
+class EnergyStatPoint(BaseModel):
+    timestamp: datetime
+    electrical_energy_kwh: float
+    thermal_energy_kwh: float
+    cop: Optional[float] = None
+
+
+class EnergyStatsResponse(BaseModel):
+    data: List[EnergyStatPoint]
