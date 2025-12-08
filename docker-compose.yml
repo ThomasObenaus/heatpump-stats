@@ -17,6 +17,30 @@ services:
     restart: unless-stopped
     security_opt:
       - apparmor:unconfined
+
+  backend:
+    image: docker.io/<user>/heatpump-stats-backend:latest
+    container_name: heatpump-backend
+    env_file:
+      - .env
+    depends_on:
+      - influxdb
+    volumes:
+      - backend_data:/app/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    image: docker.io/<user>/heatpump-stats-frontend:latest
+    container_name: heatpump-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
 volumes:
   influxdb_data:
   influxdb_config:
+  backend_data:
