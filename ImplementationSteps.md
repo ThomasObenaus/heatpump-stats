@@ -149,6 +149,7 @@
 ### Step 4.0: Create Docker Assets
 
 - **Backend Dockerfile** (`backend/Dockerfile`):
+
   ```dockerfile
   FROM python:3.12-slim
 
@@ -174,6 +175,7 @@
   EXPOSE 8000
   CMD ["uvicorn", "heatpump_stats.entrypoints.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
   ```
+
 - **Frontend Dockerfile** (`frontend/Dockerfile`):
 
   ```dockerfile
@@ -194,17 +196,17 @@
 
 ### Step 4.1: Build and Push Images to Docker Hub
 
-- **Registry**: Use Docker Hub private repos, e.g., `docker.io/<user>/heatpump-stats-backend` and `docker.io/<user>/heatpump-stats-frontend`.
+- **Registry**: Use Docker Hub private repos, e.g., `docker.io/thobe/heatpump-stats-backend` and `docker.io/thobe/heatpump-stats-frontend`.
 - **Login**:
   ```bash
   docker login
   ```
 - **Build (amd64)** — your NAS is not multi-arch:
   ```bash
-  docker build -t docker.io/<user>/heatpump-stats-backend:latest backend
-  docker build -t docker.io/<user>/heatpump-stats-frontend:latest frontend
-  docker push docker.io/<user>/heatpump-stats-backend:latest
-  docker push docker.io/<user>/heatpump-stats-frontend:latest
+  docker build -t docker.io/thobe/heatpump-stats-backend:latest backend
+  docker build -t docker.io/thobe/heatpump-stats-frontend:latest frontend
+  docker push docker.io/thobe/heatpump-stats-backend:latest
+  docker push docker.io/thobe/heatpump-stats-frontend:latest
   ```
 - **InfluxDB image**: Use the official `influxdb:2` from Docker Hub (no build needed).
 
@@ -230,7 +232,7 @@
          - "8086:8086"
 
      backend:
-       image: docker.io/<user>/heatpump-stats-backend:latest
+       image: docker.io/thobe/heatpump-stats-backend:latest
        env_file: ./env/.env
        depends_on:
          - influxdb
@@ -238,7 +240,7 @@
          - ./backend:/app/data
 
      frontend:
-       image: docker.io/<user>/heatpump-stats-frontend:latest
+       image: docker.io/thobe/heatpump-stats-frontend:latest
        ports:
          - "8080:80"
        depends_on:
