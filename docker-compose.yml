@@ -19,7 +19,7 @@ services:
       - apparmor:unconfined
 
   backend:
-    image: docker.io/<user>/heatpump-stats-backend:latest
+    image: docker.io/thobe/heatpump-stats-backend:latest
     container_name: heatpump-backend
     env_file:
       - .env
@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: docker.io/<user>/heatpump-stats-frontend:latest
+    image: docker.io/thobe/heatpump-stats-frontend:latest
     container_name: heatpump-frontend
     depends_on:
       - backend
