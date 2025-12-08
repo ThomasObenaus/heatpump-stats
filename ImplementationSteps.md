@@ -143,3 +143,100 @@
 - [ ] **Add chart print/screenshot**: Functionality to export charts as images for reports.
 - [ ] **Add tooltip enhancements**: Show more context in tooltips (e.g., outdoor temp, system status at that time).
 - [ ] **Add loading skeleton**: Replace spinner with skeleton screens for better perceived performance.
+
+## Phase 4: Deployment Setup
+
+### Step 4.0: Create Docker Assets
+
+- **Backend Dockerfile** (`backend/Dockerfile`):
+  ```dockerfile
+  FROM python:3.11-slim
+  WORKDIR /app
+  COPY pyproject.toml poetry.lock* ./
+  RUN pip install --no-cache-dir poetry && poetry config virtualenvs.create false && poetry install --only main
+  COPY backend ./backend
+  ENV PYTHONPATH=/app
+  CMD ["python", "-m", "heatpump_stats.entrypoints.api.main"]
+  ```
+- **Frontend Dockerfile** (`frontend/Dockerfile`):
+
+  ```dockerfile
+  FROM node:20-alpine AS build
+  WORKDIR /app
+  COPY package*.json ./
+  RUN npm ci
+  COPY . .
+  RUN npm run build
+
+  FROM nginx:stable-alpine
+  COPY --from=build /app/dist /usr/share/nginx/html
+  EXPOSE 80
+  ```
+
+- **.dockerignore**: Add `node_modules`, `dist`, `.venv`, `__pycache__`, `*.pyc`, and `.git` to reduce build context.
+- **docker-compose.yml** (root): reference built images (see 4.2) and bind mounts for data.
+
+### Step 4.1: Build and Push Images to Docker Hub
+
+- **Registry**: Use Docker Hub private repos, e.g., `docker.io/<user>/heatpump-stats-backend` and `docker.io/<user>/heatpump-stats-frontend`.
+- **Login**:
+  ```bash
+  docker login
+  ```
+- **Build (amd64)** — your NAS is not multi-arch:
+  ```bash
+  docker build -t docker.io/<user>/heatpump-stats-backend:latest backend
+  docker build -t docker.io/<user>/heatpump-stats-frontend:latest frontend
+  docker push docker.io/<user>/heatpump-stats-backend:latest
+  docker push docker.io/<user>/heatpump-stats-frontend:latest
+  ```
+- **InfluxDB image**: Use the official `influxdb:2` from Docker Hub (no build needed).
+
+### Step 4.2: Start All Components on Synology (Docker Compose)
+
+1. **Prepare folders on Synology** (example):
+
+   - `/volume1/docker/heatpump-stats/env/.env` (secrets)
+   - `/volume1/docker/heatpump-stats/influxdb` (InfluxDB data/config)
+   - `/volume1/docker/heatpump-stats/backend` (SQLite changelog)
+   - `/volume1/docker/heatpump-stats/backups` (backup outputs)
+
+2. **Create or update `docker-compose.yml`** to reference pushed images:
+
+   ```yaml
+   services:
+     influxdb:
+       image: influxdb:2
+       volumes:
+         - ./influxdb:/var/lib/influxdb2
+         - ./influxdb:/etc/influxdb2
+       ports:
+         - "8086:8086"
+
+     backend:
+       image: docker.io/<user>/heatpump-stats-backend:latest
+       env_file: ./env/.env
+       depends_on:
+         - influxdb
+       volumes:
+         - ./backend:/app/data
+
+     frontend:
+       image: docker.io/<user>/heatpump-stats-frontend:latest
+       ports:
+         - "8080:80"
+       depends_on:
+         - backend
+   ```
+
+3. **Deploy on Synology (SSH terminal)**:
+
+   ```bash
+   cd /volume1/docker/heatpump-stats
+   docker compose pull
+   docker compose up -d
+   ```
+
+4. **Reverse proxy/TLS (optional)**: Use Synology Application Portal to terminate HTTPS and forward to `frontend:8080` and, if exposed, to `backend`.
+
+5. **Backups**: Run the backup container/task (described in PLAN.md) to dump InfluxDB and SQLite into `./backups`, and include that folder in Hyper Backup.

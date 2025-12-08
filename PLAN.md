@@ -49,6 +49,35 @@ It will also track configuration changes (e.g., temperature settings, schedules)
   - `backend`: Python service (runs Collector + FastAPI).
   - `frontend`: Nginx web server (serves the React application).
 
+### Deployment on Synology NAS (Docker)
+
+- **Prerequisites**: Synology DSM with Container Manager (or Docker), SSH enabled for maintenance, and a shared folder for app data.
+- **Host folders** (example on `/volume1`):
+  - `/volume1/docker/heatpump-stats/env/.env` (git-ignored secrets loaded via Compose)
+  - `/volume1/docker/heatpump-stats/influxdb` (bind mount for InfluxDB data/config)
+  - `/volume1/docker/heatpump-stats/backend` (bind mount for SQLite change log and any cache)
+  - `/volume1/docker/heatpump-stats/backups` (for daily exports; include in Hyper Backup)
+- **Volumes/mounts** (wired in `docker-compose.yml`):
+  - `influxdb:/var/lib/influxdb2` and `influxdb-config:/etc/influxdb2` (persistent TS data + meta)
+  - `backend-sqlite:/app/data` (SQLite `changelog.db` and state)
+  - `frontend` is stateless (served by Nginx in the container)
+- **Networking**: Use Docker bridge or a custom user-defined network; expose only Nginx (e.g., `80/443`) and optionally the FastAPI port if needed internally. InfluxDB UI can stay internal; if exposed, lock down via DSM firewall and auth.
+- **TLS/Reverse Proxy**: Use Synology Application Portal/Reverse Proxy to terminate TLS with a Let’s Encrypt cert and forward to the frontend container. Optionally protect the backend API with the same proxy and IP allowlist.
+- **Startup (SSH on NAS)**:
+  - `cd /volume1/docker/heatpump-stats`
+  - Place `.env` in `env/.env` (copy from `.env.example`)
+  - `docker compose pull`
+  - `docker compose up -d`
+- **Backups**:
+  - Reuse the project’s backup container/task to dump InfluxDB and SQLite into `/backups`.
+  - Add that folder to Synology Hyper Backup (or a snapshot/replication schedule).
+- **Updates**:
+  - `docker compose pull && docker compose up -d` (hot swap images)
+  - Alembic migrations run on backend start; verify logs after upgrade.
+- **Monitoring/ops**:
+  - DSM Resource Monitor for CPU/RAM/disk, `docker compose logs -f backend frontend` for app logs.
+  - Optional: add Watchtower for auto-updates (only if comfortable with unattended upgrades).
+
 ### Security
 
 - **Authentication**: Token-based authentication (OAuth2 Password Flow) for API access.
