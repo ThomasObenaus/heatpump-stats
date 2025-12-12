@@ -215,8 +215,9 @@ class ViessmannAdapter:
 
             # 2. DHW
             dhw_active = self._safe_get(self.device.getDomesticHotWaterActive)
-            # Use configured temp (main setting), not current desired (which changes with schedule)
-            dhw_temp_target = self._safe_get(self.device.getDomesticHotWaterConfiguredTemperature)
+            # Use desired temp to reflect the active target seen by the device/UI
+            # (getDomesticHotWaterConfiguredTemperature may differ under schedules/eco)
+            dhw_temp_target = self._safe_get(self.device.getDomesticHotWaterDesiredTemperature)
 
             dhw_schedule_raw = self._safe_get(self.device.getDomesticHotWaterSchedule)
             dhw_schedule = self._map_schedule(dhw_schedule_raw or {})
