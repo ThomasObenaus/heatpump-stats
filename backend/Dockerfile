@@ -13,12 +13,13 @@ RUN apt-get update \
 # Install uv for lockfile-aware installs
 RUN pip install --no-cache-dir uv
 
-# Copy dependency definitions and install dependencies via uv (uses pyproject.toml + uv.lock)
-COPY ./pyproject.toml ./uv.lock ./
+# Copy dependency definitions and app sources only (avoid tests/build artifacts)
+COPY pyproject.toml uv.lock ./
+COPY heatpump_stats ./heatpump_stats
+
+# Install dependencies from lockfile
 RUN uv pip install --system --no-cache .
 
-# Copy application code
-COPY ./ ./
 ENV PYTHONPATH=/app
 
 EXPOSE 8000
