@@ -602,15 +602,11 @@ class TestSqliteAdapter:
 
     def test_summarize_change_name(self, adapter):
         """Test the _summarize_change_name method logic."""
+
         # Helper to create minimal config dicts
         def make_config(dhw_target=50, dhw_active=True, circuit_temp=20, circuit_name="C1"):
             return {
-                "dhw": {
-                    "temp_target": dhw_target,
-                    "active": dhw_active,
-                    "schedule": "sched1",
-                    "circulation_schedule": "circ1"
-                },
+                "dhw": {"temp_target": dhw_target, "active": dhw_active, "schedule": "sched1", "circulation_schedule": "circ1"},
                 "circuits": [
                     {
                         "circuit_id": 0,
@@ -618,13 +614,13 @@ class TestSqliteAdapter:
                         "temp_comfort": circuit_temp,
                         "temp_normal": 18,
                         "temp_reduced": 15,
-                        "schedule": "sched_c1"
+                        "schedule": "sched_c1",
                     }
-                ]
+                ],
             }
 
         base = make_config()
-        
+
         # 1. DHW target change
         new_dhw_target = make_config(dhw_target=55)
         assert adapter._summarize_change_name(base, new_dhw_target) == "DHW target temperature changed to 55 C"
@@ -650,7 +646,7 @@ class TestSqliteAdapter:
         new_dhw_sched = make_config()
         new_dhw_sched["dhw"]["schedule"] = "sched2"
         assert adapter._summarize_change_name(base, new_dhw_sched) == "DHW schedule changed"
-        
+
         # 7. Circuit schedule change
         new_circuit_sched = make_config()
         new_circuit_sched["circuits"][0]["schedule"] = "sched_c2"
@@ -663,8 +659,8 @@ class TestSqliteAdapter:
 
         # 9. Test None handling for circuits (regression test)
         # Case where old circuits is None/missing
-        config_no_circuits = {"dhw": base["dhw"]} # No circuits key
+        config_no_circuits = {"dhw": base["dhw"]}  # No circuits key
         assert adapter._summarize_change_name(config_no_circuits, base) == "Heating circuits configuration changed"
-        
+
         # Case where new circuits is None/missing
         assert adapter._summarize_change_name(base, config_no_circuits) == "Heating circuits configuration changed"

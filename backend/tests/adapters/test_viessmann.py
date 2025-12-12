@@ -397,7 +397,7 @@ class TestViessmannAdapter:
 
         # Setup DHW mocks
         mock_heat_pump.getDomesticHotWaterActive.return_value = True
-        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = 50.0
+        mock_heat_pump.getDomesticHotWaterDesiredTemperature.return_value = 50.0
         mock_heat_pump.getDomesticHotWaterSchedule.return_value = {
             "active": True,
             "mon": [{"start": "05:00", "end": "07:00", "mode": "on", "position": 0}],
@@ -500,7 +500,7 @@ class TestViessmannAdapter:
         """Test get_config when DHW methods raise exceptions."""
         mock_heat_pump.circuits = []
         mock_heat_pump.getDomesticHotWaterActive.side_effect = Exception("DHW error")
-        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.side_effect = Exception("Temp error")
+        mock_heat_pump.getDomesticHotWaterDesiredTemperature.side_effect = Exception("Temp error")
         mock_heat_pump.getDomesticHotWaterSchedule.side_effect = Exception("Schedule error")
         mock_heat_pump.getDomesticHotWaterCirculationSchedule.side_effect = Exception("Circ error")
 
@@ -557,7 +557,7 @@ class TestViessmannAdapter:
 
         mock_heat_pump.circuits = [circuit0]
         mock_heat_pump.getDomesticHotWaterActive.return_value = False
-        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = None
+        mock_heat_pump.getDomesticHotWaterDesiredTemperature.return_value = None
         mock_heat_pump.getDomesticHotWaterSchedule.return_value = None
         mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = None
 
@@ -574,7 +574,7 @@ class TestViessmannAdapter:
         """Test get_config when DHW is inactive."""
         mock_heat_pump.circuits = []
         mock_heat_pump.getDomesticHotWaterActive.return_value = False
-        mock_heat_pump.getDomesticHotWaterConfiguredTemperature.return_value = 45.0
+        mock_heat_pump.getDomesticHotWaterDesiredTemperature.return_value = 45.0
         mock_heat_pump.getDomesticHotWaterSchedule.return_value = None
         mock_heat_pump.getDomesticHotWaterCirculationSchedule.return_value = None
 
