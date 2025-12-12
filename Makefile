@@ -1,13 +1,13 @@
-.PHONY: help infra.up infra.down frontend.run frontend.build docker.build docker.push docker.up docker.up.local
+.PHONY: help infra.up infra.down frontend.run frontend.build docker.build docker.push docker.up docker.up.local docker.down
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9._-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 infra.up: ## Start the infrastructure (InfluxDB) in detached mode
-	docker-compose up -d
+	docker compose up -d
 
 infra.down: ## Stop and remove the infrastructure containers
-	docker-compose down
+	docker compose down
 
 verify.viessmann-api: ## Run the Viessmann API verification script
 	./.venv/bin/python cmd/viessmann_api_verify/verify_api.py
@@ -47,7 +47,10 @@ docker.push: ## Push backend and frontend Docker images to Docker Hub (user: tho
 	docker push docker.io/thobe/heatpump-stats-frontend:latest
 
 docker.up: ## Start full dockerized stack locally (frontend, backend, influxdb)
-	docker-compose up -d
+	docker compose up -d
 
 docker.up.local: ## Start stack using local build contexts (docker-compose.local.yml)
 	docker compose -f docker-compose.local.yml up -d --build
+
+docker.down: ## Stop and remove current docker-compose stack
+	docker compose down

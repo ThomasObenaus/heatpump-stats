@@ -24,3 +24,5 @@ backend/tests/adapters/__init__.py
 backend/heatpump_stats.db
 
 heatpump_stats.db
+
+.env.docker.local
