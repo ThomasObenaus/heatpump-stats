@@ -42,9 +42,16 @@ docker.build: ## Build backend and frontend Docker images (tags: docker.io/thobe
 	docker build -t docker.io/thobe/heatpump-stats-backend:latest -f backend/Dockerfile backend
 	docker build -t docker.io/thobe/heatpump-stats-frontend:latest -f frontend/Dockerfile frontend
 
-docker.push: ## Push backend and frontend Docker images to Docker Hub (user: thobe)
-	docker push docker.io/thobe/heatpump-stats-backend:latest
-	docker push docker.io/thobe/heatpump-stats-frontend:latest
+docker.push: ## Push images with optional tag (default: next patch based on latest git tag)
+	@BASE=$$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0"); \
+	NEXT=$$(echo $$BASE | awk -F. '{ if (NF<3) {print $$0".1"; exit} else {$$3=$$3+1; print $$1"."$$2"."$$3} }'); \
+	read -p "Tag to push (default:$$BASE $$NEXT): " TAG; \
+	TAG=$${TAG:-$$NEXT}; \
+	docker tag docker.io/thobe/heatpump-stats-backend:latest docker.io/thobe/heatpump-stats-backend:$$TAG; \
+	docker tag docker.io/thobe/heatpump-stats-frontend:latest docker.io/thobe/heatpump-stats-frontend:$$TAG; \
+	docker push docker.io/thobe/heatpump-stats-backend:$$TAG; \
+	docker push docker.io/thobe/heatpump-stats-frontend:$$TAG; \
+	echo "Pushed tag $$TAG (base $$BASE)"
 
 docker.up: ## Start full dockerized stack locally (frontend, backend, influxdb)
 	docker compose up -d
