@@ -599,3 +599,72 @@ class TestSqliteAdapter:
         # Check initial entry
         initial = entries[1]
         assert initial.details == "Initial configuration"
+
+    def test_summarize_change_name(self, adapter):
+        """Test the _summarize_change_name method logic."""
+        # Helper to create minimal config dicts
+        def make_config(dhw_target=50, dhw_active=True, circuit_temp=20, circuit_name="C1"):
+            return {
+                "dhw": {
+                    "temp_target": dhw_target,
+                    "active": dhw_active,
+                    "schedule": "sched1",
+                    "circulation_schedule": "circ1"
+                },
+                "circuits": [
+                    {
+                        "circuit_id": 0,
+                        "name": circuit_name,
+                        "temp_comfort": circuit_temp,
+                        "temp_normal": 18,
+                        "temp_reduced": 15,
+                        "schedule": "sched_c1"
+                    }
+                ]
+            }
+
+        base = make_config()
+        
+        # 1. DHW target change
+        new_dhw_target = make_config(dhw_target=55)
+        assert adapter._summarize_change_name(base, new_dhw_target) == "DHW target temperature changed to 55 C"
+
+        # 2. DHW active change
+        new_dhw_active = make_config(dhw_active=False)
+        assert adapter._summarize_change_name(base, new_dhw_active) == "DHW active set to False"
+
+        # 3. Circuit temp change
+        new_circuit_temp = make_config(circuit_temp=22)
+        assert adapter._summarize_change_name(base, new_circuit_temp) == "Circuit 0 comfort temperature changed to 22 C"
+
+        # 4. Circuit name change
+        new_circuit_name = make_config(circuit_name="NewName")
+        assert adapter._summarize_change_name(base, new_circuit_name) == "Circuit 0 name changed"
+
+        # 5. Circuit length change
+        new_circuits_len = make_config()
+        new_circuits_len["circuits"].append({})
+        assert adapter._summarize_change_name(base, new_circuits_len) == "Heating circuits configuration changed"
+
+        # 6. DHW schedule change
+        new_dhw_sched = make_config()
+        new_dhw_sched["dhw"]["schedule"] = "sched2"
+        assert adapter._summarize_change_name(base, new_dhw_sched) == "DHW schedule changed"
+        
+        # 7. Circuit schedule change
+        new_circuit_sched = make_config()
+        new_circuit_sched["circuits"][0]["schedule"] = "sched_c2"
+        assert adapter._summarize_change_name(base, new_circuit_sched) == "Circuit 0 schedule changed"
+
+        # 8. Fallback for unhandled circuit change
+        new_circuit_other = make_config()
+        new_circuit_other["circuits"][0]["extra_field"] = "something"
+        assert adapter._summarize_change_name(base, new_circuit_other) == "Circuit 0 settings changed"
+
+        # 9. Test None handling for circuits (regression test)
+        # Case where old circuits is None/missing
+        config_no_circuits = {"dhw": base["dhw"]} # No circuits key
+        assert adapter._summarize_change_name(config_no_circuits, base) == "Heating circuits configuration changed"
+        
+        # Case where new circuits is None/missing
+        assert adapter._summarize_change_name(base, config_no_circuits) == "Heating circuits configuration changed"
