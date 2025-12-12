@@ -44,9 +44,8 @@ docker.build: ## Build backend and frontend Docker images (tags: docker.io/thobe
 
 docker.push: ## Push images with optional tag (default: next patch based on latest git tag)
 	@BASE=$$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0"); \
-	NEXT=$$(echo $$BASE | awk -F. '{ if (NF<3) {print $$0".1"; exit} else {$$3=$$3+1; print $$1"."$$2"."$$3} }'); \
-	read -p "Tag to push (default:$$BASE $$NEXT): " TAG; \
-	TAG=$${TAG:-$$NEXT}; \
+	read -p "Tag to push (default: $$BASE): " TAG; \
+	TAG=$${TAG:-$$BASE}; \
 	docker tag docker.io/thobe/heatpump-stats-backend:latest docker.io/thobe/heatpump-stats-backend:$$TAG; \
 	docker tag docker.io/thobe/heatpump-stats-frontend:latest docker.io/thobe/heatpump-stats-frontend:$$TAG; \
 	docker push docker.io/thobe/heatpump-stats-backend:$$TAG; \
