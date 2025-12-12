@@ -79,6 +79,9 @@ class SqliteAdapter:
             if latest_config is None:
                 should_save = True
                 diff_details = "Initial configuration"
+                change_name = "Initial configuration"
+                new_data = config.model_dump(include={"circuits", "dhw"})
+                old_data = {}
             else:
                 # Compare relevant fields
                 new_data = config.model_dump(include={"circuits", "dhw"})
@@ -90,6 +93,9 @@ class SqliteAdapter:
                         if new_data[key] != old_data.get(key):
                             changes[key] = {"old": old_data.get(key), "new": new_data[key]}
                     diff_details = json.dumps(changes, default=str)
+                    change_name = self._summarize_change_name(old_data, new_data)
+                else:
+                    change_name = None
 
             if should_save:
                 json_data = config.model_dump_json()
@@ -109,6 +115,7 @@ class SqliteAdapter:
                         category="config",
                         author="system",
                         message="Configuration change detected",
+                        name=change_name,
                         details=diff_details,
                     )
                 )
@@ -196,6 +203,54 @@ class SqliteAdapter:
         except Exception as e:
             logger.error(f"Failed to get changelog: {e}")
             return []
+
+    def _summarize_change_name(self, old_data: dict, new_data: dict) -> str:
+        """Produce a concise name describing the first relevant config change."""
+        # DHW changes
+        old_dhw = old_data.get("dhw") if old_data else None
+        new_dhw = new_data.get("dhw") if new_data else None
+        if old_dhw != new_dhw and new_dhw is not None:
+            if old_dhw:
+                if old_dhw.get("temp_target") != new_dhw.get("temp_target"):
+                    target = new_dhw.get("temp_target")
+                    return f"DHW target temperature changed to {target} C" if target is not None else "DHW target temperature changed"
+                if old_dhw.get("schedule") != new_dhw.get("schedule"):
+                    return "DHW schedule changed"
+                if old_dhw.get("circulation_schedule") != new_dhw.get("circulation_schedule"):
+                    return "DHW circulation schedule changed"
+                if old_dhw.get("active") != new_dhw.get("active"):
+                    return f"DHW active set to {new_dhw.get('active')}"
+            return "DHW settings changed"
+
+        # Circuit changes
+        old_circuits = old_data.get("circuits") or [] if old_data else []
+        new_circuits = new_data.get("circuits") or [] if new_data else []
+        if old_circuits != new_circuits:
+            # Length change
+            if len(old_circuits) != len(new_circuits):
+                return "Heating circuits configuration changed"
+
+            # Find first differing circuit
+            for old_c, new_c in zip(old_circuits, new_circuits):
+                if old_c != new_c:
+                    cid = new_c.get("circuit_id") if isinstance(new_c, dict) else None
+                    prefix = f"Circuit {cid}" if cid is not None else "Circuit"
+                    if old_c.get("name") != new_c.get("name"):
+                        return f"{prefix} name changed"
+                    for key, label in [
+                        ("temp_comfort", "comfort temperature"),
+                        ("temp_normal", "normal temperature"),
+                        ("temp_reduced", "reduced temperature"),
+                    ]:
+                        if old_c.get(key) != new_c.get(key):
+                            return f"{prefix} {label} changed to {new_c.get(key)} C"
+                    if old_c.get("schedule") != new_c.get("schedule"):
+                        return f"{prefix} schedule changed"
+                    return f"{prefix} settings changed"
+
+            return "Heating circuits configuration changed"
+
+        return "Configuration changed"
 
     async def update_changelog_name(self, entry_id: int, name: str) -> bool:
         """Update the name of a changelog entry."""
