@@ -51,4 +51,7 @@ make docker.up
 
 # stop
 make docker.down
+
+# to stop and remove all data
+make docker.clean
 ```

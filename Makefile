@@ -60,3 +60,6 @@ docker.up.local: ## Start stack using local build contexts (docker-compose.local
 
 docker.down: ## Stop and remove current docker-compose stack
 	docker compose down
+
+docker.clean: ## Stop current running setup and remove all data
+	docker compose down -v
