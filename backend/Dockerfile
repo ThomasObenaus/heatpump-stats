@@ -14,11 +14,11 @@ RUN apt-get update \
 RUN pip install --no-cache-dir uv
 
 # Copy dependency definitions and install dependencies via uv (uses pyproject.toml + uv.lock)
-COPY backend/pyproject.toml backend/uv.lock ./
+COPY ./pyproject.toml ./uv.lock ./
 RUN uv pip install --system --no-cache .
 
 # Copy application code
-COPY backend/ ./
+COPY ./ ./
 ENV PYTHONPATH=/app
 
 EXPOSE 8000

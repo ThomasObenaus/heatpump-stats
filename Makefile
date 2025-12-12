@@ -1,4 +1,4 @@
-.PHONY: help infra.up infra.down frontend.run frontend.build
+.PHONY: help infra.up infra.down frontend.run frontend.build docker.build docker.push
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z0-9._-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -37,3 +37,11 @@ frontend.run: ## Start the frontend development server
 
 frontend.build: ## Build the frontend for production
 	cd frontend && npm run build
+
+docker.build: ## Build backend and frontend Docker images (tags: docker.io/thobe/heatpump-stats-*)
+	docker build -t docker.io/thobe/heatpump-stats-backend:latest -f backend/Dockerfile backend
+	docker build -t docker.io/thobe/heatpump-stats-frontend:latest -f frontend/Dockerfile frontend
+
+docker.push: ## Push backend and frontend Docker images to Docker Hub (user: thobe)
+	docker push docker.io/thobe/heatpump-stats-backend:latest
+	docker push docker.io/thobe/heatpump-stats-frontend:latest
