@@ -22,7 +22,7 @@ services:
     image: docker.io/thobe/heatpump-stats-backend:latest
     container_name: heatpump-backend
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       - influxdb
     volumes:
@@ -35,7 +35,7 @@ services:
     image: docker.io/thobe/heatpump-stats-backend:latest
     container_name: heatpump-collector
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       - influxdb
     volumes:
