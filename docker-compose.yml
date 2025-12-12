@@ -31,6 +31,18 @@ services:
       - "8000:8000"
     restart: unless-stopped
 
+  collector:
+    image: docker.io/thobe/heatpump-stats-backend:latest
+    container_name: heatpump-collector
+    env_file:
+      - .env
+    depends_on:
+      - influxdb
+    volumes:
+      - backend_data:/app/data
+    command: ["python", "-m", "heatpump_stats.entrypoints.daemon"]
+    restart: unless-stopped
+
   frontend:
     image: docker.io/thobe/heatpump-stats-frontend:latest
     container_name: heatpump-frontend
