@@ -26,3 +26,5 @@ backend/heatpump_stats.db
 heatpump_stats.db
 
 .env.docker.local
+
+.env.docker

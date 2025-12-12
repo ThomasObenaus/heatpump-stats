@@ -1,0 +1,41 @@
+# heatpump-stats
+
+## Local Setup
+
+```bash
+# start infrastructure services (influxdb)
+make infra.up
+
+# start collector, backend-api and frontend
+make backend.daemon.prod
+make backend.api
+make frontend.run
+
+
+```
+
+## Docker Setup
+
+IMPORTANT: To get access to the services, secrets have to be provided.
+The secrets and other settings are passed via environment files.
+
+For the docker setup one has to provide a .env.docker file in the root folder.
+An example file is provided as [.env.docker.example](./.env.docker.example).
+
+```bash
+# build local images
+make docker.build
+
+# start with locally build images
+make docker.up.local
+
+# push images
+# maybe a docker login is required first
+make docker.push
+
+# start with images from docker hub
+make docker.up
+
+# stop
+make docker.down
+```
