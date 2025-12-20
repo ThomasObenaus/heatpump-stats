@@ -7,7 +7,7 @@ infra.up: ## Start the infrastructure (InfluxDB) in detached mode
 	docker compose -f docker-compose.infra.yml up -d
 
 infra.down: ## Stop and remove the infrastructure containers
-	docker compose down
+	docker compose -f docker-compose.infra.yml down
 
 verify.viessmann-api: ## Run the Viessmann API verification script
 	./.venv/bin/python cmd/viessmann_api_verify/verify_api.py
@@ -52,14 +52,17 @@ docker.push: ## Push images with optional tag (default: next patch based on late
 	docker push docker.io/thobe/heatpump-stats-frontend:$$TAG; \
 	echo "Pushed tag $$TAG (base $$BASE)"
 
-docker.up: ## Start full dockerized stack locally (frontend, backend, influxdb)
-	docker compose up -d
+docker.prod.up: ## Start full dockerized stack locally. Images from the docker registry are pulled for that. (frontend, backend, influxdb)
+	docker compose --env-file .env.docker -f docker-compose.prod.yml up -d
 
-docker.up.local: ## Start stack using local build contexts (docker-compose.local.yml)
-	docker compose -f docker-compose.local.yml up -d --build
+docker.prod.down: ## Stop and remove current docker-compose stack
+	docker compose --env-file .env.docker -f docker-compose.prod.yml down
 
-docker.down: ## Stop and remove current docker-compose stack
-	docker compose down
+docker.local.up: ## Start stack using local docker build contexts instead of pulling images from a remote registry (docker-compose.local.yml)
+	docker compose --env-file .env.docker -f docker-compose.local.yml up -d --build
+
+docker.local.down: ## Stop and remove current docker-compose stack
+	docker compose --env-file .env.docker -f docker-compose.local.yml down
 
 docker.clean: ## Stop current running setup and remove all data
 	docker compose down -v

@@ -1,3 +1,7 @@
+## This docker file is intended for production deployment.
+## It pulls the backend and frontend images from a remote registry
+## instead of building them from local Dockerfiles.
+
 services:
   influxdb:
     image: influxdb:2.7
@@ -15,32 +19,50 @@ services:
       - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET_RAW}
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
     restart: unless-stopped
-    security_opt:
-      - apparmor:unconfined
 
   backend:
     image: docker.io/thobe/heatpump-stats-backend:latest
     container_name: heatpump-backend
-    env_file:
-      - .env.docker
     depends_on:
       - influxdb
     volumes:
       - backend_data:/app/data
     ports:
       - "8000:8000"
+    environment:
+      - INFLUXDB_URL=${INFLUXDB_URL}
+      - INFLUXDB_ADMIN_USER=${INFLUXDB_ADMIN_USER}
+      - INFLUXDB_ADMIN_PASSWORD=${INFLUXDB_ADMIN_PASSWORD}
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - SQLITE_DB_PATH=${SQLITE_DB_PATH}
     restart: unless-stopped
 
   collector:
     image: docker.io/thobe/heatpump-stats-backend:latest
     container_name: heatpump-collector
-    env_file:
-      - .env.docker
     depends_on:
       - influxdb
     volumes:
       - backend_data:/app/data
     command: ["python", "-m", "heatpump_stats.entrypoints.daemon"]
+    environment:
+      - VIESSMANN_USER=${VIESSMANN_USER}
+      - VIESSMANN_PASSWORD=${VIESSMANN_PASSWORD}
+      - VIESSMANN_CLIENT_ID=${VIESSMANN_CLIENT_ID}
+      - VIESSMANN_POLL_INTERVAL=${VIESSMANN_POLL_INTERVAL}
+      - VIESSMANN_CONFIG_INTERVAL=${VIESSMANN_CONFIG_INTERVAL}
+      - SHELLY_HOST=${SHELLY_HOST}
+      - SHELLY_PASSWORD=${SHELLY_PASSWORD}
+      - SHELLY_POLL_INTERVAL=${SHELLY_POLL_INTERVAL}
+      - COLLECTOR_MODE=${COLLECTOR_MODE}
+      - INFLUXDB_URL=${INFLUXDB_URL}
+      - INFLUXDB_ADMIN_USER=${INFLUXDB_ADMIN_USER}
+      - INFLUXDB_ADMIN_PASSWORD=${INFLUXDB_ADMIN_PASSWORD}
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET_RAW=${INFLUXDB_BUCKET_RAW}
+      - INFLUXDB_BUCKET_DOWNSAMPLED=${INFLUXDB_BUCKET_DOWNSAMPLED}
+      - SQLITE_DB_PATH=${SQLITE_DB_PATH}
     restart: unless-stopped
 
   frontend:
@@ -49,7 +71,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      - "8081:80"
     restart: unless-stopped
 
 volumes:
