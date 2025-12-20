@@ -1,3 +1,6 @@
+## This docker file is intended for infrastructure services only.
+## This is useful for local development, when running the services under development (collector, backend, frontend) outside of docker.
+
 services:
   influxdb:
     image: influxdb:2.7
