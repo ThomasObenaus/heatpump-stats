@@ -1,6 +1,7 @@
 ---
 description: "Creates the commit message for the current change and commits the code."
-tools: ["search", "runCommands", "think", "changes"]
+tools:
+  ["execute/getTerminalOutput", "execute/runInTerminal", "read/readFile", "read/terminalSelection", "read/terminalLastCommand", "search"]
 ---
 
 # Git Commit Message Chat Mode
