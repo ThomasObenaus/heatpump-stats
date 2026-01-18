@@ -27,31 +27,6 @@ make backend.api
 make frontend.run
 ```
 
-## Docker Setup
+## Docker
 
-For the docker setup one has to provide a .env.docker file in the root folder.
-An example file is provided as [.env.docker.example](./.env.docker.example).
-
-```bash
-# build local images
-make docker.build
-
-# start with locally build images
-make docker.up.local
-
-# start with images from docker hub (latest)
-make docker.up
-
-# push images
-# maybe a docker login is required first
-make docker.push
-
-# start with images from docker hub
-make docker.up
-
-# stop
-make docker.down
-
-# to stop and remove all data
-make docker.clean
-```
+Please refer to [Docker.md](Docker.md)
