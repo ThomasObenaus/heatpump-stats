@@ -1,64 +1,25 @@
-.PHONY: infra.up infra.down frontend.run frontend.build docker.build docker.push docker.up docker.up.local docker.down
-
 include cmd/build/utils.mk
+include cmd/build/code-quality.mk
+include cmd/build/build.mk
+include cmd/build/docker.mk
 include cmd/local-setup/local.mk
+include cmd/local-setup/docker.mk
 
 
 
-verify.viessmann-api: ## Run the Viessmann API verification script
-	./.venv/bin/python cmd/viessmann_api_verify/verify_api.py
 
-backend.test.unit: ## Run unit tests
-	cd backend && uv run pytest tests/ -v --cov=heatpump_stats --cov-report=term-missing
 
-backend.daemon.mock: ## Start the daemon in mock mode
-	cd backend && export COLLECTOR_MODE=mock && ../.venv/bin/python -m heatpump_stats.entrypoints.daemon
 
-backend.daemon.sim: ## Start the daemon in simulation mode (Mock Sensors, Real DB)
-	cd backend && export COLLECTOR_MODE=simulation && ../.venv/bin/python -m heatpump_stats.entrypoints.daemon
 
-backend.daemon.prod: ## Start the daemon in production mode
-	cd backend && export COLLECTOR_MODE=production && uv run python -m heatpump_stats.entrypoints.daemon
 
-backend.code-quality: ## Lint and format the backend code using ruff
-	cd backend && uv run ruff check . --fix && uv run ruff format .
 
-backend.api: ## Start the backend API
-	cd backend && uv run uvicorn heatpump_stats.entrypoints.api.main:app --reload
 
-frontend.run: ## Start the frontend development server
-	@echo "Starting frontend development server..."
-	@echo "Open your browser and navigate to http://localhost:5173"
-	cd frontend && npm run dev
 
-frontend.build: ## Build the frontend for production
-	cd frontend && npm run build
 
-docker.build: ## Build backend and frontend Docker images (tags: docker.io/thobe/heatpump-stats-*)
-	docker build -t docker.io/thobe/heatpump-stats-backend:latest -f backend/Dockerfile backend
-	docker build -t docker.io/thobe/heatpump-stats-frontend:latest -f frontend/Dockerfile frontend
 
-docker.push: ## Push images with optional tag (default: next patch based on latest git tag)
-	@BASE=$$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0"); \
-	read -p "Tag to push (default: $$BASE): " TAG; \
-	TAG=$${TAG:-$$BASE}; \
-	docker tag docker.io/thobe/heatpump-stats-backend:latest docker.io/thobe/heatpump-stats-backend:$$TAG; \
-	docker tag docker.io/thobe/heatpump-stats-frontend:latest docker.io/thobe/heatpump-stats-frontend:$$TAG; \
-	docker push docker.io/thobe/heatpump-stats-backend:$$TAG; \
-	docker push docker.io/thobe/heatpump-stats-frontend:$$TAG; \
-	echo "Pushed tag $$TAG (base $$BASE)"
 
-docker.prod.up: ## Start full dockerized stack locally. Images from the docker registry are pulled for that. (frontend, backend, influxdb)
-	docker compose --env-file .env.docker -f docker-compose.prod.yml up -d
 
-docker.prod.down: ## Stop and remove current docker-compose stack
-	docker compose --env-file .env.docker -f docker-compose.prod.yml down
 
-docker.local.up: ## Start stack using local docker build contexts instead of pulling images from a remote registry (docker-compose.local.yml)
-	docker compose --env-file .env.docker -f docker-compose.local.yml up -d --build
 
-docker.local.down: ## Stop and remove current docker-compose stack
-	docker compose --env-file .env.docker -f docker-compose.local.yml down
 
-docker.clean: ## Stop current running setup and remove all data
-	docker compose down -v
+
