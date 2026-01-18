@@ -27,6 +27,7 @@ services:
       - influxdb
     volumes:
       - backend_data:/app/data
+    # uses the default command defined in the Dockerfile
     ports:
       - "8000:8000"
     environment:

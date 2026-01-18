@@ -9,7 +9,7 @@ The backend image contains both the python API and the data collector daemon.
 
 ### API and Collector Containers
 
-Because of this the backend image can be instanciated as a api container and a data collector daemon container. This is possible using the entrypoints as defined in
+Because of this the backend image can be instanciated as a api container and a data collector daemon container. This is possible using the entrypoints as defined in [backend/Dockerfile](backend/Dockerfile).
 
 ## Build and run
 
@@ -19,27 +19,50 @@ Because of this the backend image can be instanciated as a api container and a d
 # 2. frontend image 'docker.io/thobe/heatpump-stats-frontend' tagged as latest
 make docker.build
 
-# start with locally build images
-make docker.up.local
-
-# start with images from docker hub (latest)
-make docker.up
-
-# push images
+# pushes the images to docker.io/thobe/
 # maybe a docker login is required first
+# The images are pushed with a version tag. The caller is prompted to provide the version tag.
+# Per default the current git-tag is suggested.
 make docker.push
 
-# start with images from docker hub
-make docker.up
+# Start the whole setup (including the needed infrastructure, such as InfluxDB),
+# using the latest locally build images
+make docker.local.up
 
-# stop
-make docker.down
+# Stop the docker containers that were brought up with docker.local.up
+make docker.local.down
 
-# to stop and remove all data
-make docker.clean
+# Start the whole setup (including the needed infrastructure, such as InfluxDB),
+# using the latest images that where pushed to docker.io/thobe/
+make docker.prod.up
+
+# Stop the docker containers that were brought up with docker.prod.up
+make docker.prod.down
 ```
 
 ## Environment Variables
+
+### Available Environment Variables
+
+| EnvVar                      | Description                                     | Default | Container                    |
+| --------------------------- | ----------------------------------------------- | ------- | ---------------------------- |
+| INFLUXDB_ADMIN_USER         | Username for the InfluxDB admin user            | admin   | influxdb, backend, collector |
+| INFLUXDB_ADMIN_PASSWORD     | Password for the InfluxDB admin user            | -       | influxdb, backend, collector |
+| INFLUXDB_ORG                | InfluxDB organization name                      | -       | influxdb, collector          |
+| INFLUXDB_BUCKET_RAW         | InfluxDB bucket for raw data                    | -       | influxdb, collector          |
+| INFLUXDB_BUCKET_DOWNSAMPLED | InfluxDB bucket for downsampled data            | -       | collector                    |
+| INFLUXDB_TOKEN              | InfluxDB admin token for authentication         | -       | influxdb, backend, collector |
+| INFLUXDB_URL                | URL to the InfluxDB instance                    | -       | backend, collector           |
+| SQLITE_DB_PATH              | Path to the SQLite database file                | -       | backend, collector           |
+| VIESSMANN_USER              | Viessmann API username                          | -       | collector                    |
+| VIESSMANN_PASSWORD          | Viessmann API password                          | -       | collector                    |
+| VIESSMANN_CLIENT_ID         | Viessmann API client ID                         | -       | collector                    |
+| VIESSMANN_POLL_INTERVAL     | Polling interval for Viessmann data (seconds)   | -       | collector                    |
+| VIESSMANN_CONFIG_INTERVAL   | Polling interval for Viessmann config (seconds) | -       | collector                    |
+| SHELLY_HOST                 | Hostname/IP of the Shelly power meter           | -       | collector                    |
+| SHELLY_PASSWORD             | Password for the Shelly device                  | -       | collector                    |
+| SHELLY_POLL_INTERVAL        | Polling interval for Shelly data (seconds)      | -       | collector                    |
+| COLLECTOR_MODE              | Mode for the collector daemon                   | -       | collector                    |
 
 ### Local Setup
 
