@@ -23,4 +23,10 @@ RUN uv pip install --system --no-cache .
 ENV PYTHONPATH=/app
 
 EXPOSE 8000
+
+# Define available entrypoints as environment variables for documentation
+# API:       uvicorn heatpump_stats.entrypoints.api.main:app --host 0.0.0.0 --port 8000
+# Collector: python -m heatpump_stats.entrypoints.daemon
+
+# Default to API server
 CMD ["uvicorn", "heatpump_stats.entrypoints.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
