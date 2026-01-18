@@ -1,0 +1,21 @@
+# Python
+**/__pycache__/
+**/**/.pytest_cache/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.so
+**/*.egg-info/
+**/.pytest_cache/
+**/.venv/
+
+# Backend artifacts
+**/**/heatpump_stats.db
+**/**/token.save
+**/**/tests/
+**/**/.coverage
+
+# Secrets
+**/**/.env
+**/**/.env.**
+
