@@ -9,7 +9,7 @@ The backend image contains both the python API and the data collector daemon.
 
 ### API and Collector Containers
 
-Because of this the backend image can be instanciated as a api container and a data collector daemon container. This is possible using the entrypoints as defined in [backend/Dockerfile](backend/Dockerfile).
+The backend image can be instantiated as a api container and a data collector daemon container. This is possible using the entrypoints as defined in [backend/Dockerfile](backend/Dockerfile).
 
 ## Build and run
 
@@ -27,6 +27,7 @@ make docker.push
 
 # Start the whole setup (including the needed infrastructure, such as InfluxDB),
 # using the latest locally build images
+# The application can be reached at http://localhost:8081
 make docker.local.up
 
 # Stop the docker containers that were brought up with docker.local.up
@@ -34,6 +35,7 @@ make docker.local.down
 
 # Start the whole setup (including the needed infrastructure, such as InfluxDB),
 # using the latest images that where pushed to docker.io/thobe/
+# The application can be reached at http://localhost:8081
 make docker.prod.up
 
 # Stop the docker containers that were brought up with docker.prod.up
@@ -73,3 +75,11 @@ One can just use the example file [.env.docker.example](./cmd/local-setup/.env.d
 ### Portainer, Synology, Kubernetes or similar
 
 The environment-variables can be also provided via pure environment variables.
+
+#### Portainer
+
+For portainer one can directly use the [cmd/local-setup/docker-compose.prod.yml](./cmd/local-setup/docker-compose.prod.yml) as stack-definition file.
+![portainer-stack.png](./doc/portainer_stack.png)
+
+And provide the environment variables in the "Env" section.
+![portainer-env.png](./doc/portainer_env_vars.png)
