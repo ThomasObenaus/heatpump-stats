@@ -20,6 +20,24 @@ services:
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
     restart: unless-stopped
 
+  grafana:
+    image: docker.io/thobe/heatpump-stats-grafana:latest
+    container_name: heatpump-grafana
+    depends_on:
+      - influxdb
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET_RAW=${INFLUXDB_BUCKET_RAW}
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+
   backend:
     image: docker.io/thobe/heatpump-stats-backend:latest
     container_name: heatpump-backend
@@ -79,3 +97,4 @@ volumes:
   influxdb_data:
   influxdb_config:
   backend_data:
+  grafana_data:
