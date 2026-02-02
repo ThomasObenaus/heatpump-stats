@@ -199,7 +199,7 @@ from(bucket: "heatpump_raw")
 
 ---
 
-## Dashboard 2: Power & Energy Dashboard
+## Dashboard 2: Power & Energy Dashboard ✅ DONE
 
 **File:** `cmd/local-setup/grafana/provisioning/dashboards/power-energy.json`
 
@@ -323,7 +323,7 @@ from(bucket: "heatpump_raw")
 
 ---
 
-## Dashboard 3: Temperatures Dashboard
+## Dashboard 3: Temperatures Dashboard ✅ DONE
 
 **File:** `cmd/local-setup/grafana/provisioning/dashboards/temperatures.json`
 
@@ -487,7 +487,7 @@ from(bucket: "heatpump_raw")
 
 ---
 
-## Dashboard 4: System Health Dashboard
+## Dashboard 4: System Health Dashboard ✅ DONE
 
 **File:** `cmd/local-setup/grafana/provisioning/dashboards/system-health.json`
 
