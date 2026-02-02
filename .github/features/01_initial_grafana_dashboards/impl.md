@@ -28,7 +28,7 @@
 
 ---
 
-## Dashboard 1: Overview Dashboard
+## Dashboard 1: Overview Dashboard ✅ DONE
 
 **File:** `cmd/local-setup/grafana/provisioning/dashboards/overview.json`
 
@@ -346,8 +346,8 @@ from(bucket: "heatpump_raw")
 from(bucket: "heatpump_raw")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
   |> filter(fn: (r) => r["_measurement"] == "heat_pump")
-  |> filter(fn: (r) => 
-    r["_field"] == "outside_temp" or 
+  |> filter(fn: (r) =>
+    r["_field"] == "outside_temp" or
     r["_field"] == "dhw_storage_temp" or
     r["_field"] == "primary_supply_temp" or
     r["_field"] == "primary_return_temp" or
@@ -380,6 +380,7 @@ from(bucket: "heatpump_raw")
 **Panel 2: Outside Temp vs Compressor Modulation**
 
 Query A - Outside Temperature:
+
 ```flux
 from(bucket: "heatpump_raw")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
@@ -389,6 +390,7 @@ from(bucket: "heatpump_raw")
 ```
 
 Query B - Compressor Modulation:
+
 ```flux
 from(bucket: "heatpump_raw")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
@@ -468,8 +470,8 @@ join(tables: {supply: supply, return_t: return_t}, on: ["_time"])
 from(bucket: "heatpump_raw")
   |> range(start: -10m)
   |> filter(fn: (r) => r["_measurement"] == "heat_pump")
-  |> filter(fn: (r) => 
-    r["_field"] == "outside_temp" or 
+  |> filter(fn: (r) =>
+    r["_field"] == "outside_temp" or
     r["_field"] == "dhw_storage_temp" or
     r["_field"] == "primary_supply_temp" or
     r["_field"] == "primary_return_temp" or
