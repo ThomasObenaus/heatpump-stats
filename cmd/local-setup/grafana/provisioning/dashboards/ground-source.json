@@ -220,6 +220,25 @@
         "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "heatpump_raw",
+          "value": "heatpump_raw"
+        },
+        "hide": 2,
+        "name": "bucket",
+        "options": [
+          {
+            "selected": true,
+            "text": "heatpump_raw",
+            "value": "heatpump_raw"
+          }
+        ],
+        "query": "heatpump_raw",
+        "skipUrlSync": false,
+        "type": "textbox"
       }
     ]
   },
