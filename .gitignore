@@ -28,3 +28,5 @@ heatpump_stats.db
 .env.docker.local
 
 .env.docker
+
+REVIEW.md
