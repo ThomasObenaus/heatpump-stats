@@ -27,7 +27,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"hp_online\")\n  |> last()",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"hp_online\")\n  |> last()",
           "refId": "A"
         }
       ],
@@ -65,7 +65,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"pm_online\")\n  |> last()",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"pm_online\")\n  |> last()",
           "refId": "A"
         }
       ],
@@ -103,7 +103,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"db_connected\")\n  |> last()",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"db_connected\")\n  |> last()",
           "refId": "A"
         }
       ],
@@ -141,7 +141,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"compressor_runtime\")\n  |> last()",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"compressor_runtime\")\n  |> last()",
           "refId": "A"
         }
       ],
@@ -179,7 +179,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"hp_online\" or r[\"_field\"] == \"pm_online\" or r[\"_field\"] == \"db_connected\")",
+          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"hp_online\" or r[\"_field\"] == \"pm_online\" or r[\"_field\"] == \"db_connected\")",
           "refId": "A"
         }
       ],
