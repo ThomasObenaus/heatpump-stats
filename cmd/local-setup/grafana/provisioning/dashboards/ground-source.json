@@ -66,6 +66,10 @@
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
@@ -91,6 +95,10 @@
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
         }
       },
       "targets": [
@@ -124,7 +132,11 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "textMode": "auto"
+        "textMode": "auto",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
@@ -154,7 +166,11 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "textMode": "auto"
+        "textMode": "auto",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
@@ -184,7 +200,11 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "textMode": "auto"
+        "textMode": "auto",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
       },
       "targets": [
         {
