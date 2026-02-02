@@ -30,3 +30,5 @@ heatpump_stats.db
 .env.docker
 
 REVIEW.md
+
+backend/heatpump_stats.egg-info/
