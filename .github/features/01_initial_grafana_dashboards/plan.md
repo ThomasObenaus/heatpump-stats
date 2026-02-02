@@ -99,88 +99,27 @@ Based on the collector daemon, the following data is stored in InfluxDB:
 - **Time Series (multi-line):**
   - All temperatures on one graph:
     - Outside temperature
-    - Return temperature
     - DHW storage temperature
-    - Primary supply/return temperatures
-    - Secondary supply temperature
+    - Primary Circuit (Ground/Brine):
+      - Primary supply temp (from ground)
+      - Primary return temp (to ground)
+    - Secondary Circuit (Heating/House):
+      - Secondary supply temp (to house)
+      - Return temp (from house)
     - Circuit supply temperatures (0 and 1)
 
 - **Dedicated panels:**
   - Outside temperature vs compressor modulation correlation
   - DHW temperature with target line overlay
   - Primary circuit delta-T (supply - return)
-  - Secondary circuit temperatures
+  - Secondary circuit delta-T (supply - return)
 
 - **Table:**
   - Current values of all temperature sensors
 
 ---
 
-### 4. 📊 **COP & Efficiency Dashboard** (Priority: MEDIUM)
-
-**Purpose:** Analyze heat pump efficiency and coefficient of performance.
-
-**Panels:**
-
-- **Time Series:**
-  - Thermal power output (both methods) vs electrical power input
-  - Calculated COP over time: `thermal_power / (power_watts / 1000)`
-  - Compressor modulation vs power consumption
-
-- **Stats:**
-  - Average COP (last 24h)
-  - Average COP (last 7 days)
-  - Best/Worst COP periods
-
-- **Scatter Plot:**
-  - COP vs outside temperature (efficiency curve)
-
-- **Comparison:**
-  - Thermal power (modulation method) vs Thermal power (delta-T method)
-
----
-
-### 5. 🏠 **Heating Circuits Dashboard** (Priority: MEDIUM)
-
-**Purpose:** Monitor individual heating circuits.
-
-**Panels:**
-
-- **Time Series (per circuit):**
-  - Circuit 0 supply temperature
-  - Circuit 1 supply temperature
-  - Pump status timeline (on/off)
-
-- **State Timeline:**
-  - Circuit pump activity over time
-
-- **Table:**
-  - Current circuit states
-
----
-
-### 6. 🚿 **DHW (Domestic Hot Water) Dashboard** (Priority: MEDIUM)
-
-**Purpose:** Monitor hot water production and consumption patterns.
-
-**Panels:**
-
-- **Time Series:**
-  - DHW storage temperature over time
-  - DHW circulation pump activity
-  - Correlation with power spikes
-
-- **State Timeline:**
-  - DHW heating cycles
-
-- **Stats:**
-  - Average DHW temperature
-  - Number of heating cycles per day
-  - Average cycle duration
-
----
-
-### 7. 🔧 **System Health Dashboard** (Priority: LOW)
+### 4. **System Health Dashboard** (Priority: LOW)
 
 **Purpose:** Monitor system reliability and debug issues.
 
@@ -204,7 +143,7 @@ Based on the collector daemon, the following data is stored in InfluxDB:
 
 ---
 
-### 8. 🌍 **Ground Source (Primary Circuit) Dashboard** (Priority: LOW)
+### 5. 🌍 **Ground Source (Primary Circuit) Dashboard** (Priority: LOW)
 
 **Purpose:** Monitor ground loop performance for geothermal systems.
 
@@ -227,11 +166,8 @@ Based on the collector daemon, the following data is stored in InfluxDB:
 1. **Overview Dashboard** - Provides immediate value for debugging
 2. **Power & Energy Dashboard** - Critical for understanding consumption
 3. **Temperatures Dashboard** - Core operational data
-4. **COP & Efficiency Dashboard** - Key performance metrics
-5. **Heating Circuits Dashboard** - Detailed circuit analysis
-6. **DHW Dashboard** - Hot water specific analysis
-7. **System Health Dashboard** - Reliability monitoring
-8. **Ground Source Dashboard** - Advanced analysis
+4. **System Health Dashboard** - Reliability monitoring
+5. **Ground Source Dashboard** - Advanced analysis
 
 ---
 
