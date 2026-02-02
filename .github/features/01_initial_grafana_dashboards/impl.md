@@ -579,7 +579,7 @@ from(bucket: "heatpump_raw")
 
 ---
 
-## Dashboard 5: Ground Source (Primary Circuit) Dashboard
+## Dashboard 5: Ground Source (Primary Circuit) Dashboard ✅ DONE
 
 **File:** `cmd/local-setup/grafana/provisioning/dashboards/ground-source.json`
 
