@@ -2,6 +2,8 @@
 ## It builds the backend and frontend images from the local Dockerfiles
 ## instead of pulling them from a remote registry.
 
+name: heatpump-stats-local
+
 services:
   influxdb:
     image: influxdb:2.7
