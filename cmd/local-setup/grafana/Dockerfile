@@ -1,4 +1,4 @@
-FROM grafana/grafana:latest
+FROM grafana/grafana:12.3
 
 # Switch to root to copy files and set permissions
 USER root
