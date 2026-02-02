@@ -253,7 +253,7 @@
       "targets": [
         {
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
-          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"hp_online\")\n  |> last()",
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"system_status\")\n  |> filter(fn: (r) => r[\"_field\"] == \"hp_online\" or r[\"_field\"] == \"pm_online\" or r[\"_field\"] == \"db_connected\")\n  |> last()",
           "refId": "A"
         }
       ],
@@ -273,7 +273,20 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "hp_online" },
+            "properties": [{ "id": "displayName", "value": "Heat Pump" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pm_online" },
+            "properties": [{ "id": "displayName", "value": "Power Meter" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "db_connected" },
+            "properties": [{ "id": "displayName", "value": "Database" }]
+          }
+        ]
       }
     },
     {
