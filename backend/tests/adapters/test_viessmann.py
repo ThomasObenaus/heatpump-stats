@@ -15,7 +15,8 @@ class TestViessmannAdapter:
         """Mock settings for Viessmann configuration."""
         with patch("heatpump_stats.adapters.viessmann.settings") as mock:
             mock.VIESSMANN_USER = "test@example.com"
-            mock.VIESSMANN_PASSWORD = "test_password"
+            mock.VIESSMANN_PASSWORD = MagicMock()
+            mock.VIESSMANN_PASSWORD.get_secret_value.return_value = "test_password"
             mock.VIESSMANN_CLIENT_ID = "test_client_id"
             yield mock
 

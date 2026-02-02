@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
     # Startup
     influx_adapter = InfluxDBAdapter(
         url=settings.INFLUXDB_URL,
-        token=settings.INFLUXDB_TOKEN,
+        token=settings.INFLUXDB_TOKEN.get_secret_value(),
         org=settings.INFLUXDB_ORG,
         bucket_raw=settings.INFLUXDB_BUCKET_RAW,
         bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
@@ -43,7 +43,7 @@ async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
     # Verify user
-    if form_data.username != settings.API_USERNAME or form_data.password != settings.API_PASSWORD:
+    if form_data.username != settings.API_USERNAME or form_data.password != settings.API_PASSWORD.get_secret_value():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",

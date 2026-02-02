@@ -105,7 +105,7 @@ def test_create_access_token_default_expiration():
     assert len(token) > 0
 
     # Decode and verify
-    decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    decoded = jwt.decode(token, settings.SECRET_KEY.get_secret_value(), algorithms=[settings.ALGORITHM])
     assert decoded["sub"] == "test_user"
     assert "exp" in decoded
 
@@ -126,7 +126,7 @@ def test_create_access_token_custom_expiration():
     token = create_access_token(data, expires_delta)
 
     # Assert
-    decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    decoded = jwt.decode(token, settings.SECRET_KEY.get_secret_value(), algorithms=[settings.ALGORITHM])
     assert decoded["sub"] == "test_user"
     assert "exp" in decoded
 
@@ -146,7 +146,7 @@ def test_create_access_token_preserves_data():
     token = create_access_token(data)
 
     # Assert
-    decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    decoded = jwt.decode(token, settings.SECRET_KEY.get_secret_value(), algorithms=[settings.ALGORITHM])
     assert decoded["sub"] == "test_user"
     assert decoded["role"] == "admin"
     assert decoded["permissions"] == ["read", "write"]
@@ -163,7 +163,7 @@ def test_create_access_token_uses_correct_algorithm():
 
     # Assert
     # This will raise an exception if wrong algorithm
-    jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    jwt.decode(token, settings.SECRET_KEY.get_secret_value(), algorithms=[settings.ALGORITHM])
 
 
 def test_create_access_token_uses_secret_key():
@@ -176,4 +176,4 @@ def test_create_access_token_uses_secret_key():
 
     # Assert
     # This will raise an exception if wrong key
-    jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    jwt.decode(token, settings.SECRET_KEY.get_secret_value(), algorithms=[settings.ALGORITHM])

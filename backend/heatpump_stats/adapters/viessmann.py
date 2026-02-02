@@ -25,7 +25,7 @@ def connect_viessmann(model_name: str = "CU401B_G") -> HeatPump:
         vicare = PyViCare()
         vicare.initWithCredentials(
             username=settings.VIESSMANN_USER,
-            password=settings.VIESSMANN_PASSWORD,
+            password=settings.VIESSMANN_PASSWORD.get_secret_value(),
             client_id=settings.VIESSMANN_CLIENT_ID,
             token_file="token.save",
         )
