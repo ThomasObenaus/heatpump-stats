@@ -1,0 +1,236 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_supply_temp\" or r[\"_field\"] == \"primary_return_temp\")\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Primary Circuit Temperatures",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "primary_supply_temp" },
+            "properties": [{ "id": "color", "value": "blue" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "primary_return_temp" },
+            "properties": [{ "id": "color", "value": "orange" }]
+          }
+        ]
+      }
+    },
+    {
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "supply = from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_supply_temp\")\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)\n\nreturn_t = from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_return_temp\")\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)\n\njoin(tables: {supply: supply, return_t: return_t}, on: [\"_time\"])\n  |> map(fn: (r) => ({ r with _value: r._value_supply - r._value_return_t }))",
+          "refId": "A"
+        }
+      ],
+      "title": "Ground Heat Extraction Rate (ΔT)",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kelvin"
+        }
+      }
+    },
+    {
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_pump_rotation\")\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)",
+          "refId": "A"
+        }
+      ],
+      "title": "Primary Pump Rotation",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "fillOpacity": 30
+          }
+        }
+      }
+    },
+    {
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 17 },
+      "id": 4,
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_supply_temp\")\n  |> mean()",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg Ground Temp (7d)",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius"
+        }
+      }
+    },
+    {
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 17 },
+      "id": 5,
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_supply_temp\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Ground Temp",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius"
+        }
+      }
+    },
+    {
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 17 },
+      "id": 6,
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "supply = from(bucket: \"heatpump_raw\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_supply_temp\")\n  |> mean()\n\nreturn_t = from(bucket: \"heatpump_raw\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"heat_pump\")\n  |> filter(fn: (r) => r[\"_field\"] == \"primary_return_temp\")\n  |> mean()\n\njoin(tables: {supply: supply, return_t: return_t}, on: [\"_stop\"])\n  |> map(fn: (r) => ({ r with _value: r._value_supply - r._value_return_t }))",
+          "refId": "A"
+        }
+      ],
+      "title": "Avg ΔT (7d)",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kelvin"
+        }
+      }
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["heatpump"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "DS_INFLUXDB",
+        "options": [],
+        "query": "influxdb",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Ground Source (Primary Circuit)",
+  "uid": "heatpump-ground",
+  "version": 1,
+  "weekStart": ""
+}
