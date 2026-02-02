@@ -1,5 +1,5 @@
 
-.PHONY: docker.prod.up docker.prod.down docker.local.up docker.local.down docker.clean
+.PHONY: docker.prod.up docker.prod.down docker.local.up docker.local.down
 
 docker.prod.up: ## Start full dockerized stack locally. Images from the docker registry are pulled for that. (frontend, backend, influxdb)
 	docker compose --env-file ./cmd/local-setup/.env.docker -f ./cmd/local-setup/docker-compose.prod.yml up -d

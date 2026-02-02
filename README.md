@@ -11,6 +11,6 @@ Please refer to [Docker.md](Docker.md)
 ## Default Login
 
 un: admin
-pq: admin
+pw: admin
 
 ![login](doc/login.png)
