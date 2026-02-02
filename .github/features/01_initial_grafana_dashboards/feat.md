@@ -2,7 +2,7 @@
 
 - ID 01
 - Name Initial Grafana Dashboards
-- Status: Planning
+- Status: Done
 
 ## Goal
 
