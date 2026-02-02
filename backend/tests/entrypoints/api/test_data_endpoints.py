@@ -46,7 +46,7 @@ def test_login_invalid_username():
     """Test login with invalid username returns 401."""
     response = client.post(
         "/token",
-        data={"username": "wrong_user", "password": settings.API_PASSWORD},
+        data={"username": "wrong_user", "password": settings.API_PASSWORD.get_secret_value()},
     )
 
     assert response.status_code == 401
@@ -83,7 +83,7 @@ def test_login_token_can_be_used_for_auth():
     # First, login to get a token
     login_response = client.post(
         "/token",
-        data={"username": settings.API_USERNAME, "password": settings.API_PASSWORD},
+        data={"username": settings.API_USERNAME, "password": settings.API_PASSWORD.get_secret_value()},
     )
     assert login_response.status_code == 200
     token = login_response.json()["access_token"]

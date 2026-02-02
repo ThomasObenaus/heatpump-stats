@@ -12,7 +12,7 @@ async def test_get_current_user_valid_token():
     """Test that a valid token returns the correct user."""
     # Arrange
     token_data = {"sub": settings.API_USERNAME}
-    token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(token_data, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM)
 
     # Act
     user = await dependencies.get_current_user(token)
@@ -42,7 +42,7 @@ async def test_get_current_user_missing_sub_claim():
     """Test that a token without 'sub' claim raises HTTPException."""
     # Arrange
     token_data = {"some_other_field": "value"}
-    token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(token_data, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -57,7 +57,7 @@ async def test_get_current_user_wrong_username():
     """Test that a token with wrong username raises HTTPException."""
     # Arrange
     token_data = {"sub": "wrong_username"}
-    token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(token_data, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -77,7 +77,7 @@ async def test_get_current_user_expired_token():
         "sub": settings.API_USERNAME,
         "exp": datetime.now(timezone.utc) - timedelta(hours=1),  # Expired 1 hour ago
     }
-    token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(token_data, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -92,7 +92,7 @@ async def test_get_current_user_wrong_algorithm():
     """Test that a token signed with wrong algorithm raises HTTPException."""
     # Arrange
     token_data = {"sub": settings.API_USERNAME}
-    token = jwt.encode(token_data, settings.SECRET_KEY, algorithm="HS512")  # Wrong algorithm
+    token = jwt.encode(token_data, settings.SECRET_KEY.get_secret_value(), algorithm="HS512")  # Wrong algorithm
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -107,7 +107,7 @@ async def test_get_current_user_empty_sub():
     """Test that a token with empty 'sub' claim raises HTTPException."""
     # Arrange
     token_data = {"sub": ""}
-    token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(token_data, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
@@ -122,7 +122,7 @@ async def test_get_current_user_none_username_in_payload():
     """Test that a token with None username raises HTTPException."""
     # Arrange - directly create a token with sub=None
     token_data = {"sub": None}
-    token = jwt.encode(token_data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(token_data, settings.SECRET_KEY.get_secret_value(), algorithm=settings.ALGORITHM)
 
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:

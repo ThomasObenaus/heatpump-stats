@@ -29,7 +29,7 @@ async def test_lifespan():
             # Verify initialization
             mock_influx_cls.assert_called_once_with(
                 url=settings.INFLUXDB_URL,
-                token=settings.INFLUXDB_TOKEN,
+                token=settings.INFLUXDB_TOKEN.get_secret_value(),
                 org=settings.INFLUXDB_ORG,
                 bucket_raw=settings.INFLUXDB_BUCKET_RAW,
                 bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,

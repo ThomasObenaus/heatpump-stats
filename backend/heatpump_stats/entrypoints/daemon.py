@@ -25,7 +25,7 @@ async def main() -> None:
 
     if mode == "production":
         # Shelly
-        shelly = ShellyAdapter(host=settings.SHELLY_HOST, password=settings.SHELLY_PASSWORD)
+        shelly = ShellyAdapter(host=settings.SHELLY_HOST, password=settings.SHELLY_PASSWORD.get_secret_value())
 
         # Viessmann
         try:
@@ -38,7 +38,7 @@ async def main() -> None:
         # InfluxDB
         influx = InfluxDBAdapter(
             url=settings.INFLUXDB_URL,
-            token=settings.INFLUXDB_TOKEN,
+            token=settings.INFLUXDB_TOKEN.get_secret_value(),
             org=settings.INFLUXDB_ORG,
             bucket_raw=settings.INFLUXDB_BUCKET_RAW,
             bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
@@ -61,7 +61,7 @@ async def main() -> None:
         # Real Databases
         influx = InfluxDBAdapter(
             url=settings.INFLUXDB_URL,
-            token=settings.INFLUXDB_TOKEN,
+            token=settings.INFLUXDB_TOKEN.get_secret_value(),
             org=settings.INFLUXDB_ORG,
             bucket_raw=settings.INFLUXDB_BUCKET_RAW,
             bucket_downsampled=settings.INFLUXDB_BUCKET_DOWNSAMPLED,
