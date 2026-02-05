@@ -1,13 +1,25 @@
 {
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 2,
-  "id": null,
+  "graphTooltip": 0,
+  "id": 2,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "fieldConfig": {
@@ -16,11 +28,13 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 20,
             "gradientMode": "none",
@@ -29,6 +43,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -36,6 +51,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -51,7 +67,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -78,17 +94,19 @@
           "showLegend": true
         },
         "tooltip": {
-          "mode": "multi",
+          "hideZeros": false,
+          "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")",
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")",
           "refId": "A"
         }
       ],
@@ -96,18 +114,22 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "description": "Daily energy consumption, this week so far.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
             "fillOpacity": 80,
             "gradientMode": "none",
             "hideFrom": {
@@ -115,29 +137,22 @@
               "tooltip": false,
               "viz": false
             },
-            "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
             }
           },
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -151,37 +166,52 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 15,
         "x": 0,
         "y": 8
       },
       "id": 2,
       "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
         "legend": {
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": true
         },
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "none",
         "tooltip": {
+          "hideZeros": false,
           "mode": "multi",
           "sort": "none"
-        }
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> aggregateWindow(every: 1d, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: r._value * 24.0 / 1000.0 }))",
+          "query": "import \"date\"\n\ntoday = date.truncate(t: now(), unit: 1d)\ndays_since_monday = duration(v: string(v: date.weekDay(t: now()) - 1) + \"d\")\nmonday_start = date.sub(d: days_since_monday, from: today)\n\nfrom(bucket: \"heatpump_raw\")\n  |> range(start: monday_start)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Corrected way to pass integral with a unit:\n  |> aggregateWindow(\n      every: 1d, \n      fn: (column, tables=<-) => tables |> integral(unit: 1h),\n      // This tells Flux to use the start of the day as the label\n      timeSrc: \"_start\"\n  )\n  |> map(fn: (r) => ({ \n    r with \n    _time_label: \"${date.monthDay(t: r._time)}.${date.month(t: r._time)}.\",\n    _value: r._value / 1000.0 \n  }))\n  |> keep(columns: [\"_time_label\", \"_value\"])\n  |> rename(columns: {_value: \"Consumed Energy (in kWh)\"})\n  |> rename(columns: {_time_label: \"Day\"})",
           "refId": "A"
         }
       ],
-      "title": "Daily Energy Consumption (kWh)",
+      "title": "Daily Energy Consumption - this Week (kWh)",
       "type": "barchart"
     },
     {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -193,7 +223,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -207,8 +237,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 12,
+        "w": 3,
+        "x": 15,
         "y": 8
       },
       "id": 3,
@@ -217,20 +247,24 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> last()",
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> last()",
           "refId": "A"
         }
       ],
@@ -238,6 +272,11 @@
       "type": "stat"
     },
     {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "description": "Energy consumed today.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -249,11 +288,15 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 45
               },
               {
                 "color": "red",
-                "value": 80
+                "value": 70
               }
             ]
           },
@@ -273,20 +316,24 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "import \"date\"\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: date.truncate(t: now(), unit: 1d))\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> mean()\n  |> map(fn: (r) => ({ r with _value: r._value * float(v: date.hour(t: now())) / 1000.0 }))",
+          "query": "import \"date\"\n\nfrom(bucket: \"heatpump_raw\")\n  |> range(start: date.truncate(t: now(), unit: 1d))\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Calculate the area under the curve in seconds\n  |> integral(unit: 1h)\n  // Convert from Wh to kWh\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))",
           "refId": "A"
         }
       ],
@@ -294,6 +341,10 @@
       "type": "stat"
     },
     {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -305,7 +356,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -319,8 +370,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 12,
+        "w": 3,
+        "x": 15,
         "y": 12
       },
       "id": 5,
@@ -329,20 +380,24 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> mean()",
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> mean()",
           "refId": "A"
         }
       ],
@@ -350,6 +405,174 @@
       "type": "stat"
     },
     {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "description": "Shows the energy consumed this week so far. ",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 210
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "kwh"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 12
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "import \"date\"\n\n// 1. Get the start of today (midnight)\ntoday = date.truncate(t: now(), unit: 1d)\n\n// 2. Calculate how many days we are into the week (Monday = 1)\n// If today is Monday (1), it subtracts 0 days.\n// If today is Thursday (4), it subtracts 3 days.\ndays_since_monday = duration(v: string(v: date.weekDay(t: now()) - 1) + \"d\")\nmonday_start = date.sub(d: days_since_monday, from: today)\n\nfrom(bucket: \"heatpump_raw\")\n  |> range(start: monday_start)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> integral(unit: 1h)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))",
+          "refId": "A"
+        }
+      ],
+      "title": "This Weeks Energy (kWh)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "description": "Daily energy consumption, this week so far.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kwatth"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 15,
+        "x": 0,
+        "y": 16
+      },
+      "id": 10,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.62,
+        "colorByField": "Time",
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "always",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "import \"date\"\n\n// 1. Calculate the end of that month automatically\nraw_month = \"${month}\" + \"-01T00:00:00Z\"\nv_month = time(v: \"${raw_month}\")\nv_month_end = date.add(d: 1mo, to: v_month)\n\nfrom(bucket: \"heatpump_raw\")\n  |> range(start: v_month, stop: v_month_end)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // 3. Aggregate by 1 week intervals\n  |> aggregateWindow(\n      every: 1w, \n      fn: (column, tables=<-) => tables |> integral(unit: 1h),\n      timeSrc: \"_start\"\n  )\n  |> map(fn: (r) => ({ \n    r with \n    _time_label: \"${date.monthDay(t: r._time)}.${date.month(t: r._time)}.\",\n    _value: r._value / 1000.0 \n  }))\n  |> set(key: \"_field\", value: \"Weekly Consumed Energy (in kWh)\")\n  |> keep(columns: [\"_time_label\", \"_value\"])\n  |> rename(columns: {_value: \"Weekly Consumed Energy (kWh)\"})\n  |> rename(columns: {_time_label: \"First Day of the Week\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Weekly Energy Consumption - at $month (kWh)",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -361,7 +584,7 @@
             "steps": [
               {
                 "color": "orange",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -375,9 +598,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 12
+        "w": 3,
+        "x": 15,
+        "y": 16
       },
       "id": 6,
       "options": {
@@ -385,20 +608,24 @@
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> max()",
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> max()",
           "refId": "A"
         }
       ],
@@ -406,19 +633,87 @@
       "type": "stat"
     },
     {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "P951FEA4DE68E13C5"
+      },
+      "description": "Shows the energy consumed this month so far. ",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "#EAB839",
+                "value": 500
+              },
+              {
+                "color": "red",
+                "value": 700
+              }
+            ]
+          },
+          "unit": "kwh"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 16
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
+          "query": "import \"date\"\n\nfrom(bucket: \"heatpump_raw\")\n  // Snaps to the 1st of the current month at 00:00:00\n  |> range(start: date.truncate(t: now(), unit: 1mo))\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Calculates total Watt-hours for the entire month-to-date\n  |> integral(unit: 1h)\n  // Convert Wh to kWh\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))",
+          "refId": "A"
+        }
+      ],
+      "title": "This Months Energy (kWh)",
+      "type": "stat"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
           "custom": {
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
+            },
+            "scaleDistribution": {
+              "type": "linear"
             }
-          },
-          "mappings": []
+          }
         },
         "overrides": []
       },
@@ -426,28 +721,51 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 23
       },
       "id": 7,
       "options": {
         "calculate": true,
         "cellGap": 1,
         "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
           "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
           "scheme": "Oranges",
           "steps": 64
         },
+        "exemplars": {
+          "color": "rgba(255,0,255,0.7)"
+        },
+        "filterValues": {
+          "le": 1e-9
+        },
+        "legend": {
+          "show": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "mode": "single",
+          "showColorScale": false,
+          "yHistogram": false
+        },
         "yAxis": {
-          "axisPlacement": "left"
+          "axisPlacement": "left",
+          "reverse": false
         }
       },
+      "pluginVersion": "12.3.1",
       "targets": [
         {
           "datasource": {
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"${bucket}\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)",
+          "query": "from(bucket: \"heatpump_raw\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)",
           "refId": "A"
         }
       ],
@@ -455,43 +773,38 @@
       "type": "heatmap"
     }
   ],
+  "preload": false,
   "refresh": "30s",
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 42,
   "tags": ["heatpump", "power"],
   "templating": {
     "list": [
       {
         "current": {},
-        "hide": 0,
         "includeAll": false,
-        "multi": false,
         "name": "DS_INFLUXDB",
         "options": [],
         "query": "influxdb",
         "refresh": 1,
         "regex": "",
-        "skipUrlSync": false,
         "type": "datasource"
       },
       {
+        "allowCustomValue": false,
         "current": {
-          "selected": false,
-          "text": "${INFLUXDB_BUCKET_RAW}",
-          "value": "${INFLUXDB_BUCKET_RAW}"
+          "text": "2026-02",
+          "value": "2026-02"
         },
-        "hide": 2,
-        "name": "bucket",
-        "options": [
-          {
-            "selected": true,
-            "text": "${INFLUXDB_BUCKET_RAW}",
-            "value": "${INFLUXDB_BUCKET_RAW}"
-          }
-        ],
-        "query": "${INFLUXDB_BUCKET_RAW}",
-        "skipUrlSync": false,
-        "type": "textbox"
+        "definition": "import \"date\"\n\n// Define our window based on the Grafana dashboard selection\n// We subtract/add years to the current dashboard view\nsearch_start = date.add(d: -3y, to: v.timeRangeStart)\nsearch_stop = date.add(d: 3y, to: v.timeRangeStop)\n\nfrom(bucket: \"heatpump_raw\")\n  |> range(start: search_start, stop: search_stop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Group by month to find all available months in this 6-year window\n  |> aggregateWindow(every: 1mo, fn: first, createEmpty: false)\n  |> keep(columns: [\"_time\"])\n  |> unique(column: \"_time\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> map(fn: (r) => ({\n      __value: string(v: r._time),\n      text: \"${date.month(t: r._time)} ${date.year(t: r._time)}\"\n    }))",
+        "label": "month",
+        "name": "month",
+        "options": [],
+        "query": {
+          "query": "import \"date\"\n\n// Define our window based on the Grafana dashboard selection\n// We subtract/add years to the current dashboard view\nsearch_start = date.add(d: -3y, to: v.timeRangeStart)\nsearch_stop = date.add(d: 3y, to: v.timeRangeStop)\n\nfrom(bucket: \"heatpump_raw\")\n  |> range(start: search_start, stop: search_stop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Group by month to find all available months in this 6-year window\n  |> aggregateWindow(every: 1mo, fn: first, createEmpty: false)\n  |> keep(columns: [\"_time\"])\n  |> unique(column: \"_time\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> map(fn: (r) => ({\n      __value: string(v: r._time),\n      text: \"${date.month(t: r._time)} ${date.year(t: r._time)}\"\n    }))"
+        },
+        "refresh": 1,
+        "regex": "^(\\d{4}-\\d{2}).*$",
+        "type": "query"
       }
     ]
   },
@@ -503,6 +816,5 @@
   "timezone": "",
   "title": "Power & Energy",
   "uid": "heatpump-power",
-  "version": 1,
-  "weekStart": ""
+  "version": 1
 }
