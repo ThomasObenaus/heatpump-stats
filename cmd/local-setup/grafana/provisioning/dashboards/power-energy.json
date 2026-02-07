@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
+  "id": 3,
   "links": [],
   "panels": [
     {
@@ -99,7 +99,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -193,7 +193,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -257,7 +257,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -326,7 +326,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -390,7 +390,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -459,7 +459,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -554,7 +554,7 @@
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -618,7 +618,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -687,7 +687,7 @@
         "textMode": "auto",
         "wideLayout": true
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -758,7 +758,7 @@
           "reverse": false
         }
       },
-      "pluginVersion": "12.3.1",
+      "pluginVersion": "12.3.2",
       "targets": [
         {
           "datasource": {
@@ -791,7 +791,6 @@
       },
       {
         "current": {
-          "selected": false,
           "text": "heatpump_raw",
           "value": "heatpump_raw"
         },
@@ -805,7 +804,6 @@
           }
         ],
         "query": "heatpump_raw",
-        "skipUrlSync": false,
         "type": "textbox"
       },
       {
@@ -814,12 +812,14 @@
           "text": "2026-02",
           "value": "2026-02"
         },
-        "definition": "import \"date\"\n\n// Define our window based on the Grafana dashboard selection\n// We subtract/add years to the current dashboard view\nsearch_start = date.add(d: -3y, to: v.timeRangeStart)\nsearch_stop = date.add(d: 3y, to: v.timeRangeStop)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: search_start, stop: search_stop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Group by month to find all available months in this 6-year window\n  |> aggregateWindow(every: 1mo, fn: first, createEmpty: false)\n  |> keep(columns: [\"_time\"])\n  |> unique(column: \"_time\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> map(fn: (r) => ({\n      __value: string(v: r._time),\n      text: \"${date.month(t: r._time)} ${date.year(t: r._time)}\"\n    }))",
+        "definition": "import \"date\"\n\nsearch_start = date.add(d: -3y, to: v.timeRangeStart)\n// search_stop = now() \nsearch_stop = date.add(d: 3y, to: v.timeRangeStop)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: search_start, stop: search_stop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Use timeSrc: \"_start\" to force the timestamp to be the beginning of the month\n  |> aggregateWindow(every: 1mo, fn: first, createEmpty: false, timeSrc: \"_start\")\n  |> keep(columns: [\"_time\"])\n  |> unique(column: \"_time\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> map(fn: (r) => ({\n      __value: string(v: r._time),\n      text: \"${date.month(t: r._time)} ${date.year(t: r._time)}\"\n    }))",
         "label": "month",
         "name": "month",
         "options": [],
         "query": {
-          "query": "import \"date\"\n\n// Define our window based on the Grafana dashboard selection\n// We subtract/add years to the current dashboard view\nsearch_start = date.add(d: -3y, to: v.timeRangeStart)\nsearch_stop = date.add(d: 3y, to: v.timeRangeStop)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: search_start, stop: search_stop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Group by month to find all available months in this 6-year window\n  |> aggregateWindow(every: 1mo, fn: first, createEmpty: false)\n  |> keep(columns: [\"_time\"])\n  |> unique(column: \"_time\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> map(fn: (r) => ({\n      __value: string(v: r._time),\n      text: \"${date.month(t: r._time)} ${date.year(t: r._time)}\"\n    }))"
+          "maxDataPoints": 1000,
+          "query": "import \"date\"\n\nsearch_start = date.add(d: -3y, to: v.timeRangeStart)\n// search_stop = now() \nsearch_stop = date.add(d: 3y, to: v.timeRangeStop)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: search_start, stop: search_stop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Use timeSrc: \"_start\" to force the timestamp to be the beginning of the month\n  |> aggregateWindow(every: 1mo, fn: first, createEmpty: false, timeSrc: \"_start\")\n  |> keep(columns: [\"_time\"])\n  |> unique(column: \"_time\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> map(fn: (r) => ({\n      __value: string(v: r._time),\n      text: \"${date.month(t: r._time)} ${date.year(t: r._time)}\"\n    }))",
+          "refId": "InfluxVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
         "regex": "^(\\d{4}-\\d{2}).*$",
@@ -835,5 +835,5 @@
   "timezone": "",
   "title": "Power & Energy",
   "uid": "heatpump-power",
-  "version": 1
+  "version": 2
 }

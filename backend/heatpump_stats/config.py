@@ -14,9 +14,9 @@ class Settings(BaseSettings):
         default="UTC",
         description="Timezone for timestamps (e.g., 'Europe/Berlin', 'UTC')",
     )
-    COLLECTOR_MODE: Literal["production", "mock"] = Field(
+    COLLECTOR_MODE: Literal["production", "simulation", "mock"] = Field(
         default="production",
-        description="Collector mode: 'production' for real data, 'mock' for testing",
+        description="Collector mode: 'production' for real data, 'simulation' for mock sensors with real DB, 'mock' for testing",
     )
 
     # Viessmann
