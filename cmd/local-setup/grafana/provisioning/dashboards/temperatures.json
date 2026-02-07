@@ -576,19 +576,19 @@
       {
         "current": {
           "selected": false,
-          "text": "${INFLUXDB_BUCKET_RAW}",
-          "value": "${INFLUXDB_BUCKET_RAW}"
+          "text": "heatpump_raw",
+          "value": "heatpump_raw"
         },
         "hide": 2,
         "name": "bucket",
         "options": [
           {
             "selected": true,
-            "text": "${INFLUXDB_BUCKET_RAW}",
-            "value": "${INFLUXDB_BUCKET_RAW}"
+            "text": "heatpump_raw",
+            "value": "heatpump_raw"
           }
         ],
-        "query": "${INFLUXDB_BUCKET_RAW}",
+        "query": "heatpump_raw",
         "skipUrlSync": false,
         "type": "textbox"
       }

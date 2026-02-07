@@ -116,7 +116,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "description": "Daily energy consumption, this week so far.",
       "fieldConfig": {
@@ -210,7 +210,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -274,7 +274,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "description": "Energy consumed today.",
       "fieldConfig": {
@@ -343,7 +343,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -407,7 +407,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "description": "Shows the energy consumed this week so far. ",
       "fieldConfig": {
@@ -476,7 +476,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "description": "Daily energy consumption, this week so far.",
       "fieldConfig": {
@@ -571,7 +571,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "fieldConfig": {
         "defaults": {
@@ -635,7 +635,7 @@
     {
       "datasource": {
         "type": "influxdb",
-        "uid": "P951FEA4DE68E13C5"
+        "uid": "${DS_INFLUXDB}"
       },
       "description": "Shows the energy consumed this month so far. ",
       "fieldConfig": {
@@ -788,6 +788,25 @@
         "refresh": 1,
         "regex": "",
         "type": "datasource"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "heatpump_raw",
+          "value": "heatpump_raw"
+        },
+        "hide": 2,
+        "name": "bucket",
+        "options": [
+          {
+            "selected": true,
+            "text": "heatpump_raw",
+            "value": "heatpump_raw"
+          }
+        ],
+        "query": "heatpump_raw",
+        "skipUrlSync": false,
+        "type": "textbox"
       },
       {
         "allowCustomValue": false,
