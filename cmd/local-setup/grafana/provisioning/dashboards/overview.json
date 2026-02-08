@@ -368,6 +368,52 @@
       }
     },
     {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "description": "Shows the energy consumed this week so far.",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 4 },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "import \"date\"\n\ntoday = date.truncate(t: now(), unit: 1d)\n// Sunday 0; Monday 1; ...\nweek_day_raw =  date.weekDay(t: now()) \n// special handling for Sunday -> map from -1 to 6\nback_week_days = if week_day_raw == 0 then 6 else week_day_raw - 1 \n\nmonday_start = date.sub(d: duration(v: string(v: back_week_days) + \"d\"), from: today)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: monday_start)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> integral(unit: 1h)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))",
+          "refId": "A"
+        }
+      ],
+      "title": "This Week's Energy (kWh)",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 210 },
+              { "color": "red", "value": 300 }
+            ]
+          },
+          "unit": "kwh"
+        },
+        "overrides": []
+      }
+    },
+    {
       "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
       "id": 10,
       "options": {
