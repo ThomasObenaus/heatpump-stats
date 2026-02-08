@@ -466,7 +466,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "import \"date\"\n\n// 1. Get the start of today (midnight)\ntoday = date.truncate(t: now(), unit: 1d)\n\n// 2. Calculate how many days we are into the week (Monday = 1)\n// If today is Monday (1), it subtracts 0 days.\n// If today is Thursday (4), it subtracts 3 days.\ndays_since_monday = duration(v: string(v: date.weekDay(t: now()) - 1) + \"d\")\nmonday_start = date.sub(d: days_since_monday, from: today)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: monday_start)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> integral(unit: 1h)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))",
+          "query": "import \"date\"\n\ntoday = date.truncate(t: now(), unit: 1d)\n// Sunday 0; Monday 1; ...\nweek_day_raw =  date.weekDay(t: now()) \n// special handling for Sunday -> map from -1 to 6\nback_week_days = if week_day_raw == 0 then 6 else week_day_raw - 1 \n\nmonday_start = date.sub(d: duration(v: string(v: back_week_days) + \"d\"), from: today)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: monday_start)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> integral(unit: 1h)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))",
           "refId": "A"
         }
       ],
@@ -835,5 +835,5 @@
   "timezone": "",
   "title": "Power & Energy",
   "uid": "heatpump-power",
-  "version": 2
+  "version": 3
 }
