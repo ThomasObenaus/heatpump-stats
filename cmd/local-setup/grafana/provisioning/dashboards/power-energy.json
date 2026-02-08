@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -200,7 +200,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "import \"date\"\n\ntoday = date.truncate(t: now(), unit: 1d)\ndays_since_monday = duration(v: string(v: date.weekDay(t: now()) - 1) + \"d\")\nmonday_start = date.sub(d: days_since_monday, from: today)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: monday_start)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Corrected way to pass integral with a unit:\n  |> aggregateWindow(\n      every: 1d, \n      fn: (column, tables=<-) => tables |> integral(unit: 1h),\n      // This tells Flux to use the start of the day as the label\n      timeSrc: \"_start\"\n  )\n  |> map(fn: (r) => ({ \n    r with \n    _time_label: \"${date.monthDay(t: r._time)}.${date.month(t: r._time)}.\",\n    _value: r._value / 1000.0 \n  }))\n  |> keep(columns: [\"_time_label\", \"_value\"])\n  |> rename(columns: {_value: \"Consumed Energy (in kWh)\"})\n  |> rename(columns: {_time_label: \"Day\"})",
+          "query": "import \"date\"\n\ntoday = date.truncate(t: now(), unit: 1d)\n// Sunday 0; Monday 1; ...\nweek_day_raw =  date.weekDay(t: now()) \n// special handling for Sunday -> map from -1 to 6\nback_week_days = if week_day_raw == 0 then 6 else week_day_raw - 1 \n\nmonday_start = date.sub(d: duration(v: string(v: back_week_days) + \"d\"), from: today)\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: monday_start)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  // Corrected way to pass integral with a unit:\n  |> aggregateWindow(\n      every: 1d, \n      fn: (column, tables=<-) => tables |> integral(unit: 1h),\n      // This tells Flux to use the start of the day as the label\n      timeSrc: \"_start\"\n  )\n  |> map(fn: (r) => ({ \n    r with \n    _time_label: \"${date.monthDay(t: r._time)}.${date.month(t: r._time)}.\",\n    _value: r._value / 1000.0 \n  }))\n  |> keep(columns: [\"_time_label\", \"_value\"])\n  |> rename(columns: {_value: \"Consumed Energy (in kWh)\"})\n  |> rename(columns: {_time_label: \"Day\"})",
           "refId": "A"
         }
       ],
