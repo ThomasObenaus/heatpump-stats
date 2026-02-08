@@ -507,6 +507,53 @@
     },
     {
       "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "description": "Estimated electricity cost this year (0.40 €/kWh).",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 9 },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "import \"date\"\n\nfrom(bucket: \"${bucket}\")\n  |> range(start: date.truncate(t: now(), unit: 1y))\n  |> filter(fn: (r) => r[\"_measurement\"] == \"power_meter\")\n  |> filter(fn: (r) => r[\"_field\"] == \"power_watts\")\n  |> integral(unit: 1h)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 * ${price_per_kwh} / 100.0 }))",
+          "refId": "A"
+        }
+      ],
+      "title": "This Year's Cost (€)",
+      "type": "stat",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 2400 },
+              { "color": "red", "value": 3360 }
+            ]
+          },
+          "unit": "currencyEUR",
+          "decimals": 2
+        },
+        "overrides": []
+      }
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
       "description": "Shows the energy consumed this year so far.",
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 9 },
       "id": 14,
@@ -673,6 +720,26 @@
           }
         ],
         "query": "heatpump_raw",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "35.71",
+          "value": "35.71"
+        },
+        "hide": 0,
+        "label": "Price per kWh (ct/kWh)",
+        "name": "price_per_kwh",
+        "options": [
+          {
+            "selected": true,
+            "text": "35.71",
+            "value": "35.71"
+          }
+        ],
+        "query": "35.71",
         "skipUrlSync": false,
         "type": "textbox"
       }
